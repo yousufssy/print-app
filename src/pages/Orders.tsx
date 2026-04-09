@@ -92,7 +92,7 @@ export default function OrdersPage() {
                   <tr><td colSpan={10} style={{ textAlign: 'center', padding: 30, color: 'var(--muted)' }}>لا توجد نتائج</td></tr>
                 )}
                 {data?.data?.map(o => (
-                  <tr key={o.row_id} onClick={() => navigate(`/orders/${o.ID}/${o.Year}`)}
+                  <tr key={o.ID} onClick={() => navigate(`/orders/${o.ID}/${o.Year}`)}
                     style={{ borderBottom: '1px solid var(--border)', cursor: 'pointer', transition: 'background .15s' }}
                     onMouseEnter={e => (e.currentTarget as HTMLTableRowElement).style.background = '#fdf8f0'}
                     onMouseLeave={e => (e.currentTarget as HTMLTableRowElement).style.background = ''}
