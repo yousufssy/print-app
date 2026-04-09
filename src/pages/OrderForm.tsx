@@ -656,7 +656,7 @@ body{font-family:'Arial',sans-serif;background:#fff;direction:rtl;margin:0;paddi
         {/* 🖨️ زر الطباعة الجديد */}
         <button 
           type="button"
-          onClick={handlePrint}
+          onClick={printProductionCard}
           style={{ 
             background: 'var(--primary, #2980b9)', 
             color: '#fff',
@@ -958,7 +958,7 @@ body{font-family:'Arial',sans-serif;background:#fff;direction:rtl;margin:0;paddi
         <div style={{ background: '#fff', borderRadius: 14, border: '1px solid var(--border)', padding: '12px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <span style={{ fontSize: 12, color: 'var(--muted)' }}>سنة العمل: <strong>{watchYear}</strong></span>
           <div style={{ display: 'flex', gap: 10 }}>
-            <Btn variant="outline" type="button" onClick={handlePrint} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+            <Btn variant="outline" type="button" onClick={printProductionCard} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
               🖨️ طباعة
             </Btn>
             <Btn variant="outline" type="button" onClick={() => navigate('/orders')}>إلغاء</Btn>
