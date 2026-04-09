@@ -3,12 +3,12 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "scripts": {
+ "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "npm install --include=dev && ./node_modules/.bin/tsc && ./node_modules/.bin/vite build",
     "preview": "vite preview",
     "start": "serve -s dist -l $PORT"
-  },
+    },
   "dependencies": {
     "@tanstack/react-query": "^5.51.0",
     "@types/react": "^18.3.3",
