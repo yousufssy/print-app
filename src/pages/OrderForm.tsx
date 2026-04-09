@@ -39,6 +39,7 @@ function AccordionCard({
       overflow: 'hidden',
       boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
     }}>
+      {/* Header - قابل للنقر */}
       <button
         type="button"
         onClick={toggle}
@@ -72,6 +73,7 @@ function AccordionCard({
         </span>
       </button>
       
+      {/* Content - مع تأثير انزلاق */}
       <div style={{
         maxHeight: open ? '3000px' : '0',
         overflow: 'hidden',
@@ -275,6 +277,7 @@ export default function OrderFormPage() {
   const [problemsRows,   setProblemsRows]   = useState<Record<string, string>[]>([]);
   const [operationsRows, setOperationsRows] = useState<Record<string, string>[]>([]);
 
+  // ➕ State لإدارة فتح/إغلاق أقسام الأكورديون
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
     basic: true,
     specs: true,
@@ -283,6 +286,7 @@ export default function OrderFormPage() {
     delivery: true
   });
 
+  // حفظ/استعادة حالة الأقسام من localStorage
   useEffect(() => {
     const saved = localStorage.getItem('orderFormSections');
     if (saved) {
@@ -298,8 +302,7 @@ export default function OrderFormPage() {
     localStorage.setItem('orderFormSections', JSON.stringify(openSections));
   }, [openSections]);
 
-  // ✅ إضافة getValues هنا
-  const { register, handleSubmit, reset, watch, setValue, getValues } = useForm<Order>();
+  const { register, handleSubmit, reset, watch, setValue } = useForm<Order>();
   const watchYear = watch('Year') || String(new Date().getFullYear());
   const watchId   = watch('ID') || '';
 
@@ -309,9 +312,12 @@ export default function OrderFormPage() {
   const { data: vouchers = [] } = useVouchers(isEdit ? watchId : '', watchYear);
   const deleteVoucher = useDeleteVoucher();
 
+  // ✅ تحميل البيانات عند التعديل — مع قراءة صحيحة للـ boolean
   useEffect(() => {
     if (existing) {
       reset(existing);
+
+      // قراءة boolean fields بأي صيغة ترجع من الداتابيز (True/False/1/0/true/false)
       const c: Record<string, boolean> = {};
       BOOL_FIELDS.forEach(f => {
         c[f] = fromBit((existing as any)[f]);
@@ -338,13 +344,18 @@ export default function OrderFormPage() {
     }
   }, [isEdit, orders, setValue]);
 
+  // ✅ الحفظ — مع إرسال 1/0 بدل True/False
   const onSubmit = async (data: Order) => {
+    // تحويل boolean fields لـ 1/0
     BOOL_FIELDS.forEach(f => {
       (data as any)[f] = toBit(checks[f]);
     });
+
+    // حقول الزبون
     CUST_FIELDS.forEach((field, i) => {
       (data as any)[field] = toBit(custChecks[CUST_LABELS[i]]);
     });
+
     (data as any).DubelM = toBit(checks.CTB);
     (data as any).tabkha = 0;
     (data as any).bals   = 0;
@@ -364,8 +375,20 @@ export default function OrderFormPage() {
     navigate('/orders');
   };
 
-  // 🖨️ دالة الطباعة باستخدام القالب من الملف المرفق
- const printProductionCard = () => {
+  const chk  = (k: string) => (v: boolean) => setChecks(c => ({ ...c, [k]: v }));
+  const mchk = (k: string) => (v: boolean) => setMfgChecks(c => ({ ...c, [k]: v }));
+  const cchk = (k: string) => (v: boolean) => setCustChecks(c => ({ ...c, [k]: v }));
+  
+  const toggleSection = (key: string) => {
+    setOpenSections(prev => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  const isSaving = createOrder.isPending || updateOrder.isPending;
+
+  // ══════════════════════════════════════════════════════
+  //  🖨️ طباعة بطاقة الإنتاج
+  // ══════════════════════════════════════════════════════
+  const printProductionCard = () => {
     const d = watch();
     const chkd = (val: any) => (val ? '✔' : '');
     const fmt  = (v: any) => v ?? '';
@@ -611,8 +634,6 @@ body{font-family:'Arial',sans-serif;background:#fff;direction:rtl;margin:0;paddi
     setTimeout(() => URL.revokeObjectURL(url), 10000);
   };
 
-  const isSaving = createOrder.isPending || updateOrder.isPending;
-
   if (isLoading) return <Loading />;
 
   const G = ({ label, req, children }: { label: string; req?: boolean; children: React.ReactNode }) => (
@@ -652,34 +673,10 @@ body{font-family:'Arial',sans-serif;background:#fff;direction:rtl;margin:0;paddi
         >
           📁 إغلاق الكل
         </button>
-        
-        {/* 🖨️ زر الطباعة الجديد */}
-        <button 
-          type="button"
-          onClick={printProductionCard}
-          style={{ 
-            background: 'var(--primary, #2980b9)', 
-            color: '#fff',
-            border: 'none', 
-            borderRadius: 6, 
-            padding: '6px 14px', 
-            fontSize: 12, 
-            cursor: 'pointer',
-            fontFamily: 'Cairo, sans-serif',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 5,
-            boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-            transition: 'background 0.2s'
-          }}
-          onMouseOver={(e) => e.currentTarget.style.background = 'var(--primary-dark, #1f618d)'}
-          onMouseOut={(e) => e.currentTarget.style.background = 'var(--primary, #2980b9)'}
-        >
-          🖨️ طباعة البطاقة
-        </button>
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)}>
+
         {/* ══ 1. بيانات الطلب الأساسية ══ */}
         <AccordionCard 
           title="📋 بيانات الطلب الأساسية"
@@ -802,7 +799,11 @@ body{font-family:'Arial',sans-serif;background:#fff;direction:rtl;margin:0;paddi
             </G>
             <G label="المعلومات الفنية"><input className="fc" {...register('note_ord')} style={{ textAlign: 'right' }} /></G>
             <G label="برنيش"><CheckItem label="برنيش" checked={!!checks.varn} {...register('Varnish')} onChange={chk('varn')} /></G>
-            <G label="CTB"><CheckItem label="CTB" checked={!!checks.CTB} onChange={chk('CTB')} /></G>
+            <G label="CTB"><CheckItem
+              label="CTB"
+              checked={!!checks.CTB}
+              onChange={chk('CTB')}
+            /></G>
           </div>
 
           <SectionDiv label="العمليات" />
@@ -816,6 +817,7 @@ body{font-family:'Arial',sans-serif;background:#fff;direction:rtl;margin:0;paddi
           onToggle={() => toggleSection('quality')}
         >
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+            {/* أثناء التصنيع */}
             <div style={{ border: '1.5px solid var(--border)', borderRadius: 10, overflow: 'hidden' }}>
               <div style={{ padding: '9px 13px', background: 'rgba(214,137,16,.1)', color: 'var(--warn)', fontSize: 12, fontWeight: 700, borderBottom: '1px solid rgba(214,137,16,.2)', textAlign: 'right' }}>
                 ⚠️ المشاكل الواردة أثناء التصنيع
@@ -839,6 +841,7 @@ body{font-family:'Arial',sans-serif;background:#fff;direction:rtl;margin:0;paddi
               </div>
             </div>
 
+            {/* من الزبون */}
             <div style={{ border: '1.5px solid var(--border)', borderRadius: 10, overflow: 'hidden' }}>
               <div style={{ padding: '9px 13px', background: 'rgba(192,57,43,.08)', color: 'var(--red)', fontSize: 12, fontWeight: 700, borderBottom: '1px solid rgba(192,57,43,.15)', textAlign: 'right' }}>
                 🚨 المشاكل الواردة من الزبون
@@ -873,6 +876,7 @@ body{font-family:'Arial',sans-serif;background:#fff;direction:rtl;margin:0;paddi
                       <input className="fc" type="number" defaultValue={25} style={{ fontSize: 12, textAlign: 'right' }} />
                     </div>
                   </div>
+                  
                   <div>
                     <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--steel)', marginBottom: 4, display: 'block', textAlign: 'right' }}>تاريخ الانتهاء</label>
                     <input className="fc" type="date" style={{ fontSize: 12, textAlign: 'right' }} />
@@ -958,15 +962,14 @@ body{font-family:'Arial',sans-serif;background:#fff;direction:rtl;margin:0;paddi
         <div style={{ background: '#fff', borderRadius: 14, border: '1px solid var(--border)', padding: '12px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <span style={{ fontSize: 12, color: 'var(--muted)' }}>سنة العمل: <strong>{watchYear}</strong></span>
           <div style={{ display: 'flex', gap: 10 }}>
-            <Btn variant="outline" type="button" onClick={printProductionCard} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-              🖨️ طباعة
-            </Btn>
             <Btn variant="outline" type="button" onClick={() => navigate('/orders')}>إلغاء</Btn>
+            <Btn variant="outline" type="button" onClick={printProductionCard}>🖨️ طباعة بطاقة الإنتاج</Btn>
             <Btn variant="primary" type="submit" disabled={isSaving}>
               {isSaving ? '⏳ جاري الحفظ...' : '✅ حفظ وتأكيد'}
             </Btn>
           </div>
         </div>
+
       </form>
 
       <VoucherModal open={voucherOpen} onClose={() => setVoucherOpen(false)} orderId={watchId} orderYear={watchYear} />
