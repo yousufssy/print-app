@@ -238,6 +238,23 @@ const OPERATIONS_COLS = [
 const CHK_MFG  = ['برنيش','تلميع بقعي','تلميع كامل','سلفان لميع','سلفان مات','طُبعت؟'];
 const CHK_CUST = ['مع طبخة','مع تطوية','تدعيم زكزاك','حراري','بص','تلميع بقعي'];
 
+// ── Helper: تحويل أي قيمة boolean لـ 1 أو 0 ──────────────────────────────────
+const toBit = (val: any): number =>
+  val === true || val === 1 || val === '1' || String(val).toLowerCase() === 'true' ? 1 : 0;
+
+// ── Helper: قراءة boolean من الداتابيز بأي صيغة ──────────────────────────────
+const fromBit = (val: any): boolean =>
+  val === true || val === 1 || val === '1' || String(val).toLowerCase() === 'true';
+
+// ── قائمة حقول الـ boolean ────────────────────────────────────────────────────
+const BOOL_FIELDS = [
+  'varnich','uv','uv_Spot','seluvan_lum','seluvan_mat',
+  'Tad3em','Tay','harary','rolling','Printed','Billed','Reseved'
+];
+
+const CUST_LABELS = ['مع طبخة','مع تطوية','تدعيم زكزاك','حراري','بص','تلميع بقعي'];
+const CUST_FIELDS = ['cust_with_baking','cust_with_folding','cust_tad3em_zkzk','cust_harary','cust_bp','cust_tlm3_bq3y'];
+
 // ══════════════════════════════════════════════════════
 //  🎯 MAIN COMPONENT - OrderFormPage
 // ══════════════════════════════════════════════════════
@@ -245,10 +262,6 @@ export default function OrderFormPage() {
   const { id, year } = useParams<{ id?: string; year?: string }>();
   const isEdit = !!(id && year);
   const navigate = useNavigate();
-
-
- 
-
 
   const { data: existing, isLoading } = useOrder(id ?? '', year ?? '');
   const createOrder = useCreateOrder();
@@ -264,8 +277,6 @@ export default function OrderFormPage() {
   const [problemsRows,   setProblemsRows]   = useState<Record<string, string>[]>([]);
   const [operationsRows, setOperationsRows] = useState<Record<string, string>[]>([]);
 
-
-  
   // ➕ State لإدارة فتح/إغلاق أقسام الأكورديون
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
     basic: true,
@@ -288,7 +299,7 @@ export default function OrderFormPage() {
   }, []);
 
   useEffect(() => {
-    localStorage.setItem('orderFormSections', JSON.parse(JSON.stringify(openSections)));
+    localStorage.setItem('orderFormSections', JSON.stringify(openSections));
   }, [openSections]);
 
   const { register, handleSubmit, reset, watch, setValue } = useForm<Order>();
@@ -301,20 +312,23 @@ export default function OrderFormPage() {
   const { data: vouchers = [] } = useVouchers(isEdit ? watchId : '', watchYear);
   const deleteVoucher = useDeleteVoucher();
 
+  // ✅ تحميل البيانات عند التعديل — مع قراءة صحيحة للـ boolean
   useEffect(() => {
     if (existing) {
       reset(existing);
+
+      // قراءة boolean fields بأي صيغة ترجع من الداتابيز (True/False/1/0/true/false)
       const c: Record<string, boolean> = {};
-      ['varnich','uv','uv_Spot','seluvan_lum','seluvan_mat','Tad3em','Tay','harary','rolling','CTB','varn','Printed','Billed','Reseved'].forEach(f => {
-        c[f] = (existing as any)[f] === 'True' || (existing as any)[f] === '1';
+      BOOL_FIELDS.forEach(f => {
+        c[f] = fromBit((existing as any)[f]);
       });
+      c['CTB']  = fromBit((existing as any)['DubelM']);
+      c['varn'] = fromBit((existing as any)['varnich']);
       setChecks(c);
 
       const custC: Record<string, boolean> = {};
-      const custLabels = ['مع طبخة','مع تطوية','تدعيم زكزاك','حراري','بص','تلميع بقعي'];
-      const custFields = ['cust_with_baking', 'cust_with_folding', 'cust_tad3em_zkzk', 'cust_harary', 'cust_bp', 'cust_tlm3_bq3y'];
-      custLabels.forEach((label, i) => {
-        custC[label] = (existing as any)[custFields[i]] === 'True' || (existing as any)[custFields[i]] === '1';
+      CUST_LABELS.forEach((label, i) => {
+        custC[label] = fromBit((existing as any)[CUST_FIELDS[i]]);
       });
       setCustChecks(custC);
     } else {
@@ -330,25 +344,26 @@ export default function OrderFormPage() {
     }
   }, [isEdit, orders, setValue]);
 
+  // ✅ الحفظ — مع إرسال 1/0 بدل True/False
   const onSubmit = async (data: Order) => {
-    ['varnich','uv','uv_Spot','seluvan_lum','seluvan_mat','Tad3em','Tay','harary','rolling','CTB','varn','Printed','Billed','Reseved'].forEach(f => {
-      (data as any)[f] = checks[f] ? 'True' : 'False';
+    // تحويل boolean fields لـ 1/0
+    BOOL_FIELDS.forEach(f => {
+      (data as any)[f] = toBit(checks[f]);
     });
 
-    const custLabels = ['مع طبخة','مع تطوية','تدعيم زكزاك','حراري','بص','تلميع بقعي'];
-    const custFields = ['cust_with_baking', 'cust_with_folding', 'cust_tad3em_zkzk', 'cust_harary', 'cust_bp', 'cust_tlm3_bq3y'];
-    custFields.forEach((field, i) => {
-      (data as any)[field] = custChecks[custLabels[i]] ? 'true' : 'false';
+    // حقول الزبون
+    CUST_FIELDS.forEach((field, i) => {
+      (data as any)[field] = toBit(custChecks[CUST_LABELS[i]]);
     });
 
-    (data as any).DubelM = checks.CTB ? 'true' : 'false';
-    // (data as any).Varnish = checks.varn ? '1' : '0';
-    (data as any).tabkha = '0'; 
-    (data as any).bals = '0';
-
+    (data as any).DubelM = toBit(checks.CTB);
+    (data as any).tabkha = 0;
+    (data as any).bals   = 0;
 
     if (!isEdit) {
-      const maxRowId = orders.length > 0 ? Math.max(...orders.map((o: any) => o.ID)) + 1 : 1;
+      const maxRowId = orders.length > 0
+        ? Math.max(...orders.map((o: any) => o.ID)) + 1
+        : 1;
       (data as any).ID = maxRowId;
     }
 
@@ -385,7 +400,7 @@ export default function OrderFormPage() {
         </h1>
       </div>
 
-      {/* 🔘 أزرار التحكم السريع بالأقسام (اختياري) */}
+      {/* 🔘 أزرار التحكم السريع بالأقسام */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
         <button 
           type="button"
@@ -473,7 +488,6 @@ export default function OrderFormPage() {
 
           <SectionDiv label="المواصفات الفنية" />
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(8,1fr)', gap: 12 }}>
-            
             <G label="الترخيص"><input className="fc" {...register('authorization')} style={{ textAlign: 'right' }} /></G>
             <G label="السعر"><input className="fc" type="number" {...register('Price')} style={{ textAlign: 'right' }} /></G>         
             <G label="النموذج المجاني"><input className="fc" {...register('Free_text')} style={{ textAlign: 'right' }} /></G>
@@ -488,7 +502,6 @@ export default function OrderFormPage() {
             <G label="رقم النموذج"><input className="fc" {...register('Pat_num')} style={{ textAlign: 'right' }} /></G>
             <G label="ملاحظات الطلبية"><input className="fc" style={{ textAlign: 'right' }} /></G>
             <G label="تعديل بالمونتاج"><input className="fc" {...register('modefyM')} style={{ textAlign: 'right' }} /></G>
-            
           </div>
 
           <SectionDiv label="المواد" />
@@ -539,10 +552,9 @@ export default function OrderFormPage() {
             <G label="برنيش"><CheckItem label="برنيش" checked={!!checks.varn} {...register('Varnish')} onChange={chk('varn')} /></G>
             <G label="CTB"><CheckItem
               label="CTB"
-              checked={!!watch('DubelM')}
-              onChange={(val) => setValue('DubelM', val)}
+              checked={!!checks.CTB}
+              onChange={chk('CTB')}
             /></G>
-          
           </div>
 
           <SectionDiv label="العمليات" />
