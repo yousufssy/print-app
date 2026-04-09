@@ -49,7 +49,7 @@ export default function DashboardPage() {
                 </thead>
                 <tbody>
                   {data?.recent?.map((o:any) => (
-                    <tr key={o.row_id} onClick={() => navigate(`/orders/${o.ID}/${o.Year}`)}
+                    <tr key={o.ID} onClick={() => navigate(`/orders/${o.ID}/${o.Year}`)}
                       style={{ borderBottom: '1px solid var(--border)', cursor: 'pointer', transition: 'background .15s' }}
                       onMouseEnter={e => (e.currentTarget as HTMLTableRowElement).style.background = '#fdf8f0'}
                       onMouseLeave={e => (e.currentTarget as HTMLTableRowElement).style.background = ''}
