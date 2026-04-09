@@ -324,7 +324,7 @@ export default function OrderFormPage() {
 
   useEffect(() => {
     if (!isEdit && orders.length >= 0) {
-      const latestOrder = orders.sort((a: any, b: any) => b.row_id - a.row_id)[0];
+      const latestOrder = orders.sort((a: any, b: any) => b.ID - a.ID)[0];
       const lastSer = latestOrder ? parseInt(latestOrder.Ser || '0') || 0 : 0;
       setValue('Ser', String(lastSer + 1));
     }
@@ -348,8 +348,8 @@ export default function OrderFormPage() {
 
 
     if (!isEdit) {
-      const maxRowId = orders.length > 0 ? Math.max(...orders.map((o: any) => o.row_id)) + 1 : 1;
-      (data as any).row_id = maxRowId;
+      const maxRowId = orders.length > 0 ? Math.max(...orders.map((o: any) => o.ID)) + 1 : 1;
+      (data as any).ID = maxRowId;
     }
 
     if (isEdit) {
@@ -427,7 +427,7 @@ export default function OrderFormPage() {
             <G label="التفصيلات المرتبطة"><input className="fc" {...register('AttachmentsOrders')} style={{ textAlign: 'right' }} /></G>
           </div>
           <datalist id="cust-list">
-            {customers.map(c => <option key={(c as any)._row_id} value={c.Customer} />)}
+            {customers.map(c => <option key={(c as any)._ID} value={c.Customer} />)}
           </datalist>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(8,1fr)', gap: 12, marginTop: 12 }}>
             <G label="تاريخ الورود"><input className="fc" type="date" {...register('date_come')} style={{ textAlign: 'right' }} /></G>
@@ -672,7 +672,7 @@ export default function OrderFormPage() {
                   </td></tr>
                 )}
                 {vouchers.map((v, i) => (
-                  <tr key={(v as any)._row_id} style={{ borderBottom: '1px solid var(--border)', background: i % 2 === 0 ? '#fff' : '#fdf8f0' }}>
+                  <tr key={(v as any)._ID} style={{ borderBottom: '1px solid var(--border)', background: i % 2 === 0 ? '#fff' : '#fdf8f0' }}>
                     <td style={{ padding: '8px', textAlign: 'right' }}><span style={{ fontWeight: 600 }}>{v.Voucher_num || '—'}</span></td>
                     <td style={{ padding: '8px', textAlign: 'right' }}>{v.V_date || '—'}</td>
                     <td style={{ padding: '8px', textAlign: 'right' }}>{v.V_Qunt || '0'}</td>
@@ -684,7 +684,7 @@ export default function OrderFormPage() {
                     <td style={{ padding: '8px', textAlign: 'right' }}>{v.Box_H || '0'}</td>
                     <td style={{ padding: '8px', textAlign: 'center' }}>
                       <button type="button"
-                        onClick={() => confirm('حذف الإيصال؟') && deleteVoucher.mutate((v as any)._row_id)}
+                        onClick={() => confirm('حذف الإيصال؟') && deleteVoucher.mutate((v as any)._ID)}
                         style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16 }}>🗑</button>
                     </td>
                   </tr>
