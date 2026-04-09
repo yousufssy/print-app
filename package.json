@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "start": "serve -s dist -l $PORT"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.51.0",
@@ -16,15 +17,21 @@
     "react-dom": "^18.3.1",
     "react-hook-form": "^7.52.2",
     "react-hot-toast": "^2.4.1",
+<<<<<<< HEAD
     "react-router-dom": "^6.26.0",
     "serve": "^14.2.6",
     "zustand": "^4.5.4"
   },
   "devDependencies": {
+=======
+    "date-fns": "^3.6.0",
+    "typescript": "^5.5.3",
+    "vite": "^5.4.0",
+    "@vitejs/plugin-react": "^4.3.1",
+>>>>>>> e518284d69aaaa19a19a70a00b48c751b0f276d2
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
-    "@vitejs/plugin-react": "^4.3.1",
-    "typescript": "^5.5.3",
-    "vite": "^5.4.0"
-  }
+    "serve": "^14.2.3"
+  },
+  "devDependencies": {}
 }
