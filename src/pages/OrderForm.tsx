@@ -302,16 +302,6 @@ export default function OrderFormPage() {
     localStorage.setItem('orderFormSections', JSON.stringify(openSections));
   }, [openSections]);
 
-  const { register, handleSubmit, reset, watch, setValue } = useForm<Order>();
-  const watchYear = watch('Year') || String(new Date().getFullYear());
-  const watchId   = watch('ID') || '';
-
-  const { data: ordersResponse } = useOrders({ year: watchYear });
-  const orders = ordersResponse?.data || [];
-
-  const { data: vouchers = [] } = useVouchers(isEdit ? watchId : '', watchYear);
-  const deleteVoucher = useDeleteVoucher();
-
   // ✅ تحميل البيانات عند التعديل — مع قراءة صحيحة للـ boolean
   useEffect(() => {
     if (existing) {
@@ -391,6 +381,555 @@ export default function OrderFormPage() {
     <FormGroup label={label} required={req}>{children}</FormGroup>
   );
   
+  // ── دالة الطباعة باستخدام قالب htmlppt.txt ──────────────────────────────────
+  const handlePrint = () => {
+    const d = getValues();
+    const matRows = materialsRows || [];
+    
+    const materialsHtml = matRows.map((r, i) => `
+      <div class="grid-item data-row">${r.type || ''}</div>
+      <div class="grid-item data-row">${r.source || ''}</div>
+      <div class="grid-item data-row">${r.supplier || ''}</div>
+      <div class="grid-item data-row">${r.length || ''} × ${r.width || ''}</div>
+      <div class="grid-item data-row">${r.gram || ''}</div>
+      <div class="grid-item data-row">${r.at_plates || ''}</div>
+      <div class="grid-item data-row">${r.output || ''}</div>
+    `).join('') || '<div class="grid-item data-row" style="grid-column: 1/-1; color:#888;">لا توجد مواد مضافة</div>';
+
+    const ch = (val: any) => (val === true || val === 1 || val === '1') ? '✓' : '☐';
+
+    const printContent = `<!DOCTYPE html>
+    <html lang="ar" dir="rtl">
+    <head>
+      <meta charset="UTF-8">
+      <style>
+        @media print {
+          .no-print { display: none !important; }
+          .page { border: none !important; box-shadow: none !important; margin: 0; padding: 0; width: 100%; }
+          body { padding: 0; background: white; }
+        }
+        body {
+          font-family: 'Arial', sans-serif;
+          margin: 0;
+          padding: 0;
+          background-color: #f0f0f0;
+          direction: rtl;
+        }
+        .page {
+          width: 850px;
+          margin: 20px auto;
+          padding: 20px;
+          box-sizing: border-box;
+          border: 1px solid #000;
+          background: #fff;
+        }
+        .header {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          margin-bottom: 20px;
+        }
+        .top-id {
+          display: flex;
+          align-items: center;
+          width: 200px;
+          font-size: 18px;
+        }
+        .logo-box {
+          text-align: center;
+          width: 200px;
+        }
+        .logo-tpp {
+          font-size: 40px;
+          font-weight: bold;
+          line-height: 0.8;
+          margin: 0;
+          font-family: 'Times New Roman', serif;
+        }
+        .logo-sub {
+          font-size: 12px;
+          font-weight: bold;
+          border-top: 2px solid #000;
+          margin-top: 4px;
+          display: inline-block;
+        }
+        .main-title {
+          font-size: 32px;
+          font-weight: bold;
+          margin-top: 10px;
+        }
+        .content-layout {
+          display: flex;
+          justify-content: space-between;
+          margin-bottom: 10px;
+        }
+        .column {
+          width: 48%;
+        }
+        .field {
+          display: flex;
+          align-items: baseline;
+          margin-bottom: 12px;
+        }
+        .label {
+          font-size: 19px;
+          white-space: nowrap;
+        }
+        .dots {
+          flex-grow: 1;
+          border-bottom: 1px dotted #000;
+          margin-left: 8px;
+          min-height: 18px;
+        }
+        .gray-box {
+          background: #999;
+          height: 25px;
+          width: 160px;
+          margin-left: 10px;
+          color: #fff;
+          display: flex;
+          align-items: center;
+          padding-right: 10px;
+        }
+        .extra-lines {
+          margin-top: 10px;
+        }
+        .line {
+          border-bottom: 1px dotted #000;
+          height: 25px;
+          width: 100%;
+        }
+        .footer-right {
+          margin-top: 20px;
+          text-align: right;
+          font-size: 16px;
+          font-weight: bold;
+        }
+        .warehouse-container {
+          width: 100%;
+          max-width: 1200px;
+          margin: 30px auto;
+        }
+        .wrapper {
+          display: flex;
+          gap: 10px;
+          align-items: flex-start;
+          width: 100%;
+        }
+        .side-table {
+          width: 200px;
+          border: 1.5px solid #000;
+          display: flex;
+          flex-direction: column;
+        }
+        .side-cell {
+          border: 0.5px solid #000;
+          padding: 10px;
+          text-align: center;
+          min-height: 40px;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          font-weight: bold;
+        }
+        .side-cell span { font-weight: normal; margin-top: 5px; }
+        .main-container {
+          flex-grow: 1;
+          border: 1.5px solid #000;
+        }
+        .grid-table {
+          display: grid;
+          grid-template-columns: 60px 120px 120px 1fr 100px 80px 80px;
+          width: 100%;
+        }
+        .grid-item {
+          border: 0.5px solid #000;
+          padding: 8px;
+          text-align: center;
+          font-size: 14px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          min-height: 35px;
+        }
+        .grid-item.header { background-color: #f0f0f0; font-weight: bold; }
+        .grid-item.data-row { min-height: 45px; }
+        .bottom-section {
+          display: grid;
+          grid-template-columns: 60px 240px 1fr;
+          width: 100%;
+        }
+        .col-tabaq { display: flex; flex-direction: column; }
+        .empty-cell { height: 40px; border: 0.5px solid #000; }
+        .gray-cell { height: 40px; border: 0.5px solid #000; background-color: #999; }
+        .col-details { display: flex; flex-direction: column; }
+        .label-cell {
+          height: 40px;
+          border: 0.5px solid #000;
+          display: flex;
+          align-items: center;
+          padding-right: 10px;
+          font-weight: bold;
+          font-size: 13px;
+        }
+        .col-approval {
+          border: 0.5px solid #000;
+          display: flex;
+          flex-direction: column;
+        }
+        .approval-head {
+          padding: 5px;
+          text-align: center;
+          border-bottom: 0.5px solid #000;
+          font-weight: bold;
+        }
+        .checks {
+          display: flex;
+          justify-content: space-around;
+          align-items: center;
+          flex-grow: 1;
+          font-size: 12px;
+        }
+        .footer {
+          border-top: 1.5px solid #000;
+          padding: 10px;
+        }
+        .check-box {
+          width: 14px;
+          height: 14px;
+          border: 1px solid #000;
+          display: inline-block;
+          margin-left: 5px;
+          vertical-align: middle;
+          text-align: center;
+          line-height: 12px;
+        }
+        .reason-line {
+          border-bottom: 1px dotted #000;
+          flex-grow: 1;
+          margin-right: 5px;
+        }
+        .container {
+          width: 100%;
+          max-width: 900px;
+          margin: 30px auto 0 auto;
+          border: 1.5px solid #000;
+          padding: 15px;
+        }
+        .header-split {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 25px;
+          margin-bottom: 10px;
+        }
+        .header-item {
+          text-align: center;
+          font-weight: bold;
+          font-size: 16px;
+        }
+        .date-space {
+          border-bottom: 1px solid #000;
+          padding: 0 20px;
+          margin: 0 2px;
+          display: inline-block;
+          min-width: 30px;
+        }
+        .year-input {
+          border-bottom: 1px solid #000;
+          padding: 0 10px;
+          margin-left: 2px;
+          display: inline-block;
+          min-width: 20px;
+        }
+        .main-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 25px;
+        }
+        .sketch-box {
+          border: 1px solid #000;
+          height: 130px;
+          background-image:
+            linear-gradient(to right, #e0e0e0 1px, transparent 1px),
+            linear-gradient(to bottom, #e0e0e0 1px, transparent 1px);
+          background-size: 15px 15px;
+        }
+        .top-columns {
+          display: grid;
+          grid-template-columns: 1.2fr 1fr;
+          gap: 10px;
+          margin-top: 10px;
+        }
+        .top-columns-left {
+          display: grid;
+          grid-template-columns: 1fr 1.2fr;
+          gap: 10px;
+          margin-top: 10px;
+        }
+        .option-item {
+          display: flex;
+          align-items: center;
+          margin-bottom: 6px;
+          font-size: 13px;
+        }
+        .checkbox {
+          width: 13px;
+          height: 13px;
+          border: 1px solid #000;
+          margin-left: 8px;
+          display: inline-block;
+          text-align: center;
+          line-height: 11px;
+        }
+        .info-line {
+          font-size: 13px;
+          margin-bottom: 8px;
+        }
+        .line-fill {
+          border-bottom: 1px dotted #000;
+          display: inline-block;
+          width: 65%;
+          height: 15px;
+        }
+        .dimensions-container {
+          display: flex;
+          align-items: center;
+          margin-top: 15px;
+          width: 100%;
+        }
+        .dimensions-label {
+          font-weight: bold;
+          font-size: 14px;
+          margin-left: 10px;
+          white-space: nowrap;
+        }
+        .independent-dimensions-table {
+          flex-grow: 1;
+          border-collapse: collapse;
+        }
+        .independent-dimensions-table td {
+          border: 1px solid #000;
+          text-align: center;
+          padding: 6px;
+          font-size: 13px;
+        }
+        .notes-wrapper {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          width: 100%;
+        }
+        .note-line {
+          border-bottom: 1px dotted #000;
+          height: 22px;
+          width: 100%;
+        }
+        .approval-table {
+          width: 100%;
+          border-collapse: collapse;
+          margin-top: 20px;
+        }
+        .approval-table td {
+          border: 1px solid #000;
+          height: 30px;
+          text-align: center;
+        }
+        .bg-gray {
+          background-color: #f0f0f0;
+          font-weight: bold;
+          width: 120px;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="page">
+        <!-- Section 1: بطاقة الإنتاج -->
+        <div class="header">
+          <div class="top-id"><span>رقمنا :</span><span class="dots"></span><span style="margin-right:5px;font-weight:bold">${d.ID || ''}</span></div>
+          <div class="main-title">بطاقة إنتاج</div>
+          <div class="logo-box">
+            <div class="logo-tpp">TPP</div>
+            <div class="logo-sub">TARABICHI</div>
+          </div>
+        </div>
+        
+        <div class="content-layout">
+          <div class="column">
+            <div class="field"><span class="label">الاسم :</span><span class="dots"></span><span style="margin-right:5px">${d.Customer || ''}</span></div>
+            <div class="field"><span class="label">النموذج :</span><span class="dots"></span><span style="margin-right:5px">${d.Pattern || ''} ${d.Pattern2 || ''}</span></div>
+            <div class="field"><span class="label">العدد المطلوب :</span><span class="dots"></span><span style="margin-right:5px">${d.Demand || ''}</span></div>
+            <div class="field"><span class="label">ملاحظات :</span><span class="dots"></span><span style="margin-right:5px">${d.note_ord || ''}</span></div>
+          </div>
+          <div class="column">
+            <div class="field"><span class="label">رقم الطلب :</span><span class="dots"></span><span style="margin-right:5px">${d.ID || ''}</span></div>
+            <div class="field"><span class="label">تاريخ الورود :</span><span class="dots"></span><span style="margin-right:5px">${d.date_come || ''}</span></div>
+            <div class="field"><span class="label">موعد التسليم :</span><div class="gray-box">${d.Apoent_Delv_date || ''}</div></div>
+            <div class="field"><span class="label">أرسلت للفرز :</span><span class="dots"></span></div>
+          </div>
+        </div>
+        <div class="extra-lines"><div class="line"></div><div class="line"></div></div>
+        <div class="footer-right">كود النموذج الطبي : <span style="margin-right:10px">${d.Code_M || ''}</span></div>
+        
+        <!-- Section 2: المستودع/الأخراج -->
+        <div class="warehouse-container">
+          <div class="wrapper">
+            <div class="main-container">
+              <div class="grid-table">
+                <div class="grid-item header">طبق</div>
+                <div class="grid-item header">النوع</div>
+                <div class="grid-item header">بلد المصدر</div>
+                <div class="grid-item header">المورد</div>
+                <div class="grid-item header">القياس</div>
+                <div class="grid-item header">غراماج</div>
+                <div class="grid-item header">الوزن</div>
+                ${materialsHtml}
+              </div>
+              
+              <div class="bottom-section">
+                <div class="col-tabaq">
+                  <div class="empty-cell"></div>
+                  <div class="gray-cell"></div>
+                </div>
+                <div class="col-details">
+                  <div class="label-cell">اخراج زيادة طبع</div>
+                  <div class="label-cell header">المجموع المستهلك في الطبعة</div>
+                </div>
+                <div class="col-approval">
+                  <div class="approval-head">موافقة المدير الفني على :</div>
+                  <div class="checks">
+                    <span><div class="check-box">${ch(checks.varn)}</div> القساوة</span>
+                    <span><div class="check-box"></div> قياس الطبع</span>
+                    <span><div class="check-box"></div> صلاحية الكرتون</span>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="footer">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 5px;">
+                    <div><div class="check-box"></div> تلف</div>
+                    <div><div class="check-box"></div> خطأ</div>
+                    <div><div class="check-box"></div> زيادة كمية الطبع</div>
+                    <div><div class="check-box"></div> تم معالجة الفروقات</div>
+                  </div>
+                  <div style="flex-grow: 1; display: flex; align-items: baseline; margin-right: 20px;">
+                    <b>تعليل سبب إخراج الأطباق زيادة:</b>
+                    <div class="reason-line"></div>
+                  </div>
+                </div>
+                <div style="text-align: left; font-weight: bold;">
+                  توقيع أمين المستودع: .......................................
+                </div>
+              </div>
+            </div>
+            
+            <div class="side-table">
+              <div class="side-cell" style="height: 100px;">
+                الحجم النهائي
+                <div style="display:flex;justify-content:center;gap:5px;margin-top:5px;font-size:14px">
+                  <span>${d.LongU || ''}</span><span>×</span><span>${d.WedthU || ''}</span><span>×</span><span>${d.HightU || ''}</span>
+                </div>
+              </div>
+              <div class="side-cell" style="height: 100px;">
+                الطبع
+                <div style="text-align:right;padding-right:15px;margin-top:3px">على: ${d.print_on || ''}</div>
+                <div style="text-align:right;padding-right:15px">على: ${d.print_on2 || ''}</div>
+              </div>
+              <div class="side-cell">يفصل الطبق: <span style="font-weight:normal">${d.sheet_unit_qunt || ''}</span></div>
+              <div class="side-cell">إجمالي العدد: <span style="font-weight:normal;color:#27ae60">${d.grnd_qunt || ''}</span></div>
+              <div class="side-cell">عدد الألوان: <span style="font-weight:normal">${d.Clr_qunt || ''}</span></div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Section 4: التفصيل للمقطع -->
+        <div class="container">
+          <div class="header-split">
+            <div class="header-item">التفصيل للمقطع</div>
+            <div class="header-item">
+              تاريخ القطع:
+              <span class="date-space"></span> /
+              <span class="date-space"></span> /
+              <span class="year-input"></span>٢٠
+            </div>
+          </div>
+          <div class="main-grid">
+            <div>
+              <div class="sketch-box"></div>
+              <div class="top-columns">
+                <div>
+                  <div class="info-line">آلة الطبع: <span class="line-fill"></span><span style="margin-right:5px;font-size:12px">${d.Machin_Print || ''}</span></div>
+                  <div class="info-line">آلة التقطيع: <span class="line-fill"></span><span style="margin-right:5px;font-size:12px">${d.Machin_Cut || ''}</span></div>
+                  <div class="info-line">رقم القالب: <span class="line-fill"></span><span style="margin-right:5px;font-size:12px">${d.Cut_num || ''}</span></div>
+                </div>
+                <div>
+                  <div class="option-item"><div class="checkbox">${ch(checks.varnich || checks.varn)}</div> برنيـــش</div>
+                  <div class="option-item"><div class="checkbox">${ch(custChecks['مع تطوية'])}</div> مع تطويــة</div>
+                  <div class="option-item"><div class="checkbox">${ch(mfgChecks['تلميع كامل'])}</div> تلميع كامل</div>
+                  <div class="option-item"><div class="checkbox">${ch(mfgChecks['تلميع بقعي'])}</div> تلميع بقعي</div>
+                </div>
+              </div>
+              <div class="dimensions-container">
+                <div class="dimensions-label">الأبعاد:</div>
+                <table class="independent-dimensions-table">
+                  <tr><td style="width: 33%;">الطول</td><td style="width: 33%;">العرض</td><td style="width: 34%;">الإرتفاع</td></tr>
+                  <tr style="height: 25px;"><td>${d.LongU || ''}</td><td>${d.WedthU || ''}</td><td>${d.HightU || ''}</td></tr>
+                </table>
+              </div>
+            </div>
+            <div>
+              <div class="sketch-box"></div>
+              <div class="top-columns-left">
+                <div>
+                  <div class="option-item"><div class="checkbox">${ch(mfgChecks['سلفان لميع'])}</div> سلفان لميع</div>
+                  <div class="option-item"><div class="checkbox">${ch(mfgChecks['سلفان مات'])}</div> سلفان مات</div>
+                  <div class="option-item"><div class="checkbox">${ch(custChecks['حراري'])}</div> حــــراري</div>
+                  <div class="option-item"><div class="checkbox">${ch(custChecks['بص'])}</div> بـــلص</div>
+                </div>
+                <div class="notes-wrapper">
+                  <div style="font-weight: bold; margin-bottom: 5px; text-align: center;">ملاحظات:</div>
+                  <div class="note-line"></div>
+                  <div class="note-line"></div>
+                  <div class="note-line"></div>
+                  <div class="note-line"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <table class="approval-table">
+            <tr><td class="bg-gray">موافقة الإدارة</td><td></td><td></td><td></td><td></td></tr>
+            <tr><td class="bg-gray">المدير الفني</td><td></td><td></td><td></td><td></td></tr>
+            <tr><td class="bg-gray">مراقبة الجودة</td><td></td><td></td><td></td><td></td></tr>
+          </table>
+        </div>
+      </div>
+      
+      <div class="no-print" style="text-align:center;margin-top:20px;">
+        <button onclick="window.print()" style="padding:10px 20px;font-size:16px;cursor:pointer;background:#2980b9;color:#fff;border:none;border-radius:5px;">🖨️ طباعة الآن</button>
+        <button onclick="window.close()" style="padding:10px 20px;font-size:16px;cursor:pointer;background:#c0392b;color:#fff;border:none;border-radius:5px;margin-right:10px;">❌ إغلاق</button>
+      </div>
+    </body>
+    </html>`;
+
+    const printWindow = window.open('', '_blank', 'width=950,height=1400,scrollbars=yes');
+    if (printWindow) {
+      printWindow.document.write(printContent);
+      printWindow.document.close();
+    } else {
+      alert('⚠️ يرجى السماح بالنوافذ المنبثقة');
+    }
+  };
+
+  const { register, handleSubmit, reset, watch, setValue, getValues } = useForm<Order>();
+  const watchYear = watch('Year') || String(new Date().getFullYear());
+  const watchId   = watch('ID') || '';
+
+  const { data: ordersResponse } = useOrders({ year: watchYear });
+  const orders = ordersResponse?.data || [];
+
+  const { data: vouchers = [] } = useVouchers(isEdit ? watchId : '', watchYear);
+  const deleteVoucher = useDeleteVoucher();
+
   return (
     <div style={{ direction: 'rtl' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
@@ -424,10 +963,34 @@ export default function OrderFormPage() {
         >
           📁 إغلاق الكل
         </button>
+        
+        {/* 🖨️ زر الطباعة الجديد */}
+        <button 
+          type="button"
+          onClick={handlePrint}
+          style={{ 
+            background: 'var(--primary, #2980b9)', 
+            color: '#fff',
+            border: 'none', 
+            borderRadius: 6, 
+            padding: '6px 14px', 
+            fontSize: 12, 
+            cursor: 'pointer',
+            fontFamily: 'Cairo, sans-serif',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 5,
+            boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+            transition: 'background 0.2s'
+          }}
+          onMouseOver={(e) => e.currentTarget.style.background = 'var(--primary-dark, #1f618d)'}
+          onMouseOut={(e) => e.currentTarget.style.background = 'var(--primary, #2980b9)'}
+        >
+          🖨️ طباعة البطاقة
+        </button>
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)}>
-
         {/* ══ 1. بيانات الطلب الأساسية ══ */}
         <AccordionCard 
           title="📋 بيانات الطلب الأساسية"
@@ -550,11 +1113,7 @@ export default function OrderFormPage() {
             </G>
             <G label="المعلومات الفنية"><input className="fc" {...register('note_ord')} style={{ textAlign: 'right' }} /></G>
             <G label="برنيش"><CheckItem label="برنيش" checked={!!checks.varn} {...register('Varnish')} onChange={chk('varn')} /></G>
-            <G label="CTB"><CheckItem
-              label="CTB"
-              checked={!!checks.CTB}
-              onChange={chk('CTB')}
-            /></G>
+            <G label="CTB"><CheckItem label="CTB" checked={!!checks.CTB} onChange={chk('CTB')} /></G>
           </div>
 
           <SectionDiv label="العمليات" />
@@ -568,7 +1127,6 @@ export default function OrderFormPage() {
           onToggle={() => toggleSection('quality')}
         >
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-            {/* أثناء التصنيع */}
             <div style={{ border: '1.5px solid var(--border)', borderRadius: 10, overflow: 'hidden' }}>
               <div style={{ padding: '9px 13px', background: 'rgba(214,137,16,.1)', color: 'var(--warn)', fontSize: 12, fontWeight: 700, borderBottom: '1px solid rgba(214,137,16,.2)', textAlign: 'right' }}>
                 ⚠️ المشاكل الواردة أثناء التصنيع
@@ -592,7 +1150,6 @@ export default function OrderFormPage() {
               </div>
             </div>
 
-            {/* من الزبون */}
             <div style={{ border: '1.5px solid var(--border)', borderRadius: 10, overflow: 'hidden' }}>
               <div style={{ padding: '9px 13px', background: 'rgba(192,57,43,.08)', color: 'var(--red)', fontSize: 12, fontWeight: 700, borderBottom: '1px solid rgba(192,57,43,.15)', textAlign: 'right' }}>
                 🚨 المشاكل الواردة من الزبون
@@ -627,7 +1184,6 @@ export default function OrderFormPage() {
                       <input className="fc" type="number" defaultValue={25} style={{ fontSize: 12, textAlign: 'right' }} />
                     </div>
                   </div>
-                  
                   <div>
                     <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--steel)', marginBottom: 4, display: 'block', textAlign: 'right' }}>تاريخ الانتهاء</label>
                     <input className="fc" type="date" style={{ fontSize: 12, textAlign: 'right' }} />
@@ -713,13 +1269,15 @@ export default function OrderFormPage() {
         <div style={{ background: '#fff', borderRadius: 14, border: '1px solid var(--border)', padding: '12px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <span style={{ fontSize: 12, color: 'var(--muted)' }}>سنة العمل: <strong>{watchYear}</strong></span>
           <div style={{ display: 'flex', gap: 10 }}>
+            <Btn variant="outline" type="button" onClick={handlePrint} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+              🖨️ طباعة
+            </Btn>
             <Btn variant="outline" type="button" onClick={() => navigate('/orders')}>إلغاء</Btn>
             <Btn variant="primary" type="submit" disabled={isSaving}>
               {isSaving ? '⏳ جاري الحفظ...' : '✅ حفظ وتأكيد'}
             </Btn>
           </div>
         </div>
-
       </form>
 
       <VoucherModal open={voucherOpen} onClose={() => setVoucherOpen(false)} orderId={watchId} orderYear={watchYear} />
