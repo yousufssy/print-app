@@ -18,7 +18,6 @@ export interface LoginResponse {
 
 // ── Order (masterw) ───────────────────────────────────
 export interface Order {
-  row_id: number;
   ID: string;
   Year: string;
   Ser?: string;
@@ -72,7 +71,6 @@ export interface Order {
 }
 
 export interface OrderListItem {
-  row_id: number;
   ID: string;
   Year: string;
   Ser?: string;
@@ -96,7 +94,6 @@ export interface OrdersResponse {
 
 // ── Voucher ───────────────────────────────────────────
 export interface Voucher {
-  row_id: number;
   ID: string;
   Year: string;
   Voucher_num?: string;
@@ -114,7 +111,6 @@ export interface Voucher {
 
 // ── Customer ──────────────────────────────────────────
 export interface Customer {
-  row_id: number;
   Customer: string;
   Activety?: string;
 }
