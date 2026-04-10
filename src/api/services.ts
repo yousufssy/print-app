@@ -67,7 +67,7 @@ export const problemsApi = {
 };
 
 // ── Operations ────────────────────────────────────────
-export const ActionsApi = {
+export const actionsApi = {
   list: (orderId: string, year: string) =>
     client.get<any[]>('/Action', { params: { order_id: orderId, year } }).then(r => r.data),
   create: (data: any) =>
