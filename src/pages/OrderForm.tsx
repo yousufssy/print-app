@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
-import { useOrder, useCreateOrder, useUpdateOrder, useCustomers, useVouchers, useCreateVoucher, useDeleteVoucher, useOrders, useOperations, useCreateOperation, useUpdateOperation, useDeleteOperation, useMaterials, useCreateMaterial, useUpdateMaterial, useDeleteMaterial, useProblems, useCreateProblem, useUpdateProblem, useDeleteProblem } from '../hooks/useApi';
+import { useOrder, useCreateOrder, useUpdateOrder, useCustomers, useVouchers, useCreateVoucher, useDeleteVoucher, useOrders, useOperations, useCreateOperation, useUpdateOperation, useDeleteOperation, useCartons, useCreateCarton, useUpdateCarton, useDeleteCarton, useProblems, useCreateProblem, useUpdateProblem, useDeleteProblem } from '../hooks/useApi';
 import { Card, FormGroup, SectionDiv, CheckItem, Loading, Btn } from '../components/ui';
 import type { Order } from '../types';
 
@@ -204,16 +204,18 @@ function VoucherModal({ open, onClose, orderId, orderYear }: {
 
 // ── Table column definitions ───────────────────────────────────────────────────
 const MATERIALS_COLS = [
-  { key: 'type',      label: 'النوع' },
-  { key: 'source',    label: 'المصدر' },
-  { key: 'supplier',  label: 'المورد' },
-  { key: 'length',    label: 'الطول',        type: 'number' },
-  { key: 'width',     label: 'العرض',        type: 'number' },
-  { key: 'gram',      label: 'غرام',         type: 'number' },
-  { key: 'at_plates', label: 'عند الأطباق',  type: 'number' },
-  { key: 'last_date', label: 'تاريخ الآخر',  type: 'date' },
-  { key: 'output',    label: 'منكوه الإخراج' },
-  { key: 'notes',     label: 'ملاحظات' },
+  { key: 'Type1',        label: 'النوع' },
+  { key: 'Id_carton',    label: 'رقم الكرتون' },
+  { key: 'Source1',      label: 'المصدر' },
+  { key: 'Supplier1',    label: 'المورد' },
+  { key: 'Long1',        label: 'الطول',        type: 'number' },
+  { key: 'Width1',       label: 'العرض',        type: 'number' },
+  { key: 'Gramage1',     label: 'غراماج',       type: 'number' },
+  { key: 'Sheet_count1', label: 'عدد الأطباق',  type: 'number' },
+  { key: 'Price',        label: 'السعر',        type: 'number' },
+  { key: 'Out_Date',     label: 'تاريخ الإخراج', type: 'date' },
+  { key: 'Out_ord_num',  label: 'رقم أمر الإخراج' },
+  { key: 'note_crt',     label: 'ملاحظات' },
 ];
 
 const PROBLEMS_COLS = [
@@ -224,15 +226,22 @@ const PROBLEMS_COLS = [
 ];
 
 const OPERATIONS_COLS = [
-  { key: 'opreation', label: 'العملية' },
-  { key: 'machine', label: 'الآلة' },
-  { key: 'num',   label: 'العدد',        type: 'number' },
-  { key: 'info',    label: 'معلومات فنية' },
-  { key: 'kaw',     label: 'كع',          type: 'number' },
-  { key: 'tall',    label: 'ط',           type: 'number' },
-  { key: 'sa',      label: 'سا',          type: 'number' },
-  { key: 'date',    label: 'التاريخ',     type: 'date' },
-  { key: 'notes',   label: 'ملاحظات' },
+  { key: 'Action',      label: 'العملية' },
+  { key: 'Color',       label: 'اللون' },
+  { key: 'Qunt_Ac',    label: 'الكمية',        type: 'number' },
+  { key: 'On',         label: 'على',           type: 'number' },
+  { key: 'Machin',     label: 'الآلة' },
+  { key: 'Hours',      label: 'الساعات',       type: 'number' },
+  { key: 'Kelo',       label: 'كيلو',          type: 'number' },
+  { key: 'Actual',     label: 'الفعلي',        type: 'number' },
+  { key: 'Tarkeb',     label: 'تركيب',         type: 'number' },
+  { key: 'Wash',       label: 'غسيل',          type: 'number' },
+  { key: 'Electricity',label: 'كهرباء',        type: 'number' },
+  { key: 'Taghez',     label: 'تجهيز',         type: 'number' },
+  { key: 'StopVar',    label: 'توقف',          type: 'number' },
+  { key: 'Date',       label: 'التاريخ',       type: 'date' },
+  { key: 'NotesA',     label: 'ملاحظات' },
+  { key: 'Tabrer',     label: 'تبرير' },
 ];
 
 const CHK_MFG  = ['برنيش','تلميع بقعي','تلميع كامل','سلفان لميع','سلفان مات','طُبعت؟'];
@@ -300,24 +309,26 @@ export default function OrderFormPage() {
     }
   };
 
-  // ── المواد — مرتبطة بالداتابيز ───────────────────────────────────────────────
-  const { data: materialsData = [] } = useMaterials(isEdit ? (id ?? '') : '', isEdit ? (year ?? '') : '');
-  const createMaterial = useCreateMaterial();
-  const updateMaterial = useUpdateMaterial();
-  const deleteMaterial = useDeleteMaterial();
+  // ── الكرتون — مرتبط بالداتابيز ───────────────────────────────────────────────
+  const { data: cartonsData = [] } = useCartons(isEdit ? (id ?? '') : '', isEdit ? (year ?? '') : '');
+  const createCarton = useCreateCarton();
+  const updateCarton = useUpdateCarton();
+  const deleteCarton = useDeleteCarton();
 
-  const materialsRows: Record<string, string>[] = materialsData.map((m: any) => ({
-    _rowId:    String(m._ID ?? ''),
-    type:      m.type      ?? '',
-    source:    m.source    ?? '',
-    supplier:  m.supplier  ?? '',
-    length:    String(m.length    ?? ''),
-    width:     String(m.width     ?? ''),
-    gram:      String(m.gram      ?? ''),
-    at_plates: String(m.at_plates ?? ''),
-    last_date: m.last_date ?? '',
-    output:    m.output    ?? '',
-    notes:     m.notes     ?? '',
+  const materialsRows: Record<string, string>[] = cartonsData.map((c: any) => ({
+    _rowId:        String(c.ID1        ?? ''),
+    Type1:         c.Type1         ?? '',
+    Id_carton:     c.Id_carton     ?? '',
+    Source1:       c.Source1       ?? '',
+    Supplier1:     c.Supplier1     ?? '',
+    Long1:         String(c.Long1         ?? ''),
+    Width1:        String(c.Width1        ?? ''),
+    Gramage1:      String(c.Gramage1      ?? ''),
+    Sheet_count1:  String(c.Sheet_count1  ?? ''),
+    Price:         String(c.Price         ?? ''),
+    Out_Date:      c.Out_Date      ?? '',
+    Out_ord_num:   c.Out_ord_num   ?? '',
+    note_crt:      c.note_crt      ?? '',
   }));
 
   // buffer للحفظ عند إنشاء طلب جديد
@@ -329,9 +340,9 @@ export default function OrderFormPage() {
     if (!isEdit) { setPendingMaterials(newRows); return; }
     await syncRows(
       materialsRows, newRows,
-      (f) => createMaterial.mutateAsync({ ...f, ID: watchId, Year: watchYear }),
-      (rowId, f) => updateMaterial.mutateAsync({ rowId, data: f }),
-      (rowId) => deleteMaterial.mutateAsync(rowId),
+      (f) => createCarton.mutateAsync({ ...f, ID: watchId, year: watchYear }),
+      (rowId, f) => updateCarton.mutateAsync({ rowId, data: f }),
+      (rowId) => deleteCarton.mutateAsync(rowId),
     );
   };
 
@@ -366,16 +377,23 @@ export default function OrderFormPage() {
   const deleteOperation = useDeleteOperation();
 
   const operationsRows: Record<string, string>[] = operationsData.map((op: any) => ({
-    _rowId:    String(op._ID ?? op.ID ?? ''),
-    opreation: op.opreation ?? '',
-    machine:   op.machine   ?? '',
-    num:       String(op.num   ?? ''),
-    info:      op.info      ?? '',
-    kaw:       String(op.kaw   ?? ''),
-    tall:      String(op.tall  ?? ''),
-    sa:        String(op.sa    ?? ''),
-    date:      op.date      ?? '',
-    notes:     op.notes     ?? '',
+    _rowId:      String(op._ID ?? op.ID ?? ''),
+    Action:      op.Action      ?? '',
+    Color:       op.Color       ?? '',
+    Qunt_Ac:     String(op.Qunt_Ac    ?? ''),
+    On:          String(op.On         ?? ''),
+    Machin:      op.Machin      ?? '',
+    Hours:       String(op.Hours      ?? ''),
+    Kelo:        String(op.Kelo       ?? ''),
+    Actual:      String(op.Actual     ?? ''),
+    Tarkeb:      String(op.Tarkeb     ?? ''),
+    Wash:        String(op.Wash       ?? ''),
+    Electricity: String(op.Electricity ?? ''),
+    Taghez:      String(op.Taghez     ?? ''),
+    StopVar:     String(op.StopVar    ?? ''),
+    Date:        op.Date        ?? '',
+    NotesA:      op.NotesA      ?? '',
+    Tabrer:      op.Tabrer      ?? '',
   }));
 
   const handleOperationsChange = async (newRows: Record<string, string>[]) => {
@@ -488,7 +506,7 @@ export default function OrderFormPage() {
       // حفظ الصفوف المؤجلة بعد معرفة الـ ID الجديد
       await Promise.all([
         ...pendingMaterials.map(({ _rowId, ...f }) =>
-          createMaterial.mutateAsync({ ...f, ID: newId, Year: yr })),
+          createCarton.mutateAsync({ ...f, ID: newId, year: yr })),
         ...pendingProblems.map(({ _rowId, ...f }) =>
           createProblem.mutateAsync({ ...f, ID: newId, Year: yr })),
         ...pendingOps.map(({ _rowId, ...f }) =>
