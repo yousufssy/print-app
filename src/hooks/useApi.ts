@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ordersApi, vouchersApi, customersApi, dashboardApi, usersApi, operationsApi, materialsApi, problemsApi } from '../api/services';
+import { ordersApi, vouchersApi, customersApi, dashboardApi, usersApi, operationsApi, cartonsApi, problemsApi } from '../api/services';
 import toast from 'react-hot-toast';
 
 // ── Dashboard ─────────────────────────────────────────
@@ -99,38 +99,38 @@ export function useDeleteVoucher() {
   });
 }
 
-// ── Materials ─────────────────────────────────────────
-export function useMaterials(orderId: string, year: string) {
+// ── Cartons ───────────────────────────────────────────
+export function useCartons(orderId: string, year: string) {
   return useQuery({
-    queryKey: ['materials', orderId, year],
-    queryFn:  () => materialsApi.list(orderId, year),
+    queryKey: ['cartons', orderId, year],
+    queryFn:  () => cartonsApi.list(orderId, year),
     enabled:  !!orderId && !!year,
   });
 }
 
-export function useCreateMaterial() {
+export function useCreateCarton() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: materialsApi.create,
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['materials'] }); },
-    onError: () => toast.error('خطأ في حفظ المادة'),
+    mutationFn: cartonsApi.create,
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['cartons'] }); },
+    onError: () => toast.error('خطأ في حفظ الكرتون'),
   });
 }
 
-export function useUpdateMaterial() {
+export function useUpdateCarton() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ rowId, data }: { rowId: number; data: any }) => materialsApi.update(rowId, data),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['materials'] }); },
-    onError: () => toast.error('خطأ في تحديث المادة'),
+    mutationFn: ({ rowId, data }: { rowId: number; data: any }) => cartonsApi.update(rowId, data),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['cartons'] }); },
+    onError: () => toast.error('خطأ في تحديث الكرتون'),
   });
 }
 
-export function useDeleteMaterial() {
+export function useDeleteCarton() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: materialsApi.delete,
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['materials'] }); },
+    mutationFn: cartonsApi.delete,
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['cartons'] }); },
     onError: () => toast.error('خطأ في الحذف'),
   });
 }
