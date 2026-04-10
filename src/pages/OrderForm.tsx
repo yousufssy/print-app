@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { useOrder, useCreateOrder, useUpdateOrder, useCustomers, useVouchers, useCreateVoucher, useDeleteVoucher, useOrders, useOperations, useCreateOperation, useUpdateOperation, useDeleteOperation, useCartons, useCreateCarton, useUpdateCarton, useDeleteCarton, useProblems, useCreateProblem, useUpdateProblem, useDeleteProblem } from '../hooks/useApi';
@@ -94,10 +94,67 @@ function InlineTable({ cols, rows, onRowsChange }: {
   rows: Record<string, string>[];
   onRowsChange: (rows: Record<string, string>[]) => void | Promise<void>;
 }) {
-  const addRow = () => onRowsChange([...rows, Object.fromEntries(cols.map(c => [c.key, '']))]);
-  const delRow = (i: number) => onRowsChange(rows.filter((_, idx) => idx !== i));
+  // حالة محلية للصفوف — تشمل الصفوف الجديدة غير المحفوظة
+  const [localRows, setLocalRows] = React.useState<Record<string, string>[]>([]);
+  const [saving, setSaving] = React.useState<Record<number, boolean>>({});
+
+  // مزامنة الـ local rows مع الـ rows القادمة من الـ DB
+  React.useEffect(() => {
+    setLocalRows(rows);
+  }, [rows]);
+
+  // إضافة صف جديد محلياً فقط (لم يُحفظ بعد)
+  const addRow = () => {
+    const empty = Object.fromEntries(cols.map(c => [c.key, '']));
+    setLocalRows(prev => [...prev, { ...empty, _rowId: '', _isNew: 'true' }]);
+  };
+
+  // تعديل خلية محلياً
   const setCell = (i: number, k: string, v: string) => {
-    onRowsChange(rows.map((r, idx) => idx === i ? { ...r, [k]: v } : r));
+    setLocalRows(prev => prev.map((r, idx) => idx === i ? { ...r, [k]: v } : r));
+  };
+
+  // حفظ صف عند الخروج من آخر input فيه
+  const saveRow = async (i: number) => {
+    const row = localRows[i];
+    if (!row) return;
+
+    // إذا الصف جديد وفارغ تماماً — لا تحفظ
+    const isEmpty = cols.every(c => !row[c.key]);
+    if (row._isNew === 'true' && isEmpty) return;
+
+    // إذا الصف جديد — أرسل للـ DB عبر onRowsChange
+    if (row._isNew === 'true') {
+      setSaving(s => ({ ...s, [i]: true }));
+      const { _isNew, _rowId, ...fields } = row;
+      // أضف الصف للـ rows الكاملة وأرسل
+      const allRows = [...rows, { ...fields }];
+      await onRowsChange(allRows);
+      setSaving(s => ({ ...s, [i]: false }));
+    } else if (row._rowId) {
+      // صف موجود — تحديث
+      setSaving(s => ({ ...s, [i]: true }));
+      const updated = localRows.map(r =>
+        r._rowId === row._rowId ? row : r
+      );
+      await onRowsChange(updated);
+      setSaving(s => ({ ...s, [i]: false }));
+    }
+  };
+
+  // حذف صف
+  const delRow = async (i: number) => {
+    const row = localRows[i];
+    if (!row) return;
+
+    if (row._isNew === 'true') {
+      // صف جديد لم يُحفظ — احذفه محلياً فقط
+      setLocalRows(prev => prev.filter((_, idx) => idx !== i));
+    } else {
+      // صف محفوظ — احذفه من الـ DB
+      const remaining = rows.filter(r => r._rowId !== row._rowId);
+      await onRowsChange(remaining);
+    }
   };
 
   return (
@@ -114,30 +171,42 @@ function InlineTable({ cols, rows, onRowsChange }: {
           </tr>
         </thead>
         <tbody>
-          {rows.length === 0 && (
+          {localRows.length === 0 && (
             <tr>
               <td colSpan={cols.length + 1} style={{ textAlign: 'center', color: 'var(--muted)', padding: 16 }}>
                 ✦ لا توجد سجلات — اضغط ➕ لإضافة سطر
               </td>
             </tr>
           )}
-          {rows.map((row, i) => (
-            <tr key={i} style={{ borderBottom: '1px solid var(--border)', background: i % 2 === 0 ? '#fff' : '#fdf8f0' }}>
-              {cols.map(c => (
+          {localRows.map((row, i) => (
+            <tr key={row._rowId || `new-${i}`}
+              style={{
+                borderBottom: '1px solid var(--border)',
+                background: row._isNew === 'true'
+                  ? '#fffbe6'
+                  : i % 2 === 0 ? '#fff' : '#fdf8f0'
+              }}>
+              {cols.map((c, ci) => (
                 <td key={c.key} style={{ padding: '3px 5px' }}>
                   <input
                     value={row[c.key] ?? ''}
                     type={c.type ?? 'text'}
                     onChange={e => setCell(i, c.key, e.target.value)}
+                    onBlur={() => {
+                      // حفظ عند الخروج من آخر عمود في الصف
+                      if (ci === cols.length - 1) saveRow(i);
+                    }}
                     style={{ width: '100%', border: 'none', background: 'transparent', fontFamily: 'Cairo, sans-serif', fontSize: 12, outline: 'none', padding: '4px 3px', color: 'var(--ink)', textAlign: 'right' }}
                     onFocus={e => (e.target.style.background = '#fff9f0')}
-                    onBlur={e => (e.target.style.background = 'transparent')}
                   />
                 </td>
               ))}
               <td style={{ padding: '3px 6px', textAlign: 'center' }}>
-                <button type="button" onClick={() => delRow(i)}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--red)', fontSize: 14 }}>🗑</button>
+                {saving[i]
+                  ? <span style={{ fontSize: 11, color: 'var(--muted)' }}>⏳</span>
+                  : <button type="button" onClick={() => delRow(i)}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--red)', fontSize: 14 }}>🗑</button>
+                }
               </td>
             </tr>
           ))}
