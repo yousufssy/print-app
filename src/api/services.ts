@@ -42,16 +42,16 @@ export const vouchersApi = {
     client.delete(`/vouchers/${rowId}`),
 };
 
-// ── Materials ─────────────────────────────────────────
-export const materialsApi = {
+// ── Cartons ───────────────────────────────────────────
+export const cartonsApi = {
   list: (orderId: string, year: string) =>
-    client.get<any[]>('/materials', { params: { order_id: orderId, year } }).then(r => r.data),
+    client.get<any[]>('/cartons', { params: { order_id: orderId, year } }).then(r => r.data),
   create: (data: any) =>
-    client.post<any>('/materials', data).then(r => r.data),
+    client.post<any>('/cartons', data).then(r => r.data),
   update: (rowId: number, data: any) =>
-    client.put<any>(`/materials/${rowId}`, data).then(r => r.data),
+    client.put<any>(`/cartons/${rowId}`, data).then(r => r.data),
   delete: (rowId: number) =>
-    client.delete(`/materials/${rowId}`),
+    client.delete(`/cartons/${rowId}`),
 };
 
 // ── Problems ──────────────────────────────────────────
@@ -66,16 +66,16 @@ export const problemsApi = {
     client.delete(`/problems/${rowId}`),
 };
 
-// ── Operations ────────────────────────────────────────
-export const actionsApi = {
+// ── Operations (actions table) ────────────────────────
+export const operationsApi = {
   list: (orderId: string, year: string) =>
-    client.get<any[]>('/Action', { params: { order_id: orderId, year } }).then(r => r.data),
+    client.get<any[]>('/actions', { params: { order_id: orderId, year } }).then(r => r.data),
   create: (data: any) =>
-    client.post<any>('/Action', data).then(r => r.data),
+    client.post<any>('/actions', data).then(r => r.data),
   update: (rowId: number, data: any) =>
-    client.put<any>(`/Action/${rowId}`, data).then(r => r.data),
+    client.put<any>(`/actions/${rowId}`, data).then(r => r.data),
   delete: (rowId: number) =>
-    client.delete(`/Action/${rowId}`),
+    client.delete(`/actions/${rowId}`),
 };
 
 // ── Customers ─────────────────────────────────────────
