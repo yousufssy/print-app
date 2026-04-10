@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
-import { useOrder, useCreateOrder, useUpdateOrder, useCustomers, useVouchers, useCreateVoucher, useDeleteVoucher, useOrders } from '../hooks/useApi';
+import { useOrder, useCreateOrder, useUpdateOrder, useCustomers, useVouchers, useCreateVoucher, useDeleteVoucher, useOrders, useOperations, useCreateOperation, useUpdateOperation, useDeleteOperation, useMaterials, useCreateMaterial, useUpdateMaterial, useDeleteMaterial, useProblems, useCreateProblem, useUpdateProblem, useDeleteProblem } from '../hooks/useApi';
 import { Card, FormGroup, SectionDiv, CheckItem, Loading, Btn } from '../components/ui';
 import type { Order } from '../types';
 
@@ -92,7 +92,7 @@ function AccordionCard({
 function InlineTable({ cols, rows, onRowsChange }: {
   cols: { key: string; label: string; type?: string; width?: number }[];
   rows: Record<string, string>[];
-  onRowsChange: (rows: Record<string, string>[]) => void;
+  onRowsChange: (rows: Record<string, string>[]) => void | Promise<void>;
 }) {
   const addRow = () => onRowsChange([...rows, Object.fromEntries(cols.map(c => [c.key, '']))]);
   const delRow = (i: number) => onRowsChange(rows.filter((_, idx) => idx !== i));
@@ -273,9 +273,120 @@ export default function OrderFormPage() {
   const [custChecks, setCustChecks] = useState<Record<string, boolean>>({});
   const [voucherOpen, setVoucherOpen] = useState(false);
 
-  const [materialsRows,  setMaterialsRows]  = useState<Record<string, string>[]>([]);
-  const [problemsRows,   setProblemsRows]   = useState<Record<string, string>[]>([]);
-  const [operationsRows, setOperationsRows] = useState<Record<string, string>[]>([]);
+  // ── helper مشترك لمزامنة أي InlineTable مع الداتابيز ────────────────────────
+  const syncRows = async (
+    oldRows: Record<string, string>[],
+    newRows: Record<string, string>[],
+    onCreate: (fields: any) => Promise<any>,
+    onUpdate: (rowId: number, fields: any) => Promise<any>,
+    onDelete: (rowId: number) => Promise<any>,
+    extraFields: Record<string, string> = {},
+  ) => {
+    const oldIds = new Set(oldRows.map(r => r._rowId).filter(Boolean));
+    const newIds = new Set(newRows.map(r => r._rowId).filter(Boolean));
+
+    // حذف الصفوف المحذوفة
+    for (const old of oldRows)
+      if (old._rowId && !newIds.has(old._rowId))
+        await onDelete(Number(old._rowId));
+
+    // إضافة أو تحديث
+    for (const row of newRows) {
+      const { _rowId, ...fields } = row;
+      if (_rowId && oldIds.has(_rowId))
+        await onUpdate(Number(_rowId), fields);
+      else if (!_rowId)
+        await onCreate({ ...fields, ...extraFields });
+    }
+  };
+
+  // ── المواد — مرتبطة بالداتابيز ───────────────────────────────────────────────
+  const { data: materialsData = [] } = useMaterials(isEdit ? (id ?? '') : '', isEdit ? (year ?? '') : '');
+  const createMaterial = useCreateMaterial();
+  const updateMaterial = useUpdateMaterial();
+  const deleteMaterial = useDeleteMaterial();
+
+  const materialsRows: Record<string, string>[] = materialsData.map((m: any) => ({
+    _rowId:    String(m._ID ?? ''),
+    type:      m.type      ?? '',
+    source:    m.source    ?? '',
+    supplier:  m.supplier  ?? '',
+    length:    String(m.length    ?? ''),
+    width:     String(m.width     ?? ''),
+    gram:      String(m.gram      ?? ''),
+    at_plates: String(m.at_plates ?? ''),
+    last_date: m.last_date ?? '',
+    output:    m.output    ?? '',
+    notes:     m.notes     ?? '',
+  }));
+
+  // buffer للحفظ عند إنشاء طلب جديد
+  const [pendingMaterials, setPendingMaterials] = useState<Record<string, string>[]>([]);
+  const [pendingProblems,  setPendingProblems]  = useState<Record<string, string>[]>([]);
+  const [pendingOps,       setPendingOps]       = useState<Record<string, string>[]>([]);
+
+  const handleMaterialsChange = async (newRows: Record<string, string>[]) => {
+    if (!isEdit) { setPendingMaterials(newRows); return; }
+    await syncRows(
+      materialsRows, newRows,
+      (f) => createMaterial.mutateAsync({ ...f, ID: watchId, Year: watchYear }),
+      (rowId, f) => updateMaterial.mutateAsync({ rowId, data: f }),
+      (rowId) => deleteMaterial.mutateAsync(rowId),
+    );
+  };
+
+  // ── سجل المشاكل — مرتبط بالداتابيز ──────────────────────────────────────────
+  const { data: problemsData = [] } = useProblems(isEdit ? (id ?? '') : '', isEdit ? (year ?? '') : '');
+  const createProblem = useCreateProblem();
+  const updateProblem = useUpdateProblem();
+  const deleteProblem = useDeleteProblem();
+
+  const problemsRows: Record<string, string>[] = problemsData.map((p: any) => ({
+    _rowId:      String(p._ID ?? ''),
+    print_num:   p.print_num   ?? '',
+    prod_date:   p.prod_date   ?? '',
+    exp_date:    p.exp_date    ?? '',
+    print_count: String(p.print_count ?? ''),
+  }));
+
+  const handleProblemsChange = async (newRows: Record<string, string>[]) => {
+    if (!isEdit) { setPendingProblems(newRows); return; }
+    await syncRows(
+      problemsRows, newRows,
+      (f) => createProblem.mutateAsync({ ...f, ID: watchId, Year: watchYear }),
+      (rowId, f) => updateProblem.mutateAsync({ rowId, data: f }),
+      (rowId) => deleteProblem.mutateAsync(rowId),
+    );
+  };
+
+  // ── العمليات — مرتبطة بالداتابيز ─────────────────────────────────────────────
+  const { data: operationsData = [] } = useOperations(isEdit ? (id ?? '') : '', isEdit ? (year ?? '') : '');
+  const createOperation = useCreateOperation();
+  const updateOperation = useUpdateOperation();
+  const deleteOperation = useDeleteOperation();
+
+  const operationsRows: Record<string, string>[] = operationsData.map((op: any) => ({
+    _rowId:    String(op._ID ?? op.ID ?? ''),
+    opreation: op.opreation ?? '',
+    machine:   op.machine   ?? '',
+    num:       String(op.num   ?? ''),
+    info:      op.info      ?? '',
+    kaw:       String(op.kaw   ?? ''),
+    tall:      String(op.tall  ?? ''),
+    sa:        String(op.sa    ?? ''),
+    date:      op.date      ?? '',
+    notes:     op.notes     ?? '',
+  }));
+
+  const handleOperationsChange = async (newRows: Record<string, string>[]) => {
+    if (!isEdit) { setPendingOps(newRows); return; }
+    await syncRows(
+      operationsRows, newRows,
+      (f) => createOperation.mutateAsync({ ...f, ID: watchId, Year: watchYear }),
+      (rowId, f) => updateOperation.mutateAsync({ rowId, data: f }),
+      (rowId) => deleteOperation.mutateAsync(rowId),
+    );
+  };
 
   // ➕ State لإدارة فتح/إغلاق أقسام الأكورديون
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
@@ -370,7 +481,19 @@ export default function OrderFormPage() {
     if (isEdit) {
       await updateOrder.mutateAsync(data);
     } else {
-      await createOrder.mutateAsync(data);
+      const created = await createOrder.mutateAsync(data);
+      const newId   = String((created as any)?.ID ?? (data as any).ID);
+      const yr      = String((data as any).Year ?? watchYear);
+
+      // حفظ الصفوف المؤجلة بعد معرفة الـ ID الجديد
+      await Promise.all([
+        ...pendingMaterials.map(({ _rowId, ...f }) =>
+          createMaterial.mutateAsync({ ...f, ID: newId, Year: yr })),
+        ...pendingProblems.map(({ _rowId, ...f }) =>
+          createProblem.mutateAsync({ ...f, ID: newId, Year: yr })),
+        ...pendingOps.map(({ _rowId, ...f }) =>
+          createOperation.mutateAsync({ ...f, ID: newId, Year: yr })),
+      ]);
     }
     navigate('/orders');
   };
@@ -754,7 +877,7 @@ body{font-family:'Arial',sans-serif;background:#fff;direction:rtl;margin:0;paddi
           </div>
 
           <SectionDiv label="المواد" />
-          <InlineTable cols={MATERIALS_COLS} rows={materialsRows} onRowsChange={setMaterialsRows} />
+          <InlineTable cols={MATERIALS_COLS} rows={isEdit ? materialsRows : pendingMaterials} onRowsChange={handleMaterialsChange} />
         </AccordionCard>
 
         {/* ══ 3. مواصفات الطباعة والمونتاج ══ */}
@@ -807,7 +930,7 @@ body{font-family:'Arial',sans-serif;background:#fff;direction:rtl;margin:0;paddi
           </div>
 
           <SectionDiv label="العمليات" />
-          <InlineTable cols={OPERATIONS_COLS} rows={operationsRows} onRowsChange={setOperationsRows} />
+          <InlineTable cols={OPERATIONS_COLS} rows={isEdit ? operationsRows : pendingOps} onRowsChange={handleOperationsChange} />
         </AccordionCard>
 
         {/* ══ 4. مراقبة الجودة والمشاكل ══ */}
@@ -894,7 +1017,7 @@ body{font-family:'Arial',sans-serif;background:#fff;direction:rtl;margin:0;paddi
           </div>
 
           <SectionDiv label="سجل المشاكل الواردة من الزبون" />
-          <InlineTable cols={PROBLEMS_COLS} rows={problemsRows} onRowsChange={setProblemsRows} />
+          <InlineTable cols={PROBLEMS_COLS} rows={isEdit ? problemsRows : pendingProblems} onRowsChange={handleProblemsChange} />
         </AccordionCard>
 
         {/* ══ 5. التسليم والفوترة ══ */}
