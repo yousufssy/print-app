@@ -143,19 +143,23 @@ function InlineTable({ cols, rows, onRowsChange }: {
   };
 
   // حذف صف
-  const delRow = async (i: number) => {
-    const row = localRows[i];
-    if (!row) return;
+ const delRow = async (i: number) => {
+  const row = localRows[i];
+  if (!row) return;
 
-    if (row._isNew === 'true') {
-      // صف جديد لم يُحفظ — احذفه محلياً فقط
-      setLocalRows(prev => prev.filter((_, idx) => idx !== i));
-    } else {
-      // صف محفوظ — احذفه من الـ DB
-      const remaining = rows.filter(r => r._rowId !== row._rowId);
-      await onRowsChange(remaining);
-    }
-  };
+  if (row._isNew === 'true') {
+    // حذف محلي فقط
+    setLocalRows(prev => prev.filter((_, idx) => idx !== i));
+  } else {
+    // حذف من DB
+    const remaining = rows.filter(r => r._rowId !== row._rowId);
+
+    await onRowsChange(remaining);
+
+    // 🔥 هذا هو الجزء الناقص
+    setLocalRows(prev => prev.filter((_, idx) => idx !== i));
+  }
+};
 
   return (
     <div style={{ overflowX: 'auto', marginTop: 8 }}>
