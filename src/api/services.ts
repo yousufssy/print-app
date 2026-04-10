@@ -67,15 +67,15 @@ export const problemsApi = {
 };
 
 // ── Operations ────────────────────────────────────────
-export const operationsApi = {
+export const ActionsApi = {
   list: (orderId: string, year: string) =>
-    client.get<any[]>('/operations', { params: { order_id: orderId, year } }).then(r => r.data),
+    client.get<any[]>('/Action', { params: { order_id: orderId, year } }).then(r => r.data),
   create: (data: any) =>
-    client.post<any>('/operations', data).then(r => r.data),
+    client.post<any>('/Action', data).then(r => r.data),
   update: (rowId: number, data: any) =>
-    client.put<any>(`/operations/${rowId}`, data).then(r => r.data),
+    client.put<any>(`/Action/${rowId}`, data).then(r => r.data),
   delete: (rowId: number) =>
-    client.delete(`/operations/${rowId}`),
+    client.delete(`/Action/${rowId}`),
 };
 
 // ── Customers ─────────────────────────────────────────
