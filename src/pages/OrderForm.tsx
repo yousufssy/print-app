@@ -89,10 +89,11 @@ function AccordionCard({
 }
 
 // ── Inline editable table ──────────────────────────────────────────────────────
-function InlineTable({ cols, rows, onRowsChange }: {
+function InlineTable({ cols, rows, onRowsChange, syncDraftRows = false }: {
   cols: { key: string; label: string; type?: string; width?: number }[];
   rows: Record<string, string>[];
   onRowsChange: (rows: Record<string, string>[]) => void | Promise<void>;
+  syncDraftRows?: boolean;
 }) {
   // حالة محلية للصفوف — تشمل الصفوف الجديدة غير المحفوظة
   const [localRows, setLocalRows] = React.useState<Record<string, string>[]>([]);
@@ -103,15 +104,28 @@ function InlineTable({ cols, rows, onRowsChange }: {
     setLocalRows(rows);
   }, [rows]);
 
+  const pushDraftRows = React.useCallback((nextRows: Record<string, string>[]) => {
+    if (!syncDraftRows) return;
+    void onRowsChange(nextRows.map(({ _isNew, ...row }) => row));
+  }, [onRowsChange, syncDraftRows]);
+
   // إضافة صف جديد محلياً فقط (لم يُحفظ بعد)
   const addRow = () => {
     const empty = Object.fromEntries(cols.map(c => [c.key, '']));
-    setLocalRows(prev => [...prev, { ...empty, _rowId: '', _isNew: 'true' }]);
+    setLocalRows(prev => {
+      const nextRows = [...prev, { ...empty, _rowId: '', _isNew: 'true' }];
+      pushDraftRows(nextRows);
+      return nextRows;
+    });
   };
 
   // تعديل خلية محلياً
   const setCell = (i: number, k: string, v: string) => {
-    setLocalRows(prev => prev.map((r, idx) => idx === i ? { ...r, [k]: v } : r));
+    setLocalRows(prev => {
+      const nextRows = prev.map((r, idx) => idx === i ? { ...r, [k]: v } : r);
+      pushDraftRows(nextRows);
+      return nextRows;
+    });
   };
 
   // حفظ صف عند الخروج من آخر input فيه
@@ -149,7 +163,11 @@ function InlineTable({ cols, rows, onRowsChange }: {
 
   if (row._isNew === 'true') {
     // حذف محلي فقط
-    setLocalRows(prev => prev.filter((_, idx) => idx !== i));
+    setLocalRows(prev => {
+      const nextRows = prev.filter((_, idx) => idx !== i);
+      pushDraftRows(nextRows);
+      return nextRows;
+    });
   } else {
     // حذف من DB
     const remaining = rows.filter(r => r._rowId !== row._rowId);
@@ -968,7 +986,12 @@ body{font-family:'Arial',sans-serif;background:#fff;direction:rtl;margin:0;paddi
           </div>
 
           <SectionDiv label="المواد" />
-          <InlineTable cols={MATERIALS_COLS} rows={isEdit ? materialsRows : pendingMaterials} onRowsChange={handleMaterialsChange} />
+          <InlineTable
+            cols={MATERIALS_COLS}
+            rows={isEdit ? materialsRows : pendingMaterials}
+            onRowsChange={handleMaterialsChange}
+            syncDraftRows={!isEdit}
+          />
         </AccordionCard>
 
         {/* ══ 3. مواصفات الطباعة والمونتاج ══ */}
@@ -1021,7 +1044,12 @@ body{font-family:'Arial',sans-serif;background:#fff;direction:rtl;margin:0;paddi
           </div>
 
           <SectionDiv label="العمليات" />
-          <InlineTable cols={OPERATIONS_COLS} rows={isEdit ? operationsRows : pendingOps} onRowsChange={handleOperationsChange} />
+          <InlineTable
+            cols={OPERATIONS_COLS}
+            rows={isEdit ? operationsRows : pendingOps}
+            onRowsChange={handleOperationsChange}
+            syncDraftRows={!isEdit}
+          />
         </AccordionCard>
 
         {/* ══ 4. مراقبة الجودة والمشاكل ══ */}
@@ -1108,7 +1136,12 @@ body{font-family:'Arial',sans-serif;background:#fff;direction:rtl;margin:0;paddi
           </div>
 
           <SectionDiv label="سجل المشاكل الواردة من الزبون" />
-          <InlineTable cols={PROBLEMS_COLS} rows={isEdit ? problemsRows : pendingProblems} onRowsChange={handleProblemsChange} />
+          <InlineTable
+            cols={PROBLEMS_COLS}
+            rows={isEdit ? problemsRows : pendingProblems}
+            onRowsChange={handleProblemsChange}
+            syncDraftRows={!isEdit}
+          />
         </AccordionCard>
 
         {/* ══ 5. التسليم والفوترة ══ */}
