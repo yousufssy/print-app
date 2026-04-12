@@ -5,8 +5,10 @@ import { authApi } from '../api/services';
 import styles from './Layout.module.css';
 
 const NAV = [
-  { to: '/',       icon: '📊', label: 'لوحة التحكم' },
-  { to: '/orders', icon: '📋', label: 'أوامر الطباعة' },
+  { to: '/',           icon: '📊', label: 'لوحة التحكم'    },
+  { to: '/orders',     icon: '📋', label: 'أوامر الطباعة'  },
+  { to: '/production', icon: '⚙️', label: 'متابعة الإنتاج' },
+  { to: '/delivery',   icon: '🚚', label: 'التسليم والفوترة' },
 ];
 
 const USER_NAV = [
@@ -44,7 +46,7 @@ export default function Layout() {
         <nav className={styles.nav}>
           <div className={styles.navLabel}>الرئيسية</div>
 
-          {/* روابط الجميع */}
+          {/* Main nav — visible to all */}
           {NAV.map(n => (
             <NavLink key={n.to} to={n.to} end={n.to === '/'}
               className={({ isActive }) =>
@@ -54,7 +56,7 @@ export default function Layout() {
             </NavLink>
           ))}
 
-          {/* طلب جديد للـ admin و user فقط */}
+          {/* New order — admin & user only */}
           {user?.role !== 'reader' && USER_NAV.map(n => (
             <NavLink key={n.to} to={n.to}
               className={({ isActive }) =>
@@ -64,7 +66,7 @@ export default function Layout() {
             </NavLink>
           ))}
 
-          {/* إدارة المستخدمين للـ admin فقط */}
+          {/* Admin section */}
           {isAdmin() && (
             <>
               <div className={styles.navLabel} style={{ marginTop: 8 }}>الإدارة</div>
