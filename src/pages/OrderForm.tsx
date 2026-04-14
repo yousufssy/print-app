@@ -685,7 +685,7 @@ useEffect(() => {
 
 
   
-  const duplicatedData = location.state?.duplicatedData;
+
 
   useEffect(() => {
       if (!duplicatedData) return;
