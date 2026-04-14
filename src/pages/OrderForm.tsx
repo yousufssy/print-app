@@ -121,12 +121,19 @@ function InlineTable({ cols, rows, onRowsChange, syncDraftRows = false }: {
   };
 
   const setCell = (i: number, k: string, v: string) => {
-    setLocalRows(prev => {
-      const nextRows = prev.map((r, idx) => idx === i ? { ...r, [k]: v } : r);
-      pushDraftRows(nextRows);
-      return nextRows;
-    });
-  };
+  // 🔒 تنقية القيمة: إذا كان العمود رقمياً، اسمح فقط بالأرقام والنقطة والسالبة
+      const col = cols.find(c => c.key === k);
+      let cleanedValue = v;
+      if (col?.type === 'number') {
+        cleanedValue = v.replace(/[^0-9.\-]/g, '');
+      }
+      
+      setLocalRows(prev => {
+        const nextRows = prev.map((r, idx) => idx === i ? { ...r, [k]: cleanedValue } : r);
+        pushDraftRows(nextRows);
+        return nextRows;
+      });
+    };
 
   const saveRow = async (i: number) => {
     const row = localRows[i];
@@ -200,9 +207,20 @@ function InlineTable({ cols, rows, onRowsChange, syncDraftRows = false }: {
               {cols.map((c, ci) => (
                 <td key={c.key} style={{ padding: '3px 5px' }}>
                   <input
-                    value={row[c.key] ?? ''}
+                    value={
+                        c.type === 'number' 
+                          ? String(row[c.key] ?? '').replace(/[^0-9.\-]/g, '') 
+                          : (row[c.key] ?? '')
+                      }
                     type={c.type ?? 'text'}
-                    onChange={e => setCell(i, c.key, e.target.value)}
+                    onChange={e => {
+                        let val = e.target.value;
+                        // منع إدخال رموز غير مسموحة في الحقول الرقمية في اللحظة نفسها
+                        if (c.type === 'number') {
+                          val = val.replace(/[^0-9.\-]/g, '');
+                        }
+                        setCell(i, c.key, val);
+                      }}
                     onBlur={() => {
                       // حفظ عند الخروج من آخر عمود في الصف
                       if (ci === cols.length - 1) saveRow(i);
@@ -255,8 +273,13 @@ function VoucherModal({ open, onClose, orderId, orderYear }: {
     Voucher_num: '', V_date: '', V_Qunt: '', Bill_Num: '',
     Contean: '', Paking_q: '', Box_tp: '', Box_L: '', Box_W: '', Box_H: '',
   });
-  const F = (k: string) => (e: React.ChangeEvent<HTMLInputElement>) => setForm(f => ({ ...f, [k]: e.target.value }));
-  
+  const F = (k: string, numeric = false) => (e: React.ChangeEvent<HTMLInputElement>) => {
+      let val = e.target.value;
+      if (numeric) {
+        val = val.replace(/[^0-9]/g, ''); // للأرقام الصحيحة فقط (بدون فاصلة عشرية)
+      }
+      setForm(f => ({ ...f, [k]: val }));
+    };
   if (!open) return null;
   
   return (
