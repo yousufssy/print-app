@@ -728,23 +728,27 @@ const handleDuplicate = () => {
     const { ID, Ser, Year, AttachmentsOrders, ...basicData } = formData as any;
     
     // 3️⃣ تحضير البيانات للنسخ
-    const duplicatedPayload = {
-      ...basicData,
-      Ser: '',                    // تفريغ التسلسل ليتم حسابه حديثاً
-      Year: String(new Date().getFullYear()), // تحديث السنة تلقائياً
-      date_come: '',              // تفريغ التواريخ الحساسة
-      Perioud: '',
-    };
+const handleDuplicate = () => {
+    // 1️⃣ جمع كل القيم من النموذج (بما فيها غير المسجلة قد تحتاج getValues)
+    const formData = { ...watch() };
     
-    // 4️⃣ التنقل مع البيانات + حالات الـ checkboxes
+    // 2️⃣ حذف الحقول التي لا نريد نسخها أبداً
+    const fieldsToExclude = ['ID', 'Ser', 'Year', 'AttachmentsOrders', 'marji3'];
+    fieldsToExclude.forEach(field => delete formData[field]);
+    
+    // 3️⃣ التنقل للصفحة الجديدة مع إرسال كل شيء مسطحاً (Flat)
     navigate('/orders/new', {
       state: {
         duplicatedData: {
-          order: duplicatedPayload,  // بيانات النموذج
-          checks: { ...checks },     // ✅ نسخ الـ checkboxes
+          // ✅ ندمج كل البيانات في مستوى واحد لسهولة الاستقبال
+          ...formData,
+          Ser: '',  // تفريغ التسلسل
+          Year: String(new Date().getFullYear()), // تحديث السنة
+          
+          // ✅ نضمن إرسال الـ Checkboxes (حتى لو كانت فارغة)
+          checks: { ...checks },
           mfgChecks: { ...mfgChecks },
           custChecks: { ...custChecks },
-          // ⚠️ الجداول (cartons, operations, vouchers) لا نرسلها عمداً
         }
       }
     });
