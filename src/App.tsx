@@ -8,6 +8,7 @@ import OrderFormPage from './pages/OrderForm';
 import ProductionPage from './pages/Production';
 import DeliveryPage from './pages/Delivery';
 import UsersPage from './pages/Users';
+import AdvancedSearchPage from './pages/AdvancedSearchPage'; // ✅ جديد
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const { token } = useAuthStore();
@@ -29,6 +30,7 @@ export default function App() {
         <Route path="/" element={<RequireAuth><Layout /></RequireAuth>}>
           <Route index element={<DashboardPage />} />
           <Route path="orders" element={<OrdersPage />} />
+           <Route path="/orders/search" element={<AdvancedSearchPage />} />
           <Route path="orders/new" element={<OrderFormPage />} />
           <Route path="orders/:id/:year" element={<OrderFormPage />} />
            <Route path="production" element={<ProductionPage />} />
