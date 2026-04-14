@@ -8,7 +8,7 @@ import OrderFormPage from './pages/OrderForm';
 import ProductionPage from './pages/Production';
 import DeliveryPage from './pages/Delivery';
 import UsersPage from './pages/Users';
-import AdvancedSearchPage from './pages/AdvancedSearch'; // ✅ جديد
+import AdvancedSearch from './pages/AdvancedSearch'; // ✅ جديد
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const { token } = useAuthStore();
