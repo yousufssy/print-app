@@ -1,11 +1,11 @@
-import api from './api';
+// 📁 api/services.ts
 import client from './client';
 import type {
   LoginPayload, LoginResponse, Order, OrdersResponse,
   Voucher, Customer, DashboardData, SystemUser,
-} from '../types';
+} from '../types/index';
 
-// ── Auth ──────────────────────────────────────────────
+// ── Auth (المصادقة) ──────────────────────────────────────────────
 export const authApi = {
   login:  (data: LoginPayload) =>
     client.post<LoginResponse>('/login', data).then(r => r.data),
@@ -13,13 +13,13 @@ export const authApi = {
   me:     () => client.get('/me').then(r => r.data),
 };
 
-// ── Dashboard ─────────────────────────────────────────
+// ── Dashboard (لوحة التحكم) ─────────────────────────────────────────
 export const dashboardApi = {
   get: (year: string) =>
     client.get<DashboardData>(`/dashboard?year=${year}`).then(r => r.data),
 };
 
-// ── Orders ────────────────────────────────────────────
+// ── Orders (الطلبات العادية) ────────────────────────────────────────────
 export const ordersApi = {
   list: (params: { year: string; q?: string; page?: number; status?: string }) =>
     client.get<OrdersResponse>('/orders', { params }).then(r => r.data),
@@ -33,53 +33,44 @@ export const ordersApi = {
     client.delete(`/orders/${id}/${year}`),
 };
 
-// ── Vouchers ──────────────────────────────────────────
+// ── Advanced Search (البحث المتقدم المطور) ──────────────────────────────────
+export const advancedSearchApi = {
+  /**
+   * دالة البحث التي تقوم بتنظيف الفلاتر تلقائياً قبل الإرسال
+   * تضمن عدم إرسال "all" أو القيم الفارغة التي تعطل عمل الـ Multi-filter
+   */
+  search: (filters: Record<string, any>) => {
+    const cleanFilters = Object.fromEntries(
+      Object.entries(filters).filter(([_, v]) => 
+        v !== undefined && 
+        v !== '' && 
+        v !== null && 
+        v !== 'all' // تجاهل قيم "الكل" لكي لا تؤثر على الفلترة
+      )
+    );
+    
+    return client.post('/orders/search', cleanFilters).then(r => r.data);
+  },
+  
+  export: (filters: Record<string, any>, format: 'csv' | 'excel' | 'pdf' = 'csv') => {
+    const cleanFilters = Object.fromEntries(
+      Object.entries(filters).filter(([_, v]) => v !== undefined && v !== '' && v !== null)
+    );
+    return client.post('/orders/search/export', { ...cleanFilters, format }, { responseType: 'blob' });
+  },
+};
+
+// ── Vouchers (سندات القبض/الإيصالات) ──────────────────────────────────
 export const vouchersApi = {
-  list: (orderId: string, year: string) =>
-    client.get<Voucher[]>('/vouchers', { params: { order_id: orderId, year } }).then(r => r.data),
+  list: (order_id?: string, year?: string) =>
+    client.get<Voucher[]>('/vouchers', { params: { order_id, year } }).then(r => r.data),
   create: (data: Partial<Voucher>) =>
     client.post<Voucher>('/vouchers', data).then(r => r.data),
-  delete: (rowId: number) =>
-    client.delete(`/vouchers/${rowId}`),
+  delete: (id: number) =>
+    client.delete(`/vouchers/${id}`),
 };
 
-// ── Cartons ───────────────────────────────────────────
-export const cartonsApi = {
-  list: (orderId: string, year: string) =>
-    client.get<any[]>('/cartons', { params: { order_id: orderId, year } }).then(r => r.data),
-  create: (data: any) =>
-    client.post<any>('/cartons', data).then(r => r.data),
-  update: (rowId: number, data: any) =>
-    client.put<any>(`/cartons/${rowId}`, data).then(r => r.data),
-  delete: (rowId: number) =>
-    client.delete(`/cartons/${rowId}`),
-};
-
-// ── Problems ──────────────────────────────────────────
-export const problemsApi = {
-  list: (orderId: string, year: string) =>
-    client.get<any[]>('/problems', { params: { order_id: orderId, year } }).then(r => r.data),
-  create: (data: any) =>
-    client.post<any>('/problems', data).then(r => r.data),
-  update: (rowId: number, data: any) =>
-    client.put<any>(`/problems/${rowId}`, data).then(r => r.data),
-  delete: (rowId: number) =>
-    client.delete(`/problems/${rowId}`),
-};
-
-// ── Operations (actions table) ────────────────────────
-export const operationsApi = {
-  list: (orderId: string, year: string) =>
-    client.get<any[]>('/actions', { params: { order_id: orderId, year } }).then(r => r.data),
-  create: (data: any) =>
-    client.post<any>('/actions', data).then(r => r.data),
-  update: (rowId: number, data: any) =>
-    client.put<any>(`/actions/${rowId}`, data).then(r => r.data),
-  delete: (rowId: number) =>
-    client.delete(`/actions/${rowId}`),
-};
-
-// ── Customers ─────────────────────────────────────────
+// ── Customers (العملاء) ─────────────────────────────────────────────
 export const customersApi = {
   list: (q?: string) =>
     client.get<Customer[]>('/customers', { params: { q } }).then(r => r.data),
@@ -87,7 +78,7 @@ export const customersApi = {
     client.post<Customer>('/customers', data).then(r => r.data),
 };
 
-// ── Users (admin) ─────────────────────────────────────
+// ── Users (المستخدمين - للمدراء فقط) ─────────────────────────────────────
 export const usersApi = {
   list: () =>
     client.get<SystemUser[]>('/users').then(r => r.data),
@@ -98,29 +89,28 @@ export const usersApi = {
   delete: (id: number) =>
     client.delete(`/users/${id}`),
 };
-//  ---------------advancesearch
-// 📁 api/services.ts - إضافة دوال البحث المتقدم
 
-// ── Advanced Search ──────────────────────────────────
-export const advancedSearchApi = {
-  search: (filters: Record<string, any>) => {
-    const clean = Object.fromEntries(
-      Object.entries(filters).filter(([_, v]) => 
-        v !== undefined && v !== '' && v !== null
-      )
-    );
-    // ✅ استخدم client وليس api (لأنه المستورد في هذا الملف)
-    return client.post('/orders/search', clean).then(r => r.data);
-  },
-  
-  export: (filters: Record<string, any>, format: 'csv' | 'excel' | 'pdf' = 'csv') => {
-    const clean = Object.fromEntries(
-      Object.entries(filters).filter(([_, v]) => 
-        v !== undefined && v !== '' && v !== null
-      )
-    );
-    return client.post(`/orders/search/export?format=${format}`, clean, {
-      responseType: 'blob'
-    }).then(r => r.data);
-  }
+// ── Operations (العمليات الفنية/Actions) ──────────────────────────────
+export const operationsApi = {
+  list: (order_id: string, year: string) =>
+    client.get(`/actions?order_id=${order_id}&year=${year}`).then(r => r.data),
+  create: (data: any) => client.post('/actions', data).then(r => r.data),
+  update: (id: string, data: any) => client.put(`/actions/${id}`, data).then(r => r.data),
+  delete: (id: string) => client.delete(`/actions/${id}`),
+};
+
+// ── Materials & Cartons (الخامات والكرتون) ──────────────────────────────
+export const materialsApi = {
+  list: (order_id: string, year: string) =>
+    client.get(`/materials?order_id=${order_id}&year=${year}`).then(r => r.data),
+};
+
+export const cartonsApi = {
+  list: (order_id: string, year: string) =>
+    client.get(`/cartons?order_id=${order_id}&year=${year}`).then(r => r.data),
+};
+
+export const problemsApi = {
+  list: (order_id: string, year: string) =>
+    client.get(`/problems?order_id=${order_id}&year=${year}`).then(r => r.data),
 };
