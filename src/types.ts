@@ -1,5 +1,5 @@
 export interface Order {
-  row_id?: string;
+  row_id?: number;
   // Basic Info
   Ser: string;
   Customer: string;
@@ -11,13 +11,13 @@ export interface Order {
   Apoent_Delv_date?: string;
   delev_date?: string;
   unit?: 'لا' | 'نعم';
-  Demand?: string;
-  Med_smpl_Q?: string;
+  Demand?: number;
+  Med_smpl_Q?: number;
   AttachmentsOrders?: string;
   Perioud?: Date;
   note_ord?: string;
   Varnish?: 'True' | 'False';
-  Qunt_Ac?: string;
+  Qunt_Ac?: number;
   // Print Specs
   Cus_Paking?: string;
   box_stk_typ?: string;
@@ -30,7 +30,7 @@ export interface Order {
   Code_M?: string;
   Free_clr?: string;
   Free_text?: string;
-  Price?: string;
+  Price?: number;
   authorization?: string;
   Code?: string;
   Mix_num?: string;
@@ -41,27 +41,27 @@ export interface Order {
   modefyM?: string;
 
   // Production Dimensions
-  SoftU?: string;
-  TafU?: string;
-  LongU?: string;
-  WedthU?: string;
-  HightU?: string;
-  Lesan?: string;
+  SoftU?: number;
+  TafU?: number;
+  LongU?: number;
+  WedthU?: number;
+  HightU?: number;
+  Lesan?: number;
   MontagNum?: string;
   Cut_num?: 'لأول مرة' | 'موجود';
-  final_size_tall?: string;
-  final_size_tall2?: string;
-  final_size_width?: string;
-  final_size_width2?: string;
-  print_on?: string;
-  print_on2?: string;
-  sheet_unit_qunt?: string;
-  sheet_unit_qunt2?: string;
-  Qunt_of_print_on?: string;
-  Qunt_of_print_on2?: string;
+  final_size_tall?: number;
+  final_size_tall2?: number;
+  final_size_width?: number;
+  final_size_width2?: number;
+  print_on?: number;
+  print_on2?: number;
+  sheet_unit_qunt?: number;
+  sheet_unit_qunt2?: number;
+  Qunt_of_print_on?: number;
+  Qunt_of_print_on2?: number;
   Clr_qunt?: string;
-  Med_Sample?: string;
-  grnd_qunt?: string;
+  Med_Sample?: number;
+  grnd_qunt?: number;
   teq_inf?: string;
 
   // Quality & Status
@@ -107,9 +107,8 @@ export interface Voucher {
 
 export interface Customer {
   Customer: string;
-  _row_id: string;
+  _row_id: number;
 }
 
 // Table row types
 export type TableRow = Record<string, string>;
-
