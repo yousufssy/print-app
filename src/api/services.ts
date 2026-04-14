@@ -1,3 +1,4 @@
+import api from './api';
 import client from './client';
 import type {
   LoginPayload, LoginResponse, Order, OrdersResponse,
