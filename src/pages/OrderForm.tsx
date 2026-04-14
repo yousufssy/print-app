@@ -403,7 +403,7 @@ export default function OrderFormPage() {
   const deleteCarton = useDeleteCarton();
 
   const materialsRows: Record<string, string>[] = cartonsData.map((c: any) => ({
-    _rowId:        String(c.ID1        ?? ''),
+   
     Type1:         c.Type1         ?? '',
     Id_carton:     c.Id_carton     ?? '',
     Source1:       c.Source1       ?? '',
@@ -417,7 +417,10 @@ export default function OrderFormPage() {
     Out_ord_num:   c.Out_ord_num   ?? '',
     note_crt:      c.note_crt      ?? '',
   }));
+  
 
+
+  
   // buffer للحفظ عند إنشاء طلب جديد
   const [pendingMaterials, setPendingMaterials] = useState<Record<string, string>[]>([]);
   const [pendingProblems,  setPendingProblems]  = useState<Record<string, string>[]>([]);
