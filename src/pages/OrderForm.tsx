@@ -6,55 +6,6 @@ import { Card, FormGroup, SectionDiv, CheckItem, Loading, Btn } from '../compone
 import type { Order } from '../types';
 
 
-
-
-
-
-
-
-
-
-
-const handleMaterialsChange = async (newRows: Record<string, string>[]) => {
-  if (!isEdit) { setPendingMaterials(newRows); return; }
-  
-  try {
-    await syncRows(
-      materialsRows, newRows,
-      // ✅ عند الإنشاء
-      (f) => createCarton.mutateAsync({ ...f, OrderID: watchId, year: watchYear }),
-      // ✅ عند التعديل - تأكد من وجود rowId
-      (rowId, f) => {
-        if (!rowId) {
-          console.error('❌ خطأ: rowId غير معرف للتحديث', f);
-          alert('خطأ داخلي: لا يمكن تحديث صف بدون معرف');
-          return Promise.reject('Missing rowId');
-        }
-        return updateCarton.mutateAsync({ rowId, data: f });
-      },
-      (rowId) => deleteCarton.mutateAsync(rowId),
-    );
-  } catch (error: any) {
-    // 🚨 استخراج رسالة الخطأ وعرضها
-    const msg = error?.response?.data?.message || error?.message || 'خطأ غير معروف';
-    const file = error?.response?.data?.file?.split('/').pop() || '';
-    const line = error?.response?.data?.line || '';
-    
-    console.error('❌ خطأ السيرفر:', error?.response?.data);
-    alert(`🚨 خطأ في السيرفر:\n${msg}\n📄 ${file}:${line}`);
-  }
-};
-
-
-
-
-
-
-
-
-
-
-
 // ══════════════════════════════════════════════════════
 //  🔽 Accordion Card Component
 // ══════════════════════════════════════════════════════
@@ -565,8 +516,8 @@ export default function OrderFormPage() {
     oldRows: Record<string, string>[],
     newRows: Record<string, string>[],
     onCreate: (fields: any) => Promise<any>,
-    onUpdate: (rowId: number, fields: any) => Promise<any>,
-    onDelete: (rowId: number) => Promise<any>,
+    onUpdate: (ID: number, fields: any) => Promise<any>,
+    onDelete: (ID: number) => Promise<any>,
   ) => {
     const oldIds = new Set(oldRows.map(r => r.ID).filter(v => !!v));
     const newIds = new Set(newRows.map(r => r.ID).filter(v => !!v));
@@ -633,8 +584,8 @@ useEffect(() => {
     await syncRows(
       materialsRows, newRows,
       (f) => createCarton.mutateAsync({ ...f, ID: watchId, year: watchYear }),
-      (rowId, f) => updateCarton.mutateAsync({ rowId, data: f }),
-      (rowId) => deleteCarton.mutateAsync(rowId),
+      (ID, f) => updateCarton.mutateAsync({ ID, data: f }),
+      (ID) => deleteCarton.mutateAsync(ID),
     );
   };
 
@@ -657,8 +608,8 @@ useEffect(() => {
     await syncRows(
       problemsRows, newRows,
       (f) => createProblem.mutateAsync({ ...f, ID: watchId, Year: watchYear }),
-      (rowId, f) => updateProblem.mutateAsync({ rowId, data: f }),
-      (rowId) => deleteProblem.mutateAsync(rowId),
+      (ID, f) => updateProblem.mutateAsync({ ID, data: f }),
+      (ID) => deleteProblem.mutateAsync(ID),
     );
   };
 
@@ -693,8 +644,8 @@ useEffect(() => {
     await syncRows(
       operationsRows, newRows,
       (f) => createOperation.mutateAsync({ ...f, ID: watchId, Year: watchYear }),
-      (rowId, f) => updateOperation.mutateAsync({ rowId, data: f }),
-      (rowId) => deleteOperation.mutateAsync(rowId),
+      (ID, f) => updateOperation.mutateAsync({ ID, data: f }),
+      (ID) => deleteOperation.mutateAsync(ID),
     );
   };
 
@@ -782,10 +733,10 @@ useEffect(() => {
     (data as any).bals   = 0;
 
     if (!isEdit) {
-      const maxRowId = orders.length > 0
+      const maxID = orders.length > 0
         ? Math.max(...orders.map((o: any) => o.ID)) + 1
         : 1;
-      (data as any).ID = maxRowId;
+      (data as any).ID = maxID;
     }
 
     if (isEdit) {
