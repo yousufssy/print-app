@@ -5,6 +5,56 @@ import { useOrder, useCreateOrder, useUpdateOrder, useCustomers, useVouchers, us
 import { Card, FormGroup, SectionDiv, CheckItem, Loading, Btn } from '../components/ui';
 import type { Order } from '../types';
 
+
+
+
+
+
+
+
+
+
+
+const handleMaterialsChange = async (newRows: Record<string, string>[]) => {
+  if (!isEdit) { setPendingMaterials(newRows); return; }
+  
+  try {
+    await syncRows(
+      materialsRows, newRows,
+      // ✅ عند الإنشاء
+      (f) => createCarton.mutateAsync({ ...f, OrderID: watchId, year: watchYear }),
+      // ✅ عند التعديل - تأكد من وجود rowId
+      (rowId, f) => {
+        if (!rowId) {
+          console.error('❌ خطأ: rowId غير معرف للتحديث', f);
+          alert('خطأ داخلي: لا يمكن تحديث صف بدون معرف');
+          return Promise.reject('Missing rowId');
+        }
+        return updateCarton.mutateAsync({ rowId, data: f });
+      },
+      (rowId) => deleteCarton.mutateAsync(rowId),
+    );
+  } catch (error: any) {
+    // 🚨 استخراج رسالة الخطأ وعرضها
+    const msg = error?.response?.data?.message || error?.message || 'خطأ غير معروف';
+    const file = error?.response?.data?.file?.split('/').pop() || '';
+    const line = error?.response?.data?.line || '';
+    
+    console.error('❌ خطأ السيرفر:', error?.response?.data);
+    alert(`🚨 خطأ في السيرفر:\n${msg}\n📄 ${file}:${line}`);
+  }
+};
+
+
+
+
+
+
+
+
+
+
+
 // ══════════════════════════════════════════════════════
 //  🔽 Accordion Card Component
 // ══════════════════════════════════════════════════════
