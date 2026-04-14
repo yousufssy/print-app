@@ -6,7 +6,6 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { advancedSearchApi } from '../api/services';
 import type { AdvancedSearchFilters, AdvancedSearchResult, SavedSearch } from '../types/search';
 import { Btn, FormGroup, SectionDiv, Loading, Card } from '../components/ui';
-import api from "@/api/client";
 // ── مكونات فرعية داخل الصفحة ──────────────────────────────────────────────
 
 // 🔽 بطاقة فلتر قابلة للطي
@@ -227,7 +226,7 @@ export default function AdvancedSearchPage() {
     setIsExporting(true);
     try {
       const filters = watch();
-      const blob = await advancedSearchApi.exportResults(filters, exportFormat);
+      const blob = await advancedSearchApi.export(filters, exportFormat);
       
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
