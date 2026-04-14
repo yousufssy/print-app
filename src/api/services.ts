@@ -135,29 +135,3 @@ export const advancedSearchApi = {
     }).then(res => res.data);
   }
 };
-// 📁 api/services.ts - أضف هذا القسم
-
-export const advancedOrderSearchApi = {
-  // 🔍 تنفيذ بحث متقدم
-  search: (filters: Record<string, any>) => {
-    // إزالة القيم الفارغة
-    const clean = Object.fromEntries(
-      Object.entries(filters).filter(([_, v]) => 
-        v !== undefined && v !== '' && v !== null
-      )
-    );
-    return api.post('/api/orders/search', clean);
-  },
-  
-  // 📤 تصدير النتائج
-  export: (filters: Record<string, any>) => {
-    const clean = Object.fromEntries(
-      Object.entries(filters).filter(([_, v]) => 
-        v !== undefined && v !== '' && v !== null
-      )
-    );
-    return api.post('/api/orders/search/export', clean, {
-      responseType: 'blob' // ✅ مهم لتحميل الملف
-    });
-  }
-};
