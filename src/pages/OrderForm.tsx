@@ -675,6 +675,17 @@ useEffect(() => {
   }, [openSections]);
 
   const { register, handleSubmit, reset, watch, setValue } = useForm<Order>();
+  
+  const location = useLocation();
+  const duplicatedData = location.state?.duplicatedData;
+  
+  useEffect(() => {
+    if (duplicatedData) {
+      reset(duplicatedData);
+    }
+  }, [duplicatedData, reset]);
+
+  
   const handleDuplicate = () => {
     const data = watch(); // أو getValues() إذا تستخدمها من useForm
   
