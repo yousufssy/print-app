@@ -119,22 +119,28 @@ function InlineTable({
   );
 
   const cleanNumber = (value: string) => {
-    if (value === '') return '';
-
-    let v = value.replace(/[^0-9.\-]/g, '');
-
-    const minusCount = (v.match(/-/g) || []).length;
-    if (minusCount > 1) {
-      v = v.replace(/-/g, '');
-      v = `-${v}`;
-    }
-
-    const parts = v.split('.');
-    if (parts.length > 2) {
-      v = parts[0] + '.' + parts.slice(1).join('');
-    }
-
-    return v;
+      if (value === '') return '';
+  
+      let v = value.replace(/[^0-9.\-]/g, '');
+  
+      const minusCount = (v.match(/-/g) || []).length;
+      if (minusCount > 1) {
+        v = v.replace(/-/g, '');
+      }
+      // ✅ إذا كانت الإشارة في غير البداية، احذفها
+      if (v.includes('-') && v.indexOf('-') !== 0) {
+        v = v.replace(/-/g, '');
+      }
+  
+      const parts = v.split('.');
+      if (parts.length > 2) {
+        v = parts[0] + '.' + parts.slice(1).join('');
+      }
+  
+      // 🛡️ السطر الحاسم: منع القيم غير المكتملة التي تكسر React
+      if (v === '-' || v === '.' || v === '-.' || v === '') return '';
+  
+      return v;
   };
 
   const pushDraftRows = React.useCallback(
