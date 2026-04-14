@@ -6,7 +6,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { advancedSearchApi } from '../api/services';
 import type { AdvancedSearchFilters, AdvancedSearchResult, SavedSearch } from '../types/search';
 import { Btn, FormGroup, SectionDiv, Loading, Card } from '../components/ui';
-
+import api from "@/api/client";
 // ── مكونات فرعية داخل الصفحة ──────────────────────────────────────────────
 
 // 🔽 بطاقة فلتر قابلة للطي
