@@ -676,7 +676,7 @@ useEffect(() => {
 
   const { register, handleSubmit, reset, watch, setValue } = useForm<Order>();
   
-  const location = useLocation();
+  
   const duplicatedData = location.state?.duplicatedData;
   
   useEffect(() => {
