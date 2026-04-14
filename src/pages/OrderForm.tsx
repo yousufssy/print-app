@@ -1056,6 +1056,14 @@ body{font-family:'Arial',sans-serif;background:#fff;direction:rtl;margin:0;paddi
         >
           📁 إغلاق الكل
         </button>
+        <Btn
+          variant="outline"
+          type="button"
+          onClick={handleDuplicate}
+          style={{ display: 'flex', alignItems: 'center', gap: 5 }}
+        >
+          📄 نسخ الطلب
+        </Btn>
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)}>
