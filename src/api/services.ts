@@ -97,3 +97,41 @@ export const usersApi = {
   delete: (id: number) =>
     client.delete(`/users/${id}`),
 };
+//  ---------------advancesearch
+// 📁 api/services.ts - إضافة دوال البحث المتقدم
+
+export const advancedSearchApi = {
+  // 🔍 تنفيذ بحث متقدم
+  search: (filters: AdvancedSearchFilters): Promise<AdvancedSearchResult> => {
+    // إزالة القيم الفارغة
+    const cleanFilters = Object.fromEntries(
+      Object.entries(filters).filter(([_, v]) => v !== undefined && v !== '' && v !== null)
+    );
+    
+    return api.post('/api/orders/search', cleanFilters)
+      .then(res => res.data);
+  },
+  
+  // 💾 حفظ بحث مخصص
+  saveSearch: (name: string, filters: AdvancedSearchFilters): Promise<SavedSearch> => {
+    return api.post('/api/orders/searches', { name, filters })
+      .then(res => res.data);
+  },
+  
+  // 📂 جلب البحوث المحفوظة
+  getSavedSearches: (): Promise<SavedSearch[]> => {
+    return api.get('/api/orders/searches').then(res => res.data);
+  },
+  
+  // 🗑️ حذف بحث محفوظ
+  deleteSavedSearch: (id: string): Promise<void> => {
+    return api.delete(`/api/orders/searches/${id}`).then(res => res.data);
+  },
+  
+  // 📤 تصدير النتائج
+  exportResults: (filters: AdvancedSearchFilters, format: 'csv' | 'excel' | 'pdf'): Promise<Blob> => {
+    return api.post(`/api/orders/search/export?format=${format}`, filters, {
+      responseType: 'blob'
+    }).then(res => res.data);
+  }
+};
