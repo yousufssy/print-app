@@ -81,7 +81,8 @@ function FilterCard({
 
 // ── الصفحة الرئيسية ──────────────────────────────────────────────────────
 
-export default function AdvancedSearch() {
+// ✅ الاسم الصحيح
+export default function AdvancedSearchPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
