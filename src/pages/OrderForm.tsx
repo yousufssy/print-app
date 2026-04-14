@@ -499,7 +499,7 @@ export default function OrderFormPage() {
   const { id, year } = useParams<{ id?: string; year?: string }>();
   const isEdit = !!(id && year);
   const navigate = useNavigate();
-  const location = useLocation();
+  
   
   const { data: existing, isLoading } = useOrder(id ?? '', year ?? '');
   const createOrder = useCreateOrder();
@@ -675,70 +675,58 @@ useEffect(() => {
   }, [openSections]);
 
   const { register, handleSubmit, reset, watch, setValue } = useForm<Order>();
+  const location = useLocation();
   const duplicatedData = location.state;
 
- 
+   const [editableOperationsRows, setEditableOperationsRows] = useState<Record<string, string>[]>([]);
+   const [editableMaterialsRows, setEditableMaterialsRows] = useState<Record<string, string>[]>([]);
+   const [editableProblemsRows, setEditableProblemsRows] = useState<Record<string, string>[]>([]);
 
 
 
-
-
+useEffect(() => {
+    if (!duplicatedData) return;
   
-
-
-  useEffect(() => {
-      if (!duplicatedData) return;
-    
-      // 🟢 1. بيانات الطلب الأساسية
-      reset(duplicatedData.order ?? duplicatedData);
-    
-      // 🟢 2. الكرتون
-      setMaterialsRows(
-        (duplicatedData.materialsRows ?? []).map((r: any) => ({
-          ...r,
-          ID: '', // مهم: نلغي ID حتى يعتبر صف جديد
-        }))
-      );
-    
-      // 🟢 3. العمليات
-      setOperationsRows(
-        (duplicatedData.operationsRows ?? []).map((r: any) => ({
-          ...r,
-          ID: '',
-        }))
-      );
-    
-      // 🟢 4. المشاكل
-      setProblemsRows(
-        (duplicatedData.problemsRows ?? []).map((r: any) => ({
-          ...r,
-          ID: '',
-        }))
-      );
-    
-      // 🟢 5. checkboxes
-      if (duplicatedData.checks) {
-        setChecks(duplicatedData.checks);
-      }
-    
-      if (duplicatedData.mfgChecks) {
-        setMfgChecks(duplicatedData.mfgChecks);
-      }
-    
-      if (duplicatedData.custChecks) {
-        setCustChecks(duplicatedData.custChecks);
-      }
-    
-    }, [duplicatedData, reset]);
-
-
-
+    // 🟢 1. بيانات الطلب الأساسية
+    reset(duplicatedData.order ?? duplicatedData);
   
-  useEffect(() => {
-    if (duplicatedData) {
-      reset(duplicatedData);
-    }
+    // 🟢 2. الكرتون
+    setEditableMaterialsRows(
+      (duplicatedData.materialsRows ?? []).map((r: any) => ({
+        ...r,
+        ID: '', // مهم: يعتبر صف جديد
+      }))
+    );
+  
+    // 🟢 3. العمليات
+    setEditableOperationsRows(
+      (duplicatedData.operationsRows ?? []).map((r: any) => ({
+        ...r,
+        ID: '',
+      }))
+    );
+  
+    // 🟢 4. المشاكل
+    setEditableProblemsRows(
+      (duplicatedData.problemsRows ?? []).map((r: any) => ({
+        ...r,
+        ID: '',
+      }))
+    );
+  
+    // 🟢 5. checkboxes
+    setChecks(duplicatedData.checks ?? {});
+    setMfgChecks(duplicatedData.mfgChecks ?? {});
+    setCustChecks(duplicatedData.custChecks ?? {});
+  
   }, [duplicatedData, reset]);
+  
+
+
+
+
+
+
 
   
   const handleDuplicate = () => {
