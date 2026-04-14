@@ -59,7 +59,7 @@ export interface Order {
   sheet_unit_qunt2?: number;
   Qunt_of_print_on?: number;
   Qunt_of_print_on2?: number;
-  Clr_qunt?: number;
+  Clr_qunt?: string;
   Med_Sample?: number;
   grnd_qunt?: number;
   teq_inf?: string;
@@ -67,7 +67,7 @@ export interface Order {
   // Quality & Status
   Machin_Print?: string;
   Machin_Cut?: string;
-  clr_Qnt_order?: number;
+  clr_Qnt_order?: string;
   varnich?: 'True' | 'False';
   uv?: 'True' | 'False';
   uv_Spot?: 'True' | 'False';
