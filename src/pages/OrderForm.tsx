@@ -684,25 +684,24 @@ useEffect(() => {
 
 // ✅ الكود الجديد (انسخ هذا):
 useEffect(() => {
+  // إذا لم توجد بيانات منسوخة، اخرج
     if (!duplicatedData) return;
   
-    // 🟢 1. تعيين بيانات النموذج الأساسية
-    if (duplicatedData.order) {
-      reset(duplicatedData.order);
+    // 🟢 1. فصل الـ Checkboxes عن بقية البيانات
+    // نستخدم destructuring لاستخراجها والباقي يذهب لـ orderData
+    const { checks: copiedChecks, mfgChecks: copiedMfg, custChecks: copiedCust, ...orderData } = duplicatedData;
+    
+    // 🟢 2. تعيين بيانات النموذج (الباقي)
+    if (Object.keys(orderData).length > 0) {
+      reset(orderData);
     }
   
-    // 🟢 2. تعيين حالات الـ Checkboxes
-    if (duplicatedData.checks) {
-      setChecks(duplicatedData.checks);
-    }
-    if (duplicatedData.mfgChecks) {
-      setMfgChecks(duplicatedData.mfgChecks);
-    }
-    if (duplicatedData.custChecks) {
-      setCustChecks(duplicatedData.custChecks);
-    }
+    // 🟢 3. تعيين الـ Checkboxes (نستخدم القيم المنسوخة أو نتركها فارغة)
+    setChecks(copiedChecks || {});
+    setMfgChecks(copiedMfg || {});
+    setCustChecks(copiedCust || {});
     
-    // 🟢 3. تفريغ الجداول تلقائياً عند النسخ
+    // 🟢 4. تفريغ الجداول لضمان عدم نسخها
     if (!isEdit) {
       setMaterialsRows([]);
       setPendingMaterials([]);
@@ -711,8 +710,6 @@ useEffect(() => {
     }
   
   }, [duplicatedData, reset, isEdit]);
-
-
 
 
 
