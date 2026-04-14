@@ -678,8 +678,7 @@ useEffect(() => {
   const duplicatedData = location.state;
 
  
-  const [operationsRows, setOperationsRows] = useState([]);
-  const [problemsRows, setProblemsRows] = useState([]);
+
 
 
 
