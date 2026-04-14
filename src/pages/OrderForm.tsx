@@ -420,26 +420,25 @@ export default function OrderFormPage() {
   };
 
   // ── الكرتون — مرتبط بالداتابيز ───────────────────────────────────────────────
-  const { data: cartonsData = [] } = useCartons(isEdit ? (id ?? '') : '', isEdit ? (year ?? '') : '');
-  const createCarton = useCreateCarton();
-  const updateCarton = useUpdateCarton();
-  const deleteCarton = useDeleteCarton();
+const { data: cartonsData = [] } = useCartons(isEdit ? (id ?? '') : '', isEdit ? (year ?? '') : '');
+const createCarton = useCreateCarton();
+const updateCarton = useUpdateCarton();
+const deleteCarton = useDeleteCarton();
 
-  const materialsRows: Record<string, string>[] = cartonsData.map((c: any) => ({
-   
-    Type1:         c.Type1         ?? '',
-    Id_carton:     c.Id_carton     ?? '',
-    Source1:       c.Source1       ?? '',
-    Supplier1:     c.Supplier1     ?? '',
-    Long1:         String(c.Long1         ?? ''),
-    Width1:        String(c.Width1        ?? ''),
-    Gramage1:      String(c.Gramage1      ?? ''),
-    Sheet_count1:  String(c.Sheet_count1  ?? ''),
-    Price:         String(c.Price         ?? ''),
-    Out_Date:      c.Out_Date      ?? '',
-    Out_ord_num:   c.Out_ord_num   ?? '',
-    note_crt:      c.note_crt      ?? '',
-  }));
+const materialsRows: Record<string, string>[] = cartonsData.map((c: any) => ({
+  Type1: c.Type1 ?? '',
+  Id_carton: c.Id_carton ?? '',
+  Source1: c.Source1 ?? '',
+  Supplier1: c.Supplier1 ?? '',
+  Long1: String(c.Long1 ?? ''),
+  Width1: String(c.Width1 ?? ''),
+  Gramage1: String(c.Gramage1 ?? ''),
+  Sheet_count1: String(c.Sheet_count1 ?? ''),
+  Price: String(c.Price ?? ''),
+  Out_Date: c.Out_Date ?? '',
+  Out_ord_num: c.Out_ord_num ?? '',
+  note_crt: c.note_crt ?? '',
+}));
   
 
 
