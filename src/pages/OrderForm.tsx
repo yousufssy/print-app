@@ -682,21 +682,35 @@ useEffect(() => {
 
 
 
+// ✅ الكود الجديد (انسخ هذا):
 useEffect(() => {
     if (!duplicatedData) return;
   
-    // 🟢 1. بيانات الطلب الأساسية
-    reset(duplicatedData.order ?? duplicatedData);
+    // 🟢 1. تعيين بيانات النموذج الأساسية
+    if (duplicatedData.order) {
+      reset(duplicatedData.order);
+    }
   
+    // 🟢 2. تعيين حالات الـ Checkboxes
+    if (duplicatedData.checks) {
+      setChecks(duplicatedData.checks);
+    }
+    if (duplicatedData.mfgChecks) {
+      setMfgChecks(duplicatedData.mfgChecks);
+    }
+    if (duplicatedData.custChecks) {
+      setCustChecks(duplicatedData.custChecks);
+    }
+    
+    // 🟢 3. تفريغ الجداول تلقائياً عند النسخ
+    if (!isEdit) {
+      setMaterialsRows([]);
+      setPendingMaterials([]);
+      setPendingOps([]);
+      setPendingProblems([]);
+    }
   
-  
-    // 🟢 5. checkboxes
-    setChecks(duplicatedData.checks ?? {});
-    setMfgChecks(duplicatedData.mfgChecks ?? {});
-    setCustChecks(duplicatedData.custChecks ?? {});
-  
-  }, [duplicatedData, reset]);
-  
+  }, [duplicatedData, reset, isEdit]);
 
 
 
@@ -705,21 +719,37 @@ useEffect(() => {
 
 
   
-  const handleDuplicate = () => {
-    const data = watch(); // أو getValues() إذا تستخدمها من useForm
-  
-    // نحذف ID حتى لا ينسخ نفسه
-    const { ID, Ser, ...rest } = data as any;
-  
+  // ✅ الكود الجديد (انسخ هذا):
+const handleDuplicate = () => {
+    // 1️⃣ جمع بيانات النموذج الأساسية
+    const formData = watch();
+    
+    // 2️⃣ استبعاد حقول النظام (لا نريد نسخها)
+    const { ID, Ser, Year, AttachmentsOrders, ...basicData } = formData as any;
+    
+    // 3️⃣ تحضير البيانات للنسخ
+    const duplicatedPayload = {
+      ...basicData,
+      Ser: '',                    // تفريغ التسلسل ليتم حسابه حديثاً
+      Year: String(new Date().getFullYear()), // تحديث السنة تلقائياً
+      date_come: '',              // تفريغ التواريخ الحساسة
+      Perioud: '',
+    };
+    
+    // 4️⃣ التنقل مع البيانات + حالات الـ checkboxes
     navigate('/orders/new', {
       state: {
         duplicatedData: {
-          ...rest,
-          Ser: '' // أو تتركه فاضي ليُحسب من النظام
+          order: duplicatedPayload,  // بيانات النموذج
+          checks: { ...checks },     // ✅ نسخ الـ checkboxes
+          mfgChecks: { ...mfgChecks },
+          custChecks: { ...custChecks },
+          // ⚠️ الجداول (cartons, operations, vouchers) لا نرسلها عمداً
         }
       }
     });
   };
+  
   const watchYear = watch('Year') || String(new Date().getFullYear());
   const watchId   = watch('ID') || '';
 
