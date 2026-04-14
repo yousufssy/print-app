@@ -406,17 +406,17 @@ function VoucherModal({ open, onClose, orderId, orderYear }: {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 12 }}>
           <FormGroup label="رقم الإيصال"><input className="fc" value={form.Voucher_num} onChange={F('Voucher_num')} style={{ textAlign: 'right' }} /></FormGroup>
           <FormGroup label="تاريخ الإيصال"><input className="fc" type="date" value={form.V_date} onChange={F('V_date')} style={{ textAlign: 'right' }} /></FormGroup>
-          <FormGroup label="الحد (الكمية)"><input className="fc" type="number" value={form.V_Qunt} onChange={F('V_Qunt')} style={{ textAlign: 'right' }} /></FormGroup>
+          <FormGroup label="الحد (الكمية)"><input className="fc"  value={form.V_Qunt} onChange={F('V_Qunt')} style={{ textAlign: 'right' }} /></FormGroup>
           <FormGroup label="رقم الفاتورة"><input className="fc" value={form.Bill_Num} onChange={F('Bill_Num')} style={{ textAlign: 'right' }} /></FormGroup>
           <FormGroup label="النوع"><input className="fc" value={form.Contean} onChange={F('Contean')} style={{ textAlign: 'right' }} /></FormGroup>
-          <FormGroup label="عدد العلب"><input className="fc" type="number" value={form.Paking_q} onChange={F('Paking_q')} style={{ textAlign: 'right' }} /></FormGroup>
+          <FormGroup label="عدد العلب"><input className="fc"  value={form.Paking_q} onChange={F('Paking_q')} style={{ textAlign: 'right' }} /></FormGroup>
         </div>
         <SectionDiv label="أبعاد الكرتون (ط × ع × ا)" />
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 12, marginTop: 12 }}>
           <FormGroup label="النوع"><input className="fc" value={form.Box_tp} onChange={F('Box_tp')} style={{ textAlign: 'right' }} /></FormGroup>
-          <FormGroup label="ط"><input className="fc" type="number" value={form.Box_L} onChange={F('Box_L')} style={{ textAlign: 'right' }} /></FormGroup>
-          <FormGroup label="ع"><input className="fc" type="number" value={form.Box_W} onChange={F('Box_W')} style={{ textAlign: 'right' }} /></FormGroup>
-          <FormGroup label="ا"><input className="fc" type="number" value={form.Box_H} onChange={F('Box_H')} style={{ textAlign: 'right' }} /></FormGroup>
+          <FormGroup label="ط"><input className="fc"  value={form.Box_L} onChange={F('Box_L')} style={{ textAlign: 'right' }} /></FormGroup>
+          <FormGroup label="ع"><input className="fc"  value={form.Box_W} onChange={F('Box_W')} style={{ textAlign: 'right' }} /></FormGroup>
+          <FormGroup label="ا"><input className="fc"  value={form.Box_H} onChange={F('Box_H')} style={{ textAlign: 'right' }} /></FormGroup>
         </div>
         <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 20 }}>
           <Btn variant="outline" type="button" onClick={onClose}>إلغاء</Btn>
@@ -1081,8 +1081,8 @@ body{font-family:'Arial',sans-serif;background:#fff;direction:rtl;margin:0;paddi
             <G label="تاريخ الطلب"><input className="fc" {...register('delev_date')} style={{ textAlign: 'right' }} /></G>
             <G label="موعد التسليم"><input className="fc" {...register('Apoent_Delv_date')} style={{ textAlign: 'right' }} /></G>
             <G label="موافقة المونتاج"><input className="fc" type="date" {...register('Perioud')} style={{ textAlign: 'right' }} /></G>
-            <G label="المطلوب"><input className="fc" type="number" {...register('Demand')} style={{ textAlign: 'right' }} /></G>
-            <G label="نموذج طبي"><input className="fc" type="number" {...register('Med_smpl_Q')} style={{ textAlign: 'right' }} /></G>
+            <G label="المطلوب"><input className="fc"  {...register('Demand')} style={{ textAlign: 'right' }} /></G>
+            <G label="نموذج طبي"><input className="fc"  {...register('Med_smpl_Q')} style={{ textAlign: 'right' }} /></G>
             <G label="رقم الأمر" req><input className="fc" {...register('ID', { required: true })} placeholder="65982" style={{ textAlign: 'right' }} /></G>
             <G label="سنة العمل" req><input className="fc" {...register('Year', { required: true })} style={{ textAlign: 'right' }} /></G>
           </div>
@@ -1121,7 +1121,7 @@ body{font-family:'Arial',sans-serif;background:#fff;direction:rtl;margin:0;paddi
           <SectionDiv label="المواصفات الفنية" />
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(8,1fr)', gap: 12 }}>
             <G label="الترخيص"><input className="fc" {...register('authorization')} style={{ textAlign: 'right' }} /></G>
-            <G label="السعر"><input className="fc" type="number" {...register('Price')} style={{ textAlign: 'right' }} /></G>         
+            <G label="السعر"><input className="fc"  {...register('Price')} style={{ textAlign: 'right' }} /></G>         
             <G label="النموذج المجاني"><input className="fc" {...register('Free_text')} style={{ textAlign: 'right' }} /></G>
             <G label="اللون"><input className="fc" {...register('Free_clr')} style={{ textAlign: 'right' }} /></G>
             <G label="الكود"><input className="fc" {...register('Code')} style={{ textAlign: 'right' }} /></G>
@@ -1153,12 +1153,12 @@ body{font-family:'Arial',sans-serif;background:#fff;direction:rtl;margin:0;paddi
         >
           <SectionDiv label="الأبعاد" />
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(8,1fr)', gap: 12 }}>
-            <G label="الطري"><input className="fc" type="number" step="0.01" {...register('SoftU')} defaultValue={0} style={{ textAlign: 'right' }} /></G>
-            <G label="القاسي"><input className="fc" type="number" step="0.01" {...register('TafU')} defaultValue={0} style={{ textAlign: 'right' }} /></G>
-            <G label="الطول"><input className="fc" type="number" step="0.01" {...register('LongU')} defaultValue={0} style={{ textAlign: 'right' }} /></G>
-            <G label="العرض"><input className="fc" type="number" step="0.01" {...register('WedthU')} defaultValue={0} style={{ textAlign: 'right' }} /></G>
-            <G label="الارتفاع"><input className="fc" type="number" step="0.01" {...register('HightU')} defaultValue={0} style={{ textAlign: 'right' }} /></G>
-            <G label="لسان التدكيك"><input className="fc" type="number" step="0.01" {...register('Lesan')} defaultValue={0} style={{ textAlign: 'right' }} /></G>
+            <G label="الطري"><input className="fc"  step="0.01" {...register('SoftU')} defaultValue={0} style={{ textAlign: 'right' }} /></G>
+            <G label="القاسي"><input className="fc"  step="0.01" {...register('TafU')} defaultValue={0} style={{ textAlign: 'right' }} /></G>
+            <G label="الطول"><input className="fc"  step="0.01" {...register('LongU')} defaultValue={0} style={{ textAlign: 'right' }} /></G>
+            <G label="العرض"><input className="fc"  step="0.01" {...register('WedthU')} defaultValue={0} style={{ textAlign: 'right' }} /></G>
+            <G label="الارتفاع"><input className="fc"  step="0.01" {...register('HightU')} defaultValue={0} style={{ textAlign: 'right' }} /></G>
+            <G label="لسان التدكيك"><input className="fc"  step="0.01" {...register('Lesan')} defaultValue={0} style={{ textAlign: 'right' }} /></G>
             <G label="رقم المونتاج"><input className="fc" {...register('MontagNum')} style={{ textAlign: 'right' }} /></G>
             <G label="القالب">
               <select className="fc" {...register('Cut_num')} style={{ textAlign: 'right' }}>
@@ -1169,20 +1169,20 @@ body{font-family:'Arial',sans-serif;background:#fff;direction:rtl;margin:0;paddi
 
           <SectionDiv label="الطلبية والإنتاج" />
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(8,1fr)', gap: 12 }}>
-            <G label="الحجم النهائي - طري"><input className="fc" type="number" step="0.01" {...register('final_size_tall')} defaultValue={0} style={{ textAlign: 'right' }} /></G>
-            <G label="الحجم النهائي - طري2"><input className="fc" type="number" step="0.01" {...register('final_size_tall2')} defaultValue={0} style={{ textAlign: 'right' }} /></G>
-            <G label="الحجم النهائي - قاسي"><input className="fc" type="number" step="0.01" {...register('final_size_width')} defaultValue={0} style={{ textAlign: 'right' }} /></G>
-            <G label="الحجم النهائي - قاسي2"><input className="fc" type="number" step="0.01" {...register('final_size_width2')} defaultValue={0} style={{ textAlign: 'right' }} /></G>
-            <G label="الطبع على"><input className="fc" type="number" {...register('print_on')} defaultValue={0} style={{ textAlign: 'right' }} /></G>
-            <G label="الطبع على"><input className="fc" type="number" {...register('print_on2')} defaultValue={0} style={{ textAlign: 'right' }} /></G>
-            <G label="فصل الطبق"><input className="fc" type="number" {...register('sheet_unit_qunt')} defaultValue={0} style={{ textAlign: 'right' }} /></G>
-            <G label="2فصل الطبق"><input className="fc" type="number" {...register('sheet_unit_qunt2')} defaultValue={0} style={{ textAlign: 'right' }} /></G>
-            <G label="عدد الطبع"><input className="fc" type="number" {...register('Qunt_of_print_on')} defaultValue={0} style={{ textAlign: 'right' }} /></G>
-            <G label="عدد الطبع"><input className="fc" type="number" {...register('Qunt_of_print_on2')} defaultValue={0} style={{ textAlign: 'right' }} /></G>
-            <G label="عدد الألوان"><input className="fc" type="number" {...register('Clr_qunt')} defaultValue={0} style={{ textAlign: 'right' }} /></G>
-            <G label="منها نموذج طبي"><input className="fc" type="number" {...register('Med_Sample')} defaultValue={0} style={{ textAlign: 'right' }} /></G>
+            <G label="الحجم النهائي - طري"><input className="fc"  step="0.01" {...register('final_size_tall')} defaultValue={0} style={{ textAlign: 'right' }} /></G>
+            <G label="الحجم النهائي - طري2"><input className="fc"  step="0.01" {...register('final_size_tall2')} defaultValue={0} style={{ textAlign: 'right' }} /></G>
+            <G label="الحجم النهائي - قاسي"><input className="fc"  step="0.01" {...register('final_size_width')} defaultValue={0} style={{ textAlign: 'right' }} /></G>
+            <G label="الحجم النهائي - قاسي2"><input className="fc"  step="0.01" {...register('final_size_width2')} defaultValue={0} style={{ textAlign: 'right' }} /></G>
+            <G label="الطبع على"><input className="fc"  {...register('print_on')} defaultValue={0} style={{ textAlign: 'right' }} /></G>
+            <G label="الطبع على"><input className="fc"  {...register('print_on2')} defaultValue={0} style={{ textAlign: 'right' }} /></G>
+            <G label="فصل الطبق"><input className="fc"  {...register('sheet_unit_qunt')} defaultValue={0} style={{ textAlign: 'right' }} /></G>
+            <G label="2فصل الطبق"><input className="fc"  {...register('sheet_unit_qunt2')} defaultValue={0} style={{ textAlign: 'right' }} /></G>
+            <G label="عدد الطبع"><input className="fc"  {...register('Qunt_of_print_on')} defaultValue={0} style={{ textAlign: 'right' }} /></G>
+            <G label="عدد الطبع"><input className="fc"  {...register('Qunt_of_print_on2')} defaultValue={0} style={{ textAlign: 'right' }} /></G>
+            <G label="عدد الألوان"><input className="fc"  {...register('Clr_qunt')} defaultValue={0} style={{ textAlign: 'right' }} /></G>
+            <G label="منها نموذج طبي"><input className="fc"  {...register('Med_Sample')} defaultValue={0} style={{ textAlign: 'right' }} /></G>
             <G label="العدد المنتج">
-              <input className="fc" type="number" {...register('grnd_qunt')} defaultValue={0}
+              <input className="fc"  {...register('grnd_qunt')} defaultValue={0}
                 style={{ background: '#f0f9f0', borderColor: '#27ae60', textAlign: 'right' }} />
             </G>
             <G label="المعلومات الفنية"><input className="fc" {...register('note_ord')} style={{ textAlign: 'right' }} /></G>
@@ -1226,7 +1226,7 @@ body{font-family:'Arial',sans-serif;background:#fff;direction:rtl;margin:0;paddi
                 </div>
                 <div style={{ marginBottom: 10 }}>
                   <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--steel)', marginBottom: 6, display: 'block', textAlign: 'right' }}>عدد الألوان</label>
-                  <input className="fc" type="number" {...register('clr_Qnt_order')} style={{ fontSize: 12, textAlign: 'right' }} />
+                  <input className="fc"  {...register('clr_Qnt_order')} style={{ fontSize: 12, textAlign: 'right' }} />
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 8 }}>
                   {CHK_MFG.map(l => <CheckItem key={l} label={l} checked={!!mfgChecks[l]} onChange={mchk(l)} />)}
@@ -1247,26 +1247,26 @@ body{font-family:'Arial',sans-serif;background:#fff;direction:rtl;margin:0;paddi
                   </div>
                   <div>
                     <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--steel)', marginBottom: 4, display: 'block', textAlign: 'right' }}>عدد الطبع</label>
-                    <input className="fc" type="number" style={{ fontSize: 12, textAlign: 'right' }} />
+                    <input className="fc"  style={{ fontSize: 12, textAlign: 'right' }} />
                   </div>
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 10 }}>
                   <div>
                     <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--steel)', marginBottom: 4, display: 'block', textAlign: 'right' }}>الأبعاد</label>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <input className="fc" type="number" defaultValue={23} style={{ fontSize: 12, textAlign: 'right' }} />
+                      <input className="fc"  defaultValue={23} style={{ fontSize: 12, textAlign: 'right' }} />
                       <span style={{ color: 'var(--muted)', fontWeight: 700 }}>×</span>
-                      <input className="fc" type="number" defaultValue={25} style={{ fontSize: 12, textAlign: 'right' }} />
+                      <input className="fc"  defaultValue={25} style={{ fontSize: 12, textAlign: 'right' }} />
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <input className="fc" type="number" defaultValue={23} style={{ fontSize: 12, textAlign: 'right' }} />
+                      <input className="fc"  defaultValue={23} style={{ fontSize: 12, textAlign: 'right' }} />
                       <span style={{ color: 'var(--muted)', fontWeight: 700 }}>×</span>
-                      <input className="fc" type="number" defaultValue={25} style={{ fontSize: 12, textAlign: 'right' }} />
+                      <input className="fc"  defaultValue={25} style={{ fontSize: 12, textAlign: 'right' }} />
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <input className="fc" type="number" defaultValue={23} style={{ fontSize: 12, textAlign: 'right' }} />
+                      <input className="fc"  defaultValue={23} style={{ fontSize: 12, textAlign: 'right' }} />
                       <span style={{ color: 'var(--muted)', fontWeight: 700 }}>×</span>
-                      <input className="fc" type="number" defaultValue={25} style={{ fontSize: 12, textAlign: 'right' }} />
+                      <input className="fc"  defaultValue={25} style={{ fontSize: 12, textAlign: 'right' }} />
                     </div>
                   </div>
                   
@@ -1302,7 +1302,7 @@ body{font-family:'Arial',sans-serif;background:#fff;direction:rtl;margin:0;paddi
           onToggle={() => toggleSection('delivery')}
         >
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 10 }}>
-            <G label="الكمية المسلمة"><input className="fc" type="number" defaultValue={0} {...register('Qunt_Ac')} style={{ textAlign: 'right' }} /></G>
+            <G label="الكمية المسلمة"><input className="fc"  defaultValue={0} {...register('Qunt_Ac')} style={{ textAlign: 'right' }} /></G>
             <G label="التعبئة عند الزبون"><input className="fc" {...register('Cus_Paking')} style={{ textAlign: 'right' }} /></G>
             <G label="طريقة تلزيق العلبة"><input className="fc" {...register('box_stk_typ')} style={{ textAlign: 'right' }} /></G>
             <G label="الحالة">
