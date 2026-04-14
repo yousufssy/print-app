@@ -515,8 +515,8 @@ export default function OrderFormPage() {
     oldRows: Record<string, string>[],
     newRows: Record<string, string>[],
     onCreate: (fields: any) => Promise<any>,
-    onUpdate: (ID1: number, fields: any) => Promise<any>,
-    onDelete: (ID1: number) => Promise<any>,
+    onUpdate: (rowId: number, fields: any) => Promise<any>,
+    onDelete: (rowId: number) => Promise<any>,
   ) => {
     const oldIds = new Set(oldRows.map(r => r.ID).filter(v => !!v));
     const newIds = new Set(newRows.map(r => r.ID).filter(v => !!v));
@@ -583,8 +583,8 @@ useEffect(() => {
     await syncRows(
       materialsRows, newRows,
       (f) => createCarton.mutateAsync({ ...f, ID: watchId, year: watchYear }),
-      (ID1, f) => updateCarton.mutateAsync({ ID1, data: f }),
-      (ID1) => deleteCarton.mutateAsync(ID1),
+      (rowId, f) => updateCarton.mutateAsync({ rowId, data: f }),
+      (rowId) => deleteCarton.mutateAsync(rowId),
     );
   };
 
@@ -607,8 +607,8 @@ useEffect(() => {
     await syncRows(
       problemsRows, newRows,
       (f) => createProblem.mutateAsync({ ...f, ID: watchId, Year: watchYear }),
-      (ID1, f) => updateProblem.mutateAsync({ ID1, data: f }),
-      (ID1) => deleteProblem.mutateAsync(ID1),
+      (rowId, f) => updateProblem.mutateAsync({ rowId, data: f }),
+      (rowId) => deleteProblem.mutateAsync(rowId),
     );
   };
 
@@ -643,8 +643,8 @@ useEffect(() => {
     await syncRows(
       operationsRows, newRows,
       (f) => createOperation.mutateAsync({ ...f, ID: watchId, Year: watchYear }),
-      (ID1, f) => updateOperation.mutateAsync({ ID1, data: f }),
-      (ID1) => deleteOperation.mutateAsync(ID1),
+      (rowId, f) => updateOperation.mutateAsync({ rowId, data: f }),
+      (rowId) => deleteOperation.mutateAsync(rowId),
     );
   };
 
@@ -732,10 +732,10 @@ useEffect(() => {
     (data as any).bals   = 0;
 
     if (!isEdit) {
-      const maxID1 = orders.length > 0
+      const maxRowId = orders.length > 0
         ? Math.max(...orders.map((o: any) => o.ID)) + 1
         : 1;
-      (data as any).ID = maxID1;
+      (data as any).ID = maxRowId;
     }
 
     if (isEdit) {
