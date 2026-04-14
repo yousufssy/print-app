@@ -30,7 +30,7 @@ export default function App() {
         <Route path="/" element={<RequireAuth><Layout /></RequireAuth>}>
           <Route index element={<DashboardPage />} />
           <Route path="orders" element={<OrdersPage />} />
-           <Route path="orders/search" element={<AdvancedSearch />}  />
+           <Route path="search" element={<AdvancedSearch />}  />
           <Route path="orders/new" element={<OrderFormPage />} />
           <Route path="orders/:id/:year" element={<OrderFormPage />} />
            <Route path="production" element={<ProductionPage />} />
