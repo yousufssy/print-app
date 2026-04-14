@@ -352,9 +352,9 @@ export default function OrdersPage() {
             padding: '12px 16px', alignItems: 'center',
             borderTop: '1px solid var(--border)',
           }}>
-            {page > 1 && <Btn size="sm" onClick={() => setPage(p => p - 1)}>‹ السابق</Btn>}
+            {page > 1 && <Btn size="sm" onClick={() => setPage(p => Number(p) - 1)}>‹ السابق</Btn>}
             {Array.from({ length: Math.min(5, data.last_page) }, (_, i) => {
-              const p = Math.max(1, Math.min(page - 2, data.last_page - 4)) + i;
+              const p = Math.max(1, Math.min(Number(page) - 2, Number(data.last_page) - 4)) + i;
               return (
                 <button key={p} onClick={() => setPage(p)} style={{
                   padding: '5px 10px', borderRadius: 7,
@@ -367,7 +367,7 @@ export default function OrdersPage() {
                 </button>
               );
             })}
-            {page < data.last_page && <Btn size="sm" onClick={() => setPage(p => p + 1)}>التالي ›</Btn>}
+            {page < data.last_page && <Btn size="sm" onClick={() => setPage(p => Number(p) + 1)}>التالي ›</Btn>}
             <span style={{ fontSize: 12, color: 'var(--muted)', marginRight: 4 }}>
               صفحة {page} من {data.last_page}
             </span>
