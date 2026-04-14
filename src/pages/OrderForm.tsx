@@ -108,13 +108,13 @@ function InlineTable({ cols, rows, onRowsChange, syncDraftRows = false }: {
 
   const pushDraftRows = React.useCallback((nextRows: Record<string, string>[]) => {
     if (!syncDraftRows) return;
-    void onRowsChange(nextRows.map(({ _isNew, _rowId, ...row }) => row));
+    void onRowsChange(nextRows.map(({ _isNew, ID, ...row }) => row));
   }, [onRowsChange, syncDraftRows]);
 
   const addRow = () => {
     const empty = Object.fromEntries(cols.map(c => [c.key, '']));
     setLocalRows(prev => {
-      const nextRows = [...prev, { ...empty, _rowId: '', _isNew: 'true' }];
+      const nextRows = [...prev, { ...empty, ID: '', _isNew: 'true' }];
       pushDraftRows(nextRows);
       return nextRows;
     });
@@ -136,14 +136,14 @@ function InlineTable({ cols, rows, onRowsChange, syncDraftRows = false }: {
     if (isEmpty) return;
 
     setSaving(s => ({ ...s, [i]: true }));
-    const { _isNew, _rowId, ...fields } = row;  // ✅ استخرج _isNew و _rowId معاً
+    const { _isNew, ID, ...fields } = row;  // ✅ استخرج _isNew و ID معاً
 
     if (_isNew === 'true') {
       // ✅ استخدم rowsRef.current بدل rows لتجنب مشكلة الـ closure
       const allRows = [...rowsRef.current, { ...fields }];
       await onRowsChange(allRows);
-    } else if (_rowId) {
-      const updated = localRows.map(r => r._rowId === _rowId ? row : r);
+    } else if (ID) {
+      const updated = localRows.map(r => r.ID === ID ? row : r);
       await onRowsChange(updated);
     }
 
@@ -163,7 +163,7 @@ function InlineTable({ cols, rows, onRowsChange, syncDraftRows = false }: {
     } else {
       // ✅ أزل من localRows فوراً ثم أرسل للـ DB
       setLocalRows(prev => prev.filter((_, idx) => idx !== i));
-      const remaining = rowsRef.current.filter(r => r._rowId !== row._rowId);
+      const remaining = rowsRef.current.filter(r => r.ID !== row.ID);
       await onRowsChange(remaining);
     }
   };
@@ -190,7 +190,7 @@ function InlineTable({ cols, rows, onRowsChange, syncDraftRows = false }: {
             </tr>
           )}
           {localRows.map((row, i) => (
-            <tr key={row._rowId || `new-${i}`}
+            <tr key={row.ID || `new-${i}`}
               style={{
                 borderBottom: '1px solid var(--border)',
                 background: row._isNew === 'true'
@@ -378,20 +378,20 @@ export default function OrderFormPage() {
     onUpdate: (rowId: number, fields: any) => Promise<any>,
     onDelete: (rowId: number) => Promise<any>,
   ) => {
-    const oldIds = new Set(oldRows.map(r => r._rowId).filter(v => !!v));
-    const newIds = new Set(newRows.map(r => r._rowId).filter(v => !!v));
+    const oldIds = new Set(oldRows.map(r => r.ID).filter(v => !!v));
+    const newIds = new Set(newRows.map(r => r.ID).filter(v => !!v));
 
     // حذف الصفوف المحذوفة
     for (const old of oldRows)
-      if (old._rowId && !newIds.has(old._rowId))
-        await onDelete(Number(old._rowId));
+      if (old.ID && !newIds.has(old.ID))
+        await onDelete(Number(old.ID));
 
-    // إضافة أو تحديث — ✅ استخرج _isNew و _rowId معاً
+    // إضافة أو تحديث — ✅ استخرج _isNew و ID معاً
     for (const row of newRows) {
-      const { _rowId, _isNew, ...fields } = row;
-      if (_rowId && oldIds.has(_rowId))
-        await onUpdate(Number(_rowId), fields);
-      else if (!_rowId)
+      const { ID, _isNew, ...fields } = row;
+      if (ID && oldIds.has(ID))
+        await onUpdate(Number(ID), fields);
+      else if (!ID)
         await onCreate(fields);
     }
   };
@@ -443,7 +443,7 @@ export default function OrderFormPage() {
   const deleteProblem = useDeleteProblem();
 
   const problemsRows: Record<string, string>[] = problemsData.map((p: any) => ({
-    _rowId:      String(p._ID ?? ''),
+    ID:      String(p._ID ?? ''),
     print_num:   p.print_num   ?? '',
     prod_date:   p.prod_date   ?? '',
     exp_date:    p.exp_date    ?? '',
@@ -467,7 +467,7 @@ export default function OrderFormPage() {
   const deleteOperation = useDeleteOperation();
 
   const operationsRows: Record<string, string>[] = operationsData.map((op: any) => ({
-    _rowId:      String(op._ID ?? op.ID ?? ''),
+    ID:      String(op._ID ?? op.ID ?? ''),
     Action:      op.Action      ?? '',
     Color:       op.Color       ?? '',
     Qunt_Ac:     String(op.Qunt_Ac    ?? ''),
@@ -595,11 +595,11 @@ export default function OrderFormPage() {
 
       // حفظ الصفوف المؤجلة بعد معرفة الـ ID الجديد
       await Promise.all([
-        ...pendingMaterials.map(({ _rowId, _isNew, ...f }) =>
+        ...pendingMaterials.map(({ ID, _isNew, ...f }) =>
           createCarton.mutateAsync({ ...f, ID: newId, year: yr })),
-        ...pendingProblems.map(({ _rowId, _isNew, ...f }) =>
+        ...pendingProblems.map(({ ID, _isNew, ...f }) =>
           createProblem.mutateAsync({ ...f, ID: newId, Year: yr })),
-        ...pendingOps.map(({ _rowId, _isNew, ...f }) =>
+        ...pendingOps.map(({ ID, _isNew, ...f }) =>
           createOperation.mutateAsync({ ...f, ID: newId, Year: yr })),
       ]);
     }
