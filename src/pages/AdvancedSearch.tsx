@@ -81,7 +81,7 @@ function FilterCard({
 
 // ── الصفحة الرئيسية ──────────────────────────────────────────────────────
 
-export default function AdvancedSearchPage() {
+export default function AdvancedSearch() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
