@@ -95,21 +95,22 @@ function InlineTable({ cols, rows, onRowsChange, syncDraftRows = false }: {
   onRowsChange: (rows: Record<string, string>[]) => void | Promise<void>;
   syncDraftRows?: boolean;
 }) {
-  // حالة محلية للصفوف — تشمل الصفوف الجديدة غير المحفوظة
   const [localRows, setLocalRows] = React.useState<Record<string, string>[]>([]);
   const [saving, setSaving] = React.useState<Record<number, boolean>>({});
 
-  // مزامنة الـ local rows مع الـ rows القادمة من الـ DB
+  // ✅ ref لضمان أن saveRow دائماً يرى آخر قيمة لـ rows
+  const rowsRef = React.useRef(rows);
+  React.useEffect(() => { rowsRef.current = rows; }, [rows]);
+
   React.useEffect(() => {
     setLocalRows(rows);
   }, [rows]);
 
   const pushDraftRows = React.useCallback((nextRows: Record<string, string>[]) => {
     if (!syncDraftRows) return;
-    void onRowsChange(nextRows.map(({ _isNew, ...row }) => row));
+    void onRowsChange(nextRows.map(({ _isNew, _rowId, ...row }) => row));
   }, [onRowsChange, syncDraftRows]);
 
-  // إضافة صف جديد محلياً فقط (لم يُحفظ بعد)
   const addRow = () => {
     const empty = Object.fromEntries(cols.map(c => [c.key, '']));
     setLocalRows(prev => {
@@ -119,7 +120,6 @@ function InlineTable({ cols, rows, onRowsChange, syncDraftRows = false }: {
     });
   };
 
-  // تعديل خلية محلياً
   const setCell = (i: number, k: string, v: string) => {
     setLocalRows(prev => {
       const nextRows = prev.map((r, idx) => idx === i ? { ...r, [k]: v } : r);
@@ -128,56 +128,45 @@ function InlineTable({ cols, rows, onRowsChange, syncDraftRows = false }: {
     });
   };
 
-  // حفظ صف عند الخروج من آخر input فيه
   const saveRow = async (i: number) => {
     const row = localRows[i];
     if (!row) return;
 
-    // إذا الصف جديد وفارغ تماماً — لا تحفظ
     const isEmpty = cols.every(c => !row[c.key]);
-    if (row._isNew === 'true' && isEmpty) return;
+    if (isEmpty) return;
 
-    // إذا الصف جديد — أرسل للـ DB عبر onRowsChange
-    if (row._isNew === 'true') {
-      setSaving(s => ({ ...s, [i]: true }));
-      const { _isNew, _rowId, ...fields } = row;
-      // أضف الصف للـ rows الكاملة وأرسل
-      const allRows = [...rows, { ...fields }];
+    setSaving(s => ({ ...s, [i]: true }));
+    const { _isNew, _rowId, ...fields } = row;  // ✅ استخرج _isNew و _rowId معاً
+
+    if (_isNew === 'true') {
+      // ✅ استخدم rowsRef.current بدل rows لتجنب مشكلة الـ closure
+      const allRows = [...rowsRef.current, { ...fields }];
       await onRowsChange(allRows);
-      setSaving(s => ({ ...s, [i]: false }));
-    } else if (row._rowId) {
-      // صف موجود — تحديث
-      setSaving(s => ({ ...s, [i]: true }));
-      const updated = localRows.map(r =>
-        r._rowId === row._rowId ? row : r
-      );
+    } else if (_rowId) {
+      const updated = localRows.map(r => r._rowId === _rowId ? row : r);
       await onRowsChange(updated);
-      setSaving(s => ({ ...s, [i]: false }));
     }
+
+    setSaving(s => ({ ...s, [i]: false }));
   };
 
-  // حذف صف
- const delRow = async (i: number) => {
-  const row = localRows[i];
-  if (!row) return;
+  const delRow = async (i: number) => {
+    const row = localRows[i];
+    if (!row) return;
 
-  if (row._isNew === 'true') {
-    // حذف محلي فقط
-    setLocalRows(prev => {
-      const nextRows = prev.filter((_, idx) => idx !== i);
-      pushDraftRows(nextRows);
-      return nextRows;
-    });
-  } else {
-    // حذف من DB
-    const remaining = rows.filter(r => r._rowId !== row._rowId);
-
-    await onRowsChange(remaining);
-
-    // 🔥 هذا هو الجزء الناقص
-    setLocalRows(prev => prev.filter((_, idx) => idx !== i));
-  }
-};
+    if (row._isNew === 'true') {
+      setLocalRows(prev => {
+        const nextRows = prev.filter((_, idx) => idx !== i);
+        pushDraftRows(nextRows);
+        return nextRows;
+      });
+    } else {
+      // ✅ أزل من localRows فوراً ثم أرسل للـ DB
+      setLocalRows(prev => prev.filter((_, idx) => idx !== i));
+      const remaining = rowsRef.current.filter(r => r._rowId !== row._rowId);
+      await onRowsChange(remaining);
+    }
+  };
 
   return (
     <div style={{ overflowX: 'auto', marginTop: 8 }}>
@@ -223,11 +212,19 @@ function InlineTable({ cols, rows, onRowsChange, syncDraftRows = false }: {
                   />
                 </td>
               ))}
-              <td style={{ padding: '3px 6px', textAlign: 'center' }}>
+              <td style={{ padding: '3px 6px', textAlign: 'center', whiteSpace: 'nowrap' }}>
                 {saving[i]
                   ? <span style={{ fontSize: 11, color: 'var(--muted)' }}>⏳</span>
-                  : <button type="button" onClick={() => delRow(i)}
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--red)', fontSize: 14 }}>🗑</button>
+                  : <>
+                      {row._isNew === 'true' && (
+                        <button type="button" onClick={() => saveRow(i)}
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#27ae60', fontSize: 14, marginLeft: 4 }}
+                          title="حفظ">💾</button>
+                      )}
+                      <button type="button" onClick={() => delRow(i)}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--red)', fontSize: 14 }}
+                        title="حذف">🗑</button>
+                    </>
                 }
               </td>
             </tr>
@@ -380,23 +377,22 @@ export default function OrderFormPage() {
     onCreate: (fields: any) => Promise<any>,
     onUpdate: (rowId: number, fields: any) => Promise<any>,
     onDelete: (rowId: number) => Promise<any>,
-    extraFields: Record<string, string> = {},
   ) => {
-    const oldIds = new Set(oldRows.map(r => r._rowId).filter(Boolean));
-    const newIds = new Set(newRows.map(r => r._rowId).filter(Boolean));
+    const oldIds = new Set(oldRows.map(r => r._rowId).filter(v => !!v));
+    const newIds = new Set(newRows.map(r => r._rowId).filter(v => !!v));
 
     // حذف الصفوف المحذوفة
     for (const old of oldRows)
       if (old._rowId && !newIds.has(old._rowId))
         await onDelete(Number(old._rowId));
 
-    // إضافة أو تحديث
+    // إضافة أو تحديث — ✅ استخرج _isNew و _rowId معاً
     for (const row of newRows) {
-      const { _rowId, ...fields } = row;
+      const { _rowId, _isNew, ...fields } = row;
       if (_rowId && oldIds.has(_rowId))
         await onUpdate(Number(_rowId), fields);
       else if (!_rowId)
-        await onCreate({ ...fields, ...extraFields });
+        await onCreate(fields);
     }
   };
 
@@ -596,11 +592,11 @@ export default function OrderFormPage() {
 
       // حفظ الصفوف المؤجلة بعد معرفة الـ ID الجديد
       await Promise.all([
-        ...pendingMaterials.map(({ _rowId, ...f }) =>
+        ...pendingMaterials.map(({ _rowId, _isNew, ...f }) =>
           createCarton.mutateAsync({ ...f, ID: newId, year: yr })),
-        ...pendingProblems.map(({ _rowId, ...f }) =>
+        ...pendingProblems.map(({ _rowId, _isNew, ...f }) =>
           createProblem.mutateAsync({ ...f, ID: newId, Year: yr })),
-        ...pendingOps.map(({ _rowId, ...f }) =>
+        ...pendingOps.map(({ _rowId, _isNew, ...f }) =>
           createOperation.mutateAsync({ ...f, ID: newId, Year: yr })),
       ]);
     }
