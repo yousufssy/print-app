@@ -545,6 +545,9 @@ const [materialsRows, setMaterialsRows] = useState<Record<string, string>[]>([])
 useEffect(() => {
   setMaterialsRows(
     cartonsData.map((c: any) => ({
+      // ✅ أضف هذا السطر لضمان وجود المعرف الفريد
+      ID: String(c.ID1 ?? c.ID ?? ''), 
+      
       Type1: c.Type1 ?? '',
       Id_carton: c.Id_carton ?? '',
       Source1: c.Source1 ?? '',
