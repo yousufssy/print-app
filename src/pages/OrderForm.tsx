@@ -879,6 +879,14 @@ body{font-family:'Arial',sans-serif;background:#fff;direction:rtl;margin:0;paddi
 
       {/* 🔘 أزرار التحكم السريع بالأقسام */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
+        <Btn
+          variant="outline"
+          type="button"
+          onClick={handleDuplicate}
+          style={{ display: 'flex', alignItems: 'center', gap: 5 }}
+        >
+          📄 نسخ الطلب
+        </Btn>
         <button 
           type="button"
           onClick={() => setOpenSections({ basic: true, specs: true, printing: true, quality: true, delivery: true })}
