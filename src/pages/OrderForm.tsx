@@ -675,9 +675,57 @@ useEffect(() => {
   }, [openSections]);
 
   const { register, handleSubmit, reset, watch, setValue } = useForm<Order>();
-  
+  const duplicatedData = location.state;
   
   const duplicatedData = location.state?.duplicatedData;
+
+  useEffect(() => {
+      if (!duplicatedData) return;
+    
+      // 🟢 1. بيانات الطلب الأساسية
+      reset(duplicatedData.order ?? duplicatedData);
+    
+      // 🟢 2. الكرتون
+      setMaterialsRows(
+        (duplicatedData.materialsRows ?? []).map((r: any) => ({
+          ...r,
+          ID: '', // مهم: نلغي ID حتى يعتبر صف جديد
+        }))
+      );
+    
+      // 🟢 3. العمليات
+      setOperationsRows(
+        (duplicatedData.operationsRows ?? []).map((r: any) => ({
+          ...r,
+          ID: '',
+        }))
+      );
+    
+      // 🟢 4. المشاكل
+      setProblemsRows(
+        (duplicatedData.problemsRows ?? []).map((r: any) => ({
+          ...r,
+          ID: '',
+        }))
+      );
+    
+      // 🟢 5. checkboxes
+      if (duplicatedData.checks) {
+        setChecks(duplicatedData.checks);
+      }
+    
+      if (duplicatedData.mfgChecks) {
+        setMfgChecks(duplicatedData.mfgChecks);
+      }
+    
+      if (duplicatedData.custChecks) {
+        setCustChecks(duplicatedData.custChecks);
+      }
+    
+    }, [duplicatedData, reset]);
+
+
+
   
   useEffect(() => {
     if (duplicatedData) {
