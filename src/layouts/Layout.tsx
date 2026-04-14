@@ -9,7 +9,7 @@ const NAV = [
   { to: '/orders',     icon: '📋', label: 'أوامر الطباعة'  },
   { to: '/production', icon: '⚙️', label: 'متابعة الإنتاج' },
   { to: '/delivery',   icon: '🚚', label: 'التسليم والفوترة' },
-  { to: '/order/search',   icon: '🚚', label: 'اadvancesearchة' }
+  { to: '/search',   icon: '🚚', label: 'اadvancesearchة' }
 ];
 
 const USER_NAV = [
