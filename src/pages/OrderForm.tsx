@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { useOrder, useCreateOrder, useUpdateOrder, useCustomers, useVouchers, useCreateVoucher, useDeleteVoucher, useOrders, useOperations, useCreateOperation, useUpdateOperation, useDeleteOperation, useCartons, useCreateCarton, useUpdateCarton, useDeleteCarton, useProblems, useCreateProblem, useUpdateProblem, useDeleteProblem } from '../hooks/useApi';
 import { Card, FormGroup, SectionDiv, CheckItem, Loading, Btn } from '../components/ui';
@@ -499,7 +499,8 @@ export default function OrderFormPage() {
   const { id, year } = useParams<{ id?: string; year?: string }>();
   const isEdit = !!(id && year);
   const navigate = useNavigate();
-
+  const location = useLocation();
+  
   const { data: existing, isLoading } = useOrder(id ?? '', year ?? '');
   const createOrder = useCreateOrder();
   const updateOrder = useUpdateOrder(id ?? '', year ?? '');
@@ -674,6 +675,21 @@ useEffect(() => {
   }, [openSections]);
 
   const { register, handleSubmit, reset, watch, setValue } = useForm<Order>();
+  const handleDuplicate = () => {
+    const data = watch(); // أو getValues() إذا تستخدمها من useForm
+  
+    // نحذف ID حتى لا ينسخ نفسه
+    const { ID, Ser, ...rest } = data as any;
+  
+    navigate('/orders/new', {
+      state: {
+        duplicatedData: {
+          ...rest,
+          Ser: '' // أو تتركه فاضي ليُحسب من النظام
+        }
+      }
+    });
+  };
   const watchYear = watch('Year') || String(new Date().getFullYear());
   const watchId   = watch('ID') || '';
 
