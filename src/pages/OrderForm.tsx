@@ -678,9 +678,7 @@ useEffect(() => {
   const location = useLocation();
   const duplicatedData = location.state;
 
-   const [editableOperationsRows, setEditableOperationsRows] = useState<Record<string, string>[]>([]);
-   const [editableMaterialsRows, setEditableMaterialsRows] = useState<Record<string, string>[]>([]);
-   const [editableProblemsRows, setEditableProblemsRows] = useState<Record<string, string>[]>([]);
+  
 
 
 
@@ -690,29 +688,7 @@ useEffect(() => {
     // 🟢 1. بيانات الطلب الأساسية
     reset(duplicatedData.order ?? duplicatedData);
   
-    // 🟢 2. الكرتون
-    setEditableMaterialsRows(
-      (duplicatedData.materialsRows ?? []).map((r: any) => ({
-        ...r,
-        ID: '', // مهم: يعتبر صف جديد
-      }))
-    );
   
-    // 🟢 3. العمليات
-    setEditableOperationsRows(
-      (duplicatedData.operationsRows ?? []).map((r: any) => ({
-        ...r,
-        ID: '',
-      }))
-    );
-  
-    // 🟢 4. المشاكل
-    setEditableProblemsRows(
-      (duplicatedData.problemsRows ?? []).map((r: any) => ({
-        ...r,
-        ID: '',
-      }))
-    );
   
     // 🟢 5. checkboxes
     setChecks(duplicatedData.checks ?? {});
