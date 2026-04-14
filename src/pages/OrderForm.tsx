@@ -466,7 +466,7 @@ export default function OrderFormPage() {
   const deleteProblem = useDeleteProblem();
 
   const problemsRows: Record<string, string>[] = problemsData.map((p: any) => ({
-    ID:      String(p._ID ?? ''),
+    ID:      String(p.ID1 ?? ''),
     print_num:   p.print_num   ?? '',
     prod_date:   p.prod_date   ?? '',
     exp_date:    p.exp_date    ?? '',
@@ -490,7 +490,7 @@ export default function OrderFormPage() {
   const deleteOperation = useDeleteOperation();
 
   const operationsRows: Record<string, string>[] = operationsData.map((op: any) => ({
-    ID:      String(op._ID ?? op.ID ?? ''),
+    ID:      String(op.ID1 ?? op.ID ?? ''),
     Action:      op.Action      ?? '',
     Color:       op.Color       ?? '',
     Qunt_Ac:     String(op.Qunt_Ac    ?? ''),
@@ -945,7 +945,7 @@ body{font-family:'Arial',sans-serif;background:#fff;direction:rtl;margin:0;paddi
             <G label="التفصيلات المرتبطة"><input className="fc" {...register('AttachmentsOrders')} style={{ textAlign: 'right' }} /></G>
           </div>
           <datalist id="cust-list">
-            {customers.map(c => <option key={(c as any)._ID} value={c.Customer} />)}
+            {customers.map(c => <option key={(c as any).ID1} value={c.Customer} />)}
           </datalist>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(8,1fr)', gap: 12, marginTop: 12 }}>
             <G label="تاريخ الورود"><input className="fc" type="date" {...register('date_come')} style={{ textAlign: 'right' }} /></G>
@@ -1202,7 +1202,7 @@ body{font-family:'Arial',sans-serif;background:#fff;direction:rtl;margin:0;paddi
                   </td></tr>
                 )}
                 {vouchers.map((v, i) => (
-                  <tr key={(v as any)._ID} style={{ borderBottom: '1px solid var(--border)', background: i % 2 === 0 ? '#fff' : '#fdf8f0' }}>
+                  <tr key={(v as any).ID1} style={{ borderBottom: '1px solid var(--border)', background: i % 2 === 0 ? '#fff' : '#fdf8f0' }}>
                     <td style={{ padding: '8px', textAlign: 'right' }}><span style={{ fontWeight: 600 }}>{v.Voucher_num || '—'}</span></td>
                     <td style={{ padding: '8px', textAlign: 'right' }}>{v.V_date || '—'}</td>
                     <td style={{ padding: '8px', textAlign: 'right' }}>{v.V_Qunt || '0'}</td>
@@ -1214,7 +1214,7 @@ body{font-family:'Arial',sans-serif;background:#fff;direction:rtl;margin:0;paddi
                     <td style={{ padding: '8px', textAlign: 'right' }}>{v.Box_H || '0'}</td>
                     <td style={{ padding: '8px', textAlign: 'center' }}>
                       <button type="button"
-                        onClick={() => confirm('حذف الإيصال؟') && deleteVoucher.mutate((v as any)._ID)}
+                        onClick={() => confirm('حذف الإيصال؟') && deleteVoucher.mutate((v as any).ID1)}
                         style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16 }}>🗑</button>
                     </td>
                   </tr>
