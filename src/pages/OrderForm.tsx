@@ -526,6 +526,7 @@ export default function OrderFormPage() {
   const [hasLoadedDuplicate, setHasLoadedDuplicate] = useState(false);
 
   const [currentYear] = useState(String(new Date().getFullYear()));
+  const ordersYearRef = useRef<string>(String(new Date().getFullYear()));
 
   // ✅ useForm بدون dependencies معقدة
   const { register, handleSubmit, reset, setValue } = useForm<Order>({
@@ -719,31 +720,22 @@ export default function OrderFormPage() {
   }, [isEdit, operationsRows, syncRows, createOperation, updateOperation, deleteOperation, id, year]);
 
   // ── حالة الأقسام ──────────────────────────────────────────────────────────────
-  const [openSections, setOpenSections] = useState<Record<string, boolean>>({
-    basic: true,
-    specs: true,
-    printing: true,
-    quality: true,
-    delivery: true
-  });
-
-  useEffect(() => {
-    const saved = localStorage.getItem('orderFormSections');
-    if (saved) {
-      try {
-        setOpenSections(JSON.parse(saved));
-      } catch (e) {
-        console.warn('Failed to parse saved sections:', e);
-      }
-    }
-  }, []);
-
+    const getInitialSections = () => {
+    try {
+      const saved = localStorage.getItem('orderFormSections');
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return { basic: true, specs: true, printing: true, quality: true, delivery: true };
+  };
+  
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>(getInitialSections);
+  
   useEffect(() => {
     localStorage.setItem('orderFormSections', JSON.stringify(openSections));
   }, [openSections]);
 
   const { data: ordersResponse } = useOrders({ year: currentYear });
-  const orders = ordersResponse?.data || [];
+  const orders = useMemo(() => ordersResponse?.data ?? [], [ordersResponse]);
 
   const { data: vouchers = [] } = useVouchers(
     isEdit ? (id ?? '') : '', 
@@ -817,31 +809,31 @@ export default function OrderFormPage() {
 
   // ✅ 3️⃣ تهيئة طلب جديد - مرة واحدة
 // ✅ 3️⃣ تهيئة طلب جديد - مرة واحدة فقط عند أول تحميل
-  useEffect(() => {
-      if (isEdit || idInitialized || duplicatedData) return;
-      if (!orders || orders.length === 0) return;
-    
-      const latestOrder = orders[orders.length - 1];
-      const lastSer = parseInt(latestOrder?.Ser || '0') || 0;
-      const newId = String((Number(latestOrder?.ID) || 0) + 1);
-    
-      // استخدام reset بدلاً من setValue المتكرر
-      reset({
-        Ser: String(lastSer + 1),
-        ID: newId,
-        Year: currentYear,
-      });
-    
-      formDataRef.current = {
-        Ser: String(lastSer + 1),
-        ID: newId,
-        Year: currentYear,
-      };
-    
-      setIdInitialized(true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isEdit, orders, idInitialized, duplicatedData]);
-
+// ✅ 3️⃣ تهيئة طلب جديد - مرة واحدة فقط
+    const idInitializedRef = useRef(false);
+      
+      useEffect(() => {
+        if (isEdit || duplicatedData) return;
+        if (idInitializedRef.current) return;
+        if (!orders || orders.length === 0) return;
+      
+        idInitializedRef.current = true;
+      
+        const latestOrder = orders[orders.length - 1];
+        const lastSer = parseInt(latestOrder?.Ser || '0') || 0;
+        const newId = String((Number(latestOrder?.ID) || 0) + 1);
+      
+        const initData = {
+          Ser: String(lastSer + 1),
+          ID: newId,
+          Year: currentYear,
+        };
+      
+        reset((prev) => ({ ...prev, ...initData }));
+        formDataRef.current = initData;
+        setIdInitialized(true);
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      }, [orders]);
   // ✅ الحفظ - مع معالجة أخطاء شاملة
   const onSubmit = useCallback(async (data: Order) => {
     try {
