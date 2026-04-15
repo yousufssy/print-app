@@ -6,7 +6,7 @@ import { Card, FormGroup, SectionDiv, CheckItem, Loading, Btn } from '../compone
 import type { Order } from '../types';
 
 // ══════════════════════════════════════════════════════
-//  🔽 Accordion Card Component - مصحح
+//  🔽 Accordion Card Component
 // ══════════════════════════════════════════════════════
 function AccordionCard({ 
   title, 
@@ -14,6 +14,12 @@ function AccordionCard({
   defaultOpen = true,
   isOpen,
   onToggle 
+}: { 
+  title: string; 
+  children: React.ReactNode;
+  defaultOpen?: boolean;
+  isOpen?: boolean;
+  onToggle?: () => void;
 }) {
   const [internalOpen, setInternalOpen] = useState(defaultOpen);
   const isControlled = isOpen !== undefined;
