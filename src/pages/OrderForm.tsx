@@ -39,7 +39,6 @@ function AccordionCard({
       overflow: 'hidden',
       boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
     }}>
-      {/* Header - قابل للنقر */}
       <button
         type="button"
         onClick={toggle}
@@ -73,7 +72,6 @@ function AccordionCard({
         </span>
       </button>
       
-      {/* Content - مع تأثير انزلاق */}
       <div style={{
         maxHeight: open ? '3000px' : '0',
         overflow: 'hidden',
@@ -127,7 +125,6 @@ const InlineTable = React.memo(function InlineTable({
       if (minusCount > 1) {
         v = v.replace(/-/g, '');
       }
-      // ✅ إذا كانت الإشارة في غير البداية، احذفها
       if (v.includes('-') && v.indexOf('-') !== 0) {
         v = v.replace(/-/g, '');
       }
@@ -137,7 +134,6 @@ const InlineTable = React.memo(function InlineTable({
         v = parts[0] + '.' + parts.slice(1).join('');
       }
   
-      // 🛡️ السطر الحاسم: منع القيم غير المكتملة التي تكسر React
       if (v === '-' || v === '.' || v === '-.' || v === '') return '';
   
       return v;
@@ -160,9 +156,6 @@ const InlineTable = React.memo(function InlineTable({
     });
   }, [cols, pushDraftRows]);
 
-
-
-  
   const setCell = React.useCallback((i: number, key: string, value: string) => {
     const finalValue = isNumericCol(key) ? cleanNumber(value) : value;
   
@@ -170,15 +163,9 @@ const InlineTable = React.memo(function InlineTable({
       const nextRows = prev.map((r, idx) =>
         idx === i ? { ...r, [key]: finalValue } : r
       );
-      // ✅ فقط نُحدث الحالة المحلية
-      // ❌ لا نُحدث الخارجي هنا
       return nextRows;
     });
   }, [isNumericCol, cleanNumber]);
-
-
-
-  
 
   const saveRow = React.useCallback(async (i: number) => {
     const row = localRows[i];
@@ -399,7 +386,7 @@ function VoucherModal({ open, onClose, orderId, orderYear }: {
   const F = (k: string, numeric = false) => (e: React.ChangeEvent<HTMLInputElement>) => {
       let val = e.target.value;
       if (numeric) {
-        val = val.replace(/[^0-9]/g, ''); // للأرقام الصحيحة فقط (بدون فاصلة عشرية)
+        val = val.replace(/[^0-9]/g, '');
       }
       setForm(f => ({ ...f, [k]: val }));
     };
@@ -481,6 +468,16 @@ const OPERATIONS_COLS = [
 const CHK_MFG  = ['برنيش','تلميع بقعي','تلميع كامل','سلفان لميع','سلفان مات','طُبعت؟'];
 const CHK_CUST = ['مع طبخة','مع تطوية','تدعيم زكزاك','حراري','بلص'];
 
+// ── ربط checkboxes التصنيع بحقول الداتابيز ────────────────────────────────────
+const MFG_MAP: Record<string, string> = {
+  'برنيش':      'varnich',
+  'تلميع بقعي': 'uv_Spot',
+  'تلميع كامل': 'uv',
+  'سلفان لميع': 'seluvan_lum',
+  'سلفان مات':  'seluvan_mat',
+  'طُبعت؟':     'Printed',
+};
+
 // ── Helper: تحويل أي قيمة boolean لـ 1 أو 0 ──────────────────────────────────
 const toBit = (val: any): number =>
   val === true || val === 1 || val === '1' || String(val).toLowerCase() === 'true' ? 1 : 0;
@@ -520,15 +517,6 @@ export default function OrderFormPage() {
   
   const [idInitialized, setIdInitialized] = useState(false);
 
-
-
-
-
-
-
-
-
-  
   // ── helper مشترك لمزامنة أي InlineTable مع الداتابيز ────────────────────────
   const syncRows = async (
     oldRows: Record<string, string>[],
@@ -540,12 +528,10 @@ export default function OrderFormPage() {
     const oldIds = new Set(oldRows.map(r => r.ID).filter(v => !!v));
     const newIds = new Set(newRows.map(r => r.ID).filter(v => !!v));
 
-    // حذف الصفوف المحذوفة
     for (const old of oldRows)
       if (old.ID && !newIds.has(old.ID))
         await onDelete(Number(old.ID));
 
-    // إضافة أو تحديث — ✅ استخرج _isNew و ID معاً
     for (const row of newRows) {
       const { ID, _isNew, ...fields } = row;
       if (ID && oldIds.has(ID))
@@ -555,81 +541,75 @@ export default function OrderFormPage() {
     }
   };
 
-  // ── الكرتون — مرتبط بالداتابيز ───────────────────────────────────────────────
-const { data: cartonsData = [] } = useCartons(
-  isEdit ? (id ?? '') : '',
-  isEdit ? (year ?? '') : ''
-);
-
-const createCarton = useCreateCarton();
-const updateCarton = useUpdateCarton();
-const deleteCarton = useDeleteCarton();
-
-const [materialsRows, setMaterialsRows] = useState<Record<string, string>[]>([]);
-
-useEffect(() => {
-  setMaterialsRows(
-    cartonsData.map((c: any) => ({
-      // ✅ أضف هذا السطر لضمان وجود المعرف الفريد
-      ID: String(c.ID1 ?? c.ID ?? ''), 
-      
-      Type1: c.Type1 ?? '',
-      Id_carton: c.Id_carton ?? '',
-      Source1: c.Source1 ?? '',
-      Supplier1: c.Supplier1 ?? '',
-      Long1: String(c.Long1 ?? ''),
-      Width1: String(c.Width1 ?? ''),
-      Gramage1: String(c.Gramage1 ?? ''),
-      Sheet_count1: String(c.Sheet_count1 ?? ''),
-      Price: String(c.Price ?? ''),
-      Out_Date: c.Out_Date ?? '',
-      Out_ord_num: c.Out_ord_num ?? '',
-      note_crt: c.note_crt ?? '',
-    }))
+  // ── الكرتون ───────────────────────────────────────────────────────────────────
+  const { data: cartonsData = [] } = useCartons(
+    isEdit ? (id ?? '') : '',
+    isEdit ? (year ?? '') : ''
   );
-}, [cartonsData]);
-  
 
+  const createCarton = useCreateCarton();
+  const updateCarton = useUpdateCarton();
+  const deleteCarton = useDeleteCarton();
 
-  
-  // buffer للحفظ عند إنشاء طلب جديد
+  const [materialsRows, setMaterialsRows] = useState<Record<string, string>[]>([]);
+
+  useEffect(() => {
+    setMaterialsRows(
+      cartonsData.map((c: any) => ({
+        ID: String(c.ID1 ?? c.ID ?? ''), 
+        Type1: c.Type1 ?? '',
+        Id_carton: c.Id_carton ?? '',
+        Source1: c.Source1 ?? '',
+        Supplier1: c.Supplier1 ?? '',
+        Long1: String(c.Long1 ?? ''),
+        Width1: String(c.Width1 ?? ''),
+        Gramage1: String(c.Gramage1 ?? ''),
+        Sheet_count1: String(c.Sheet_count1 ?? ''),
+        Price: String(c.Price ?? ''),
+        Out_Date: c.Out_Date ?? '',
+        Out_ord_num: c.Out_ord_num ?? '',
+        note_crt: c.note_crt ?? '',
+      }))
+    );
+  }, [cartonsData]);
+
   const [pendingMaterials, setPendingMaterials] = useState<Record<string, string>[]>([]);
   const [pendingProblems,  setPendingProblems]  = useState<Record<string, string>[]>([]);
   const [pendingOps,       setPendingOps]       = useState<Record<string, string>[]>([]);
 
   const handleMaterialsChange = async (newRows: Record<string, string>[]) => {
-      if (!isEdit) { setPendingMaterials(newRows); return; }
-      const currentId = getValues('ID');
-      const currentYear = getValues('Year');
-      await syncRows(
-        materialsRows, newRows,
-        (f) => createCarton.mutateAsync({ ...f, ID: currentId, year: currentYear }),
-        (rowId, f) => updateCarton.mutateAsync({ rowId, data: f }),
-        (rowId) => deleteCarton.mutateAsync(rowId),
-      );
-    };
+    if (!isEdit) { setPendingMaterials(newRows); return; }
+    const currentId = getValues('ID');
+    const currentYear = getValues('Year');
+    await syncRows(
+      materialsRows, newRows,
+      (f) => createCarton.mutateAsync({ ...f, ID: currentId, year: currentYear }),
+      (rowId, f) => updateCarton.mutateAsync({ rowId, data: f }),
+      (rowId) => deleteCarton.mutateAsync(rowId),
+    );
+  };
 
-  // ── سجل المشاكل — مرتبط بالداتابيز ──────────────────────────────────────────
+  // ── سجل المشاكل ───────────────────────────────────────────────────────────────
   const { data: problemsData = [] } = useProblems(isEdit ? (id ?? '') : '', isEdit ? (year ?? '') : '');
   const createProblem = useCreateProblem();
   const updateProblem = useUpdateProblem();
   const deleteProblem = useDeleteProblem();
 
   interface Problem {
-      ID1?: number;
-      print_num?: string;
-      prod_date?: string;
-      exp_date?: string;
-      print_count?: number;
-    }
+    ID1?: number;
+    print_num?: string;
+    prod_date?: string;
+    exp_date?: string;
+    print_count?: number;
+  }
   
   const problemsRows: Record<string, string>[] = problemsData.map((p: Problem) => ({
-      ID: String(p.ID1 ?? ''),
-      print_num: p.print_num ?? '',
-      prod_date: p.prod_date ?? '',
-      exp_date: p.exp_date ?? '',
-      print_count: String(p.print_count ?? ''),
-    }));
+    ID: String(p.ID1 ?? ''),
+    print_num: p.print_num ?? '',
+    prod_date: p.prod_date ?? '',
+    exp_date: p.exp_date ?? '',
+    print_count: String(p.print_count ?? ''),
+  }));
 
   const handleProblemsChange = async (newRows: Record<string, string>[]) => {
     if (!isEdit) { setPendingProblems(newRows); return; }
@@ -641,7 +621,7 @@ useEffect(() => {
     );
   };
 
-  // ── العمليات — مرتبطة بالداتابيز ─────────────────────────────────────────────
+  // ── العمليات ──────────────────────────────────────────────────────────────────
   const { data: operationsData = [] } = useOperations(isEdit ? (id ?? '') : '', isEdit ? (year ?? '') : '');
   const createOperation = useCreateOperation();
   const updateOperation = useUpdateOperation();
@@ -677,7 +657,7 @@ useEffect(() => {
     );
   };
 
-  // ➕ State لإدارة فتح/إغلاق أقسام الأكورديون
+  // ── حالة الأقسام ──────────────────────────────────────────────────────────────
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
     basic: true,
     specs: true,
@@ -686,7 +666,6 @@ useEffect(() => {
     delivery: true
   });
 
-  // حفظ/استعادة حالة الأقسام من localStorage
   useEffect(() => {
     const saved = localStorage.getItem('orderFormSections');
     if (saved) {
@@ -702,66 +681,78 @@ useEffect(() => {
     localStorage.setItem('orderFormSections', JSON.stringify(openSections));
   }, [openSections]);
 
-  // ✅ أضف getValues إلى الاستيراد:
   const { register, handleSubmit, reset, watch, setValue, getValues } = useForm<Order>();
 
-  // ✅ ملء الفورم عند تحميل بيانات التعديل
+  // ✅ تحميل البيانات عند التعديل — مع قراءة صحيحة للـ boolean ومزامنة mfgChecks
   useEffect(() => {
-      if (isEdit && existing && !duplicatedData) {
-        reset(existing);
-      }
-    }, [isEdit, existing, duplicatedData]);
+    if (isEdit && existing && !duplicatedData) {
+      reset(existing);
 
-  
-  
-  
-  
-
-  
-
-
-
-
-
-
-
-
-
-  
-  // ✅ الكود الجديد (انسخ هذا):
-// ✅ انسخ هذا الكود وضعه مرة واحدة فقط في ملفك:
-// ✅ دالة نسخ بسيطة تعتمد على البيانات الأصلية من السيرفر:
-  const handleDuplicate = () => {
-      const sourceData = isEdit && existing ? { ...existing } : {};
-      
-      // الحقول المستبعدة: التسلسل، رقم الأمر، السنة، والتواريخ
-      const excludeFields = [
-        'ID', 'ID1', 'Ser',           // التسلسل ورقم الأمر
-        'Year',                        // سنة العمل
-        'date_come', 'Perioud',        // التواريخ
-        'marji3',
-        'AttachmentsOrders',
-      ];
-      
-      const dataToCopy = { ...sourceData };
-      excludeFields.forEach(field => delete dataToCopy[field]);
-      
-      navigate('/orders/new', {
-        state: {
-          duplicatedData: {
-            ...dataToCopy,
-            Ser: '',
-            Year: String(new Date().getFullYear()),
-            checks: { ...checks },
-            mfgChecks: { ...mfgChecks },
-            custChecks: { ...custChecks },
-            idInitialized: false, // أضف هذا السطر
-            // 🚫 لا ننقل الجداول: cartons, operations, vouchers
-          }
-        }
+      // ── ✅ ربط checkboxes التصنيع بقيم الداتابيز ──
+      setMfgChecks({
+        'برنيش':      fromBit(existing.varnich),
+        'تلميع بقعي': fromBit(existing.uv_Spot),
+        'تلميع كامل': fromBit(existing.uv),
+        'سلفان لميع': fromBit(existing.seluvan_lum),
+        'سلفان مات':  fromBit(existing.seluvan_mat),
+        'طُبعت؟':     fromBit(existing.Printed),
       });
-    };
-  
+
+      // ── ربط checks العامة ──
+      setChecks({
+        varnich:    fromBit(existing.varnich),
+        uv:         fromBit(existing.uv),
+        uv_Spot:    fromBit(existing.uv_Spot),
+        seluvan_lum:fromBit(existing.seluvan_lum),
+        seluvan_mat:fromBit(existing.seluvan_mat),
+        Tad3em:     fromBit(existing.Tad3em),
+        Tay:        fromBit(existing.Tay),
+        harary:     fromBit(existing.harary),
+        rolling:    fromBit(existing.rolling),
+        Printed:    fromBit(existing.Printed),
+        Billed:     fromBit(existing.Billed),
+        Reseved:    fromBit(existing.Reseved),
+        CTB:        fromBit(existing.DubelM),
+        varn:       fromBit(existing.varnich),
+      });
+
+      // ── ربط custChecks ──
+      setCustChecks({
+        'مع طبخة':     fromBit(existing.cust_with_baking),
+        'مع تطوية':    fromBit(existing.cust_with_folding),
+        'تدعيم زكزاك': fromBit(existing.cust_tad3em_zkzk),
+        'حراري':       fromBit(existing.cust_harary),
+        'بلص':         fromBit(existing.cust_bp),
+      });
+    }
+  }, [isEdit, existing, duplicatedData]);
+
+  // ✅ تحميل البيانات المنسوخة
+  useEffect(() => {
+    if (!duplicatedData) return;
+    
+    const { 
+      checks: copiedChecks, 
+      mfgChecks: copiedMfg, 
+      custChecks: copiedCust,
+      idInitialized: copiedIdInitialized,
+      ...orderData 
+    } = duplicatedData;
+    
+    reset(orderData);
+    
+    setChecks(copiedChecks ?? {});
+    setMfgChecks(copiedMfg ?? {});
+    setCustChecks(copiedCust ?? {});
+    setIdInitialized(copiedIdInitialized ?? false);
+    
+    setMaterialsRows([]);
+    setPendingMaterials([]);
+    setPendingOps([]);
+    setPendingProblems([]);
+    
+  }, [duplicatedData]);
+
   const watchYear = watch('Year') || String(new Date().getFullYear());
   const watchId   = watch('ID') || '';
 
@@ -771,62 +762,33 @@ useEffect(() => {
   const { data: vouchers = [] } = useVouchers(isEdit ? watchId : '', watchYear);
   const deleteVoucher = useDeleteVoucher();
 
-  // ✅ تحميل البيانات عند التعديل — مع قراءة صحيحة للـ boolean
-// ✅ useEffect واحد فقط لاستقبال البيانات المنسوخة:
-    useEffect(() => {
-        if (!duplicatedData) return;
-        
-        const { 
-          checks: copiedChecks, 
-          mfgChecks: copiedMfg, 
-          custChecks: copiedCust,
-          idInitialized: copiedIdInitialized, // أضف هذا السطر
-          ...orderData 
-        } = duplicatedData;
-        
-        reset(orderData);
-        
-        setChecks(copiedChecks ?? {});
-        setMfgChecks(copiedMfg ?? {});
-        setCustChecks(copiedCust ?? {});
-        
-        // تعيين حالة idInitialized من البيانات المنسوخة
-        setIdInitialized(copiedIdInitialized ?? false);
-        
-        setMaterialsRows([]);
-        setPendingMaterials([]);
-        setPendingOps([]);
-        setPendingProblems([]);
-        
-      }, [duplicatedData]);
+  useEffect(() => {
+    if (!isEdit && orders.length > 0 && !idInitialized) {
+      const latestOrder = orders[orders.length - 1];
+      const lastSer = latestOrder ? parseInt(latestOrder.Ser || '0') || 0 : 0;
+      setValue('Ser', String(lastSer + 1));
+      
+      if (!getValues('ID')) {
+        const newId = String(Number(latestOrder.ID) + 1);
+        setValue('ID', newId);
+      }
+      setIdInitialized(true);
+    }
+  }, [isEdit, orders, setValue, getValues, idInitialized]);
 
-  
-
-// ✅ بعد - استخدم getValues بدل watch داخل useEffect
-      useEffect(() => {
-          if (!isEdit && orders.length > 0 && !idInitialized) {
-            const latestOrder = orders[orders.length - 1];
-            const lastSer = latestOrder ? parseInt(latestOrder.Ser || '0') || 0 : 0;
-            setValue('Ser', String(lastSer + 1));
-            
-            if (!getValues('ID')) {  // ✅ getValues لا يسبب re-render
-              const newId = String(Number(latestOrder.ID) + 1);
-              setValue('ID', newId);
-            }
-            setIdInitialized(true); // ✅ انقل خارج الـ if الداخلي
-          }
-        }, [isEdit, orders, setValue, getValues, idInitialized]); // ✅ أزل watch
-
-
-  
-  // ✅ الحفظ — مع إرسال 1/0 بدل True/False
+  // ✅ الحفظ — مع إرسال 1/0 لجميع الحقول بما فيها mfgChecks
   const onSubmit = async (data: Order) => {
-    // تحويل boolean fields لـ 1/0
+    // ── تحويل BOOL_FIELDS العامة ──
     BOOL_FIELDS.forEach(f => {
       (data as any)[f] = toBit(checks[f]);
     });
 
-    // حقول الزبون
+    // ── ✅ حفظ checkboxes التصنيع بقيم 1/0 ──
+    Object.entries(MFG_MAP).forEach(([label, field]) => {
+      (data as any)[field] = toBit(mfgChecks[label]);
+    });
+
+    // ── حقول الزبون ──
     CUST_FIELDS.forEach((field, i) => {
       (data as any)[field] = toBit(custChecks[CUST_LABELS[i]]);
     });
@@ -849,7 +811,6 @@ useEffect(() => {
       const newId   = String((created as any)?.ID ?? (data as any).ID);
       const yr      = String((data as any).Year ?? watchYear);
 
-      // حفظ الصفوف المؤجلة بعد معرفة الـ ID الجديد
       await Promise.all([
         ...pendingMaterials.map(({ ID, _isNew, ...f }) =>
           createCarton.mutateAsync({ ...f, ID: newId, year: yr })),
@@ -860,6 +821,35 @@ useEffect(() => {
       ]);
     }
     navigate('/orders');
+  };
+
+  const handleDuplicate = () => {
+    const sourceData = isEdit && existing ? { ...existing } : {};
+    
+    const excludeFields = [
+      'ID', 'ID1', 'Ser',
+      'Year',
+      'date_come', 'Perioud',
+      'marji3',
+      'AttachmentsOrders',
+    ];
+    
+    const dataToCopy = { ...sourceData };
+    excludeFields.forEach(field => delete dataToCopy[field]);
+    
+    navigate('/orders/new', {
+      state: {
+        duplicatedData: {
+          ...dataToCopy,
+          Ser: '',
+          Year: String(new Date().getFullYear()),
+          checks: { ...checks },
+          mfgChecks: { ...mfgChecks },
+          custChecks: { ...custChecks },
+          idInitialized: false,
+        }
+      }
+    });
   };
 
   const chk  = (k: string) => (v: boolean) => setChecks(c => ({ ...c, [k]: v }));
@@ -953,7 +943,6 @@ body{font-family:'Arial',sans-serif;background:#fff;direction:rtl;margin:0;paddi
 <body>
 <div class="page">
 
-<!-- Section 1: بطاقة الإنتاج -->
 <div class="header">
   <div class="top-id"><span>رقمنا :</span><span class="dots">${fmt(d.ID)}</span></div>
   <div class="main-title">بطاقة إنتاج</div>
@@ -979,7 +968,6 @@ body{font-family:'Arial',sans-serif;background:#fff;direction:rtl;margin:0;paddi
 <div class="extra-lines"><div class="line"></div><div class="line"></div></div>
 <div class="footer-right">كود النموذج الطبي : ${fmt(d.Code_M) || '....................'}</div>
 
-<!-- Section 2: المستودع/الإخراج -->
 <div class="warehouse-container">
   <div class="wrapper">
     <div class="main-container">
@@ -1051,7 +1039,6 @@ body{font-family:'Arial',sans-serif;background:#fff;direction:rtl;margin:0;paddi
   </div>
 </div>
 
-<!-- Section 3: التفصيل للمقطع -->
 <div class="container">
   <div class="header-split">
     <div class="header-item">التفصيل للمقطع</div>
@@ -1136,7 +1123,6 @@ body{font-family:'Arial',sans-serif;background:#fff;direction:rtl;margin:0;paddi
         </h1>
       </div>
 
-      {/* 🔘 أزرار التحكم السريع بالأقسام */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
         <button 
           type="button"
@@ -1339,8 +1325,16 @@ body{font-family:'Arial',sans-serif;background:#fff;direction:rtl;margin:0;paddi
                   <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--steel)', marginBottom: 6, display: 'block', textAlign: 'right' }}>عدد الألوان</label>
                   <input className="fc" type="number" {...register('clr_Qnt_order')} style={{ fontSize: 12, textAlign: 'right' }} />
                 </div>
+                {/* ✅ CHK_MFG مرتبطة بالداتابيز عبر MFG_MAP */}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 8 }}>
-                  {CHK_MFG.map(l => <CheckItem key={l} label={l} checked={!!mfgChecks[l]} onChange={mchk(l)} />)}
+                  {CHK_MFG.map(l => (
+                    <CheckItem
+                      key={l}
+                      label={l}
+                      checked={!!mfgChecks[l]}
+                      onChange={mchk(l)}
+                    />
+                  ))}
                 </div>
               </div>
             </div>
