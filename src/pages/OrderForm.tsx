@@ -686,6 +686,15 @@ useEffect(() => {
 
   // ✅ أضف getValues إلى الاستيراد:
   const { register, handleSubmit, reset, watch, setValue, getValues } = useForm<Order>();
+
+  // ✅ ملء الفورم عند تحميل بيانات التعديل
+  useEffect(() => {
+      if (isEdit && existing && !duplicatedData) {
+        reset(existing);
+      }
+    }, [isEdit, existing]);
+
+  
   const location = useLocation();
   const duplicatedData = location.state?.duplicatedData;
 
