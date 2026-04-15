@@ -478,20 +478,20 @@ const MFG_MAP: Record<string, string> = {
   'طُبعت؟':     'Printed',
 };
 
-// ✅ ربط checkboxes الزبون بحقول الداتابيز
+// ✅ ربط checkboxes الزبون بحقول الداتابيز (نفس طريقة MFG_MAP تماماً)
 const CUST_MAP: Record<string, string> = {
   'مع طبخة':     'tabkha',
-  'مع تطوية':    'cust_with_folding',
-  'تدعيم زكزاك': 'cust_tad3em_zkzk',
-  'حراري':       'cust_harary',
-  'بلص':         'cust_bp',
+  'مع تطوية':    'Tay',
+  'تدعيم زكزاك': 'Tad3em',
+  'حراري':       'harary',
+  'بلص':         'bals',
 };
 
-// ── Helper: تحويل أي قيمة boolean لـ 1 أو 0 ──────────────────────────────────
+// ── Helper: تحويل أي قيمة boolean لـ 1 أو 0 (نفس CHK_MFG) ──────────────────
 const toBit = (val: any): number =>
   val === true || val === 1 || val === '1' || String(val).toLowerCase() === 'true' ? 1 : 0;
 
-// ── Helper: قراءة boolean من الداتابيز بأي صيغة ──────────────────────────────
+// ── Helper: قراءة boolean من الداتابيز بأي صيغة (نفس CHK_MFG) ──────────────
 const fromBit = (val: any): boolean =>
   val === true || val === 1 || val === '1' || String(val).toLowerCase() === 'true';
 
@@ -689,7 +689,7 @@ export default function OrderFormPage() {
 
   const { register, handleSubmit, reset, watch, setValue, getValues } = useForm<Order>();
 
-  // ✅ تحميل البيانات عند التعديل
+  // ✅ تحميل البيانات عند التعديل (نفس طريقة MFG تماماً)
   useEffect(() => {
     if (isEdit && existing && !duplicatedData) {
       reset(existing);
@@ -702,11 +702,14 @@ export default function OrderFormPage() {
       });
       setMfgChecks(loadedMfg);
 
-      // ✅ تحميل checkboxes الزبون تلقائياً
+      // ✅ تحميل checkboxes الزبون تلقائياً (نفس الطريقة تماماً)
       const loadedCust: Record<string, boolean> = {};
       Object.entries(CUST_MAP).forEach(([label, field]) => {
         const value = (existing as Record<string, any>)[field];
         loadedCust[label] = fromBit(value);
+        
+        // 🔍 Debug
+        console.log(`Loading ${label} (${field}):`, value, '→', fromBit(value));
       });
       setCustChecks(loadedCust);
 
@@ -779,7 +782,7 @@ export default function OrderFormPage() {
     }
   }, [isEdit, orders, setValue, getValues, idInitialized]);
 
-  // ✅ الحفظ — مع إرسال 1/0 لجميع الحقول
+  // ✅ الحفظ — نفس طريقة MFG تماماً
   const onSubmit = async (data: Order) => {
     // ── 1. BOOL_FIELDS العامة ──
     BOOL_FIELDS.forEach(f => {
@@ -791,15 +794,23 @@ export default function OrderFormPage() {
       (data as any)[field] = toBit(mfgChecks[label]);
     });
 
-    // ── 3. ✅ checkboxes الزبون (custChecks) ──
+    // ── 3. ✅ checkboxes الزبون (custChecks) - نفس الطريقة تماماً ──
     Object.entries(CUST_MAP).forEach(([label, field]) => {
       (data as any)[field] = toBit(custChecks[label]);
     });
 
     // ── 4. حقول إضافية ──
     (data as any).DubelM = toBit(checks.CTB);
-    (data as any).tabkha = 0;
-    (data as any).bals   = 0;
+
+    // 🔍 Debug: اطبع القيم قبل الحفظ
+    console.log('🔍 custChecks:', custChecks);
+    console.log('🔍 Data to save:', {
+      tabkha: (data as any).tabkha,
+      Tay: (data as any).Tay,
+      Tad3em: (data as any).Tad3em,
+      harary: (data as any).harary,
+      bals: (data as any).bals,
+    });
 
     // ── 5. إنشاء طلب جديد ──
     if (!isEdit) {
@@ -1414,7 +1425,7 @@ body{font-family:'Arial',sans-serif;background:#fff;direction:rtl;margin:0;paddi
                   </div>
                 </div>
                 
-                {/* ✅ الـ checkboxes المُحدَّثة */}
+                {/* ✅ checkboxes الزبون - نفس طريقة MFG تماماً */}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 8 }}>
                   {CHK_CUST.map((label) => (
                     <label 
