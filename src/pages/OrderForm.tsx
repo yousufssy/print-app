@@ -465,10 +465,9 @@ const OPERATIONS_COLS = [
   { key: 'Tabrer',     label: 'تبرير' },
 ];
 
-const CHK_MFG  = ['برنيش','تلميع بقعي','تلميع كامل','سلفان لميع','سلفان مات','طُبعت؟'];
+const CHK_MFG  = ['برنيش','تلمي�� بقعي','تلميع كامل','سلفان لميع','سلفان مات','طُبعت؟'];
 const CHK_CUST = ['مع طبخة','مع تطوية','تدعيم زكزاك','حراري','بلص'];
 
-// ── ربط checkboxes التصنيع بحقول الداتابيز ────────────────────────────────────
 const MFG_MAP: Record<string, string> = {
   'برنيش':      'varnich',
   'تلميع بقعي': 'uv_Spot',
@@ -478,7 +477,6 @@ const MFG_MAP: Record<string, string> = {
   'طُبعت؟':     'Printed',
 };
 
-// ✅ ربط checkboxes الزبون بحقول الداتابيز
 const CUST_MAP: Record<string, string> = {
   'مع طبخة':     'tabkha',
   'مع تطوية':    'Tay',
@@ -487,19 +485,21 @@ const CUST_MAP: Record<string, string> = {
   'بلص':         'bals',
 };
 
-// ── Helper: تحويل أي قيمة boolean لـ 1 أو 0 ──────────────────────────────────
 const toBit = (val: any): number =>
   val === true || val === 1 || val === '1' || String(val).toLowerCase() === 'true' ? 1 : 0;
 
-// ── Helper: قراءة boolean من الداتابيز بأي صيغة ──────────────────────────────
 const fromBit = (val: any): boolean =>
   val === true || val === 1 || val === '1' || String(val).toLowerCase() === 'true';
 
-// ── قائمة حقول الـ boolean ────────────────────────────────────────────────────
 const BOOL_FIELDS = [
   'varnich','uv','uv_Spot','seluvan_lum','seluvan_mat',
   'Tad3em','Tay','harary','rolling','Printed','Billed','Reseved'
 ];
+
+// ✅ مساعد الحقل - خارج الـ component لمنع إعادة الإنشاء
+function G({ label, req, children }: { label: string; req?: boolean; children: React.ReactNode }) {
+  return <FormGroup label={label} required={req}>{children}</FormGroup>;
+}
 
 // ══════════════════════════════════════════════════════
 //  🎯 MAIN COMPONENT - OrderFormPage
@@ -526,9 +526,7 @@ export default function OrderFormPage() {
   const [hasLoadedDuplicate, setHasLoadedDuplicate] = useState(false);
 
   const [currentYear] = useState(String(new Date().getFullYear()));
-  const ordersYearRef = useRef<string>(String(new Date().getFullYear()));
 
-  // ✅ useForm بدون dependencies معقدة
   const { register, handleSubmit, reset, setValue } = useForm<Order>({
     defaultValues: {
       Year: currentYear,
@@ -537,10 +535,8 @@ export default function OrderFormPage() {
     }
   });
 
-  // ✅ استخدام useRef لحفظ بيانات الفورم
   const formDataRef = useRef<Partial<Order>>({});
 
-  // ── helper مشترك لمزامنة أي InlineTable مع الداتابيز ────────────────────────
   const syncRows = useCallback(async (
     oldRows: Record<string, string>[],
     newRows: Record<string, string>[],
@@ -577,7 +573,6 @@ export default function OrderFormPage() {
     }
   }, []);
 
-  // ── الكرتون ───────────────────────────────────────────────────────────────────
   const { data: cartonsData = [] } = useCartons(
     isEdit ? (id ?? '') : '',
     isEdit ? (year ?? '') : ''
@@ -631,7 +626,6 @@ export default function OrderFormPage() {
     }
   }, [isEdit, materialsRows, syncRows, createCarton, updateCarton, deleteCarton, id, year]);
 
-  // ── سجل المشاكل ───────────────────────────────────────────────────────────────
   const { data: problemsData = [] } = useProblems(isEdit ? (id ?? '') : '', isEdit ? (year ?? '') : '');
   const createProblem = useCreateProblem();
   const updateProblem = useUpdateProblem();
@@ -673,7 +667,6 @@ export default function OrderFormPage() {
     }
   }, [isEdit, problemsRows, syncRows, createProblem, updateProblem, deleteProblem, id, year]);
 
-  // ── العمليات ──────────────────────────────────────────────────────────────────
   const { data: operationsData = [] } = useOperations(isEdit ? (id ?? '') : '', isEdit ? (year ?? '') : '');
   const createOperation = useCreateOperation();
   const updateOperation = useUpdateOperation();
@@ -719,8 +712,7 @@ export default function OrderFormPage() {
     }
   }, [isEdit, operationsRows, syncRows, createOperation, updateOperation, deleteOperation, id, year]);
 
-  // ── حالة الأقسام ──────────────────────────────────────────────────────────────
-    const getInitialSections = () => {
+  const getInitialSections = () => {
     try {
       const saved = localStorage.getItem('orderFormSections');
       if (saved) return JSON.parse(saved);
@@ -743,7 +735,6 @@ export default function OrderFormPage() {
   );
   const deleteVoucher = useDeleteVoucher();
 
-  // ✅ 1️⃣ تحميل بيانات التعديل - مرة واحدة
   useEffect(() => {
     if (!isEdit || !existing || hasLoadedEdit || duplicatedData) return;
     
@@ -782,7 +773,6 @@ export default function OrderFormPage() {
     setHasLoadedEdit(true);
   }, [isEdit, existing, hasLoadedEdit, duplicatedData, reset]);
 
-  // ✅ 2️⃣ تحميل بيانات النسخ - مرة واحدة
   useEffect(() => {
     if (!duplicatedData || hasLoadedDuplicate) return;
     
@@ -807,34 +797,31 @@ export default function OrderFormPage() {
     setHasLoadedDuplicate(true);
   }, [duplicatedData, hasLoadedDuplicate, reset]);
 
-  // ✅ 3️⃣ تهيئة طلب جديد - مرة واحدة
-// ✅ 3️⃣ تهيئة طلب جديد - مرة واحدة فقط عند أول تحميل
-// ✅ 3️⃣ تهيئة طلب جديد - مرة واحدة فقط
-    const idInitializedRef = useRef(false);
-      
-      useEffect(() => {
-        if (isEdit || duplicatedData) return;
-        if (idInitializedRef.current) return;
-        if (!orders || orders.length === 0) return;
-      
-        idInitializedRef.current = true;
-      
-        const latestOrder = orders[orders.length - 1];
-        const lastSer = parseInt(latestOrder?.Ser || '0') || 0;
-        const newId = String((Number(latestOrder?.ID) || 0) + 1);
-      
-        const initData = {
-          Ser: String(lastSer + 1),
-          ID: newId,
-          Year: currentYear,
-        };
-      
-        reset((prev) => ({ ...prev, ...initData }));
-        formDataRef.current = initData;
-        setIdInitialized(true);
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-      }, [orders]);
-  // ✅ الحفظ - مع معالجة أخطاء شاملة
+  const idInitializedRef = useRef(false);
+    
+  useEffect(() => {
+    if (isEdit || duplicatedData) return;
+    if (idInitializedRef.current) return;
+    if (!orders || orders.length === 0) return;
+  
+    idInitializedRef.current = true;
+  
+    const latestOrder = orders[orders.length - 1];
+    const lastSer = parseInt(latestOrder?.Ser || '0') || 0;
+    const newId = String((Number(latestOrder?.ID) || 0) + 1);
+  
+    const initData = {
+      Ser: String(lastSer + 1),
+      ID: newId,
+      Year: currentYear,
+    };
+  
+    reset((prev) => ({ ...prev, ...initData }));
+    formDataRef.current = initData;
+    setIdInitialized(true);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orders]);
+
   const onSubmit = useCallback(async (data: Order) => {
     try {
       BOOL_FIELDS.forEach(f => {
@@ -931,9 +918,6 @@ export default function OrderFormPage() {
 
   const isSaving = createOrder.isPending || updateOrder.isPending;
 
-  // ══════════════════════════════════════════════════════
-  //  🖨️ طباعة بطاقة الإنتاج
-  // ══════════════════════════════════════════════════════
   const printProductionCard = useCallback(() => {
     const d = formDataRef.current;
     const chkd = (val: any) => (val ? '✔' : '');
@@ -941,231 +925,8 @@ export default function OrderFormPage() {
 
     const html = `<!DOCTYPE html>
 <html lang="ar" dir="rtl">
-<head>
-<meta charset="UTF-8">
-<style>
-@page{margin:8mm;size:A4 portrait}
-*{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Arial',sans-serif;background:#fff;direction:rtl;margin:0;padding:0}
-.page{width:100%;box-sizing:border-box}
-@media print{body{margin:0;padding:0}.page{width:100%;margin:0;padding:0;border:none}}
-.header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px}
-.top-id{display:flex;align-items:center;width:160px;font-size:14px}
-.logo-box{text-align:center;width:160px}
-.logo-tpp{font-size:30px;font-weight:bold;line-height:0.8;margin:0;font-family:'Times New Roman',serif}
-.logo-sub{font-size:10px;font-weight:bold;border-top:2px solid #000;margin-top:4px;display:inline-block}
-.main-title{font-size:24px;font-weight:bold;margin-top:6px}
-.content-layout{display:flex;justify-content:space-between;margin-bottom:6px}
-.column{width:48%}
-.field{display:flex;align-items:baseline;margin-bottom:7px}
-.label{font-size:13px;white-space:nowrap}
-.dots{flex-grow:1;border-bottom:1px dotted #000;margin-left:8px;min-height:14px;padding-right:4px}
-.gray-box{background:#999;height:18px;width:120px;margin-left:10px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:bold;color:#fff}
-.extra-lines{margin-top:6px}
-.line{border-bottom:1px dotted #000;height:18px;width:100%}
-.footer-right{margin-top:10px;text-align:right;font-size:13px;font-weight:bold}
-.warehouse-container{width:100%;margin:12px auto}
-.wrapper{display:flex;gap:6px;align-items:flex-start;width:100%}
-.side-table{width:150px;border:1.5px solid #000;display:flex;flex-direction:column;flex-shrink:0}
-.side-cell{border:0.5px solid #000;padding:6px;text-align:center;min-height:30px;display:flex;flex-direction:column;justify-content:center;font-weight:bold;font-size:12px}
-.side-cell span{font-weight:normal;margin-top:3px}
-.main-container{flex-grow:1;border:1.5px solid #000}
-.grid-table{display:grid;grid-template-columns:40px 90px 90px 1fr 70px 55px 55px;width:100%}
-.grid-item{border:0.5px solid #000;padding:5px 3px;text-align:center;font-size:11px;display:flex;align-items:center;justify-content:center}
-.grid-header{background-color:#f0f0f0;font-weight:bold}
-.data-row{height:65px}
-.bottom-section{display:grid;grid-template-columns:40px 180px 1fr;width:100%}
-.col-tabaq{display:flex;flex-direction:column}
-.empty-cell{height:30px;border:0.5px solid #000}
-.gray-cell{height:30px;border:0.5px solid #000;background-color:#999}
-.col-details{display:flex;flex-direction:column}
-.label-cell{height:30px;border:0.5px solid #000;display:flex;align-items:center;padding-right:8px;font-weight:bold;font-size:11px}
-.col-approval{border:0.5px solid #000;display:flex;flex-direction:column}
-.approval-head{padding:4px;text-align:center;border-bottom:0.5px solid #000;font-weight:bold;font-size:11px}
-.checks{display:flex;justify-content:space-around;align-items:center;flex-grow:1;font-size:10px}
-.footer{border-top:1.5px solid #000;padding:6px}
-.check-box{width:11px;height:11px;border:1px solid #000;display:inline-block;margin-left:4px;vertical-align:middle;text-align:center;font-size:9px;line-height:11px}
-.reason-line{border-bottom:1px dotted #000;flex-grow:1;margin-right:5px}
-.container{width:100%;margin:12px auto 0 auto;border:1.5px solid #000;padding:10px}
-.header-split{display:grid;grid-template-columns:1fr 1fr;gap:15px;margin-bottom:8px}
-.header-item{text-align:center;font-weight:bold;font-size:13px}
-.date-space{border-bottom:1px solid #000;padding:0 15px;margin:0 2px;display:inline-block;min-width:20px}
-.main-grid{display:grid;grid-template-columns:1fr 1fr;gap:15px}
-.sketch-box{border:1px solid #000;height:100px;background-image:linear-gradient(to right,#e0e0e0 1px,transparent 1px),linear-gradient(to bottom,#e0e0e0 1px,transparent 1px);background-size:12px 12px}
-.top-columns{display:grid;grid-template-columns:1.2fr 1fr;gap:8px;margin-top:8px}
-.top-columns-left{display:grid;grid-template-columns:1fr 1.2fr;gap:8px;margin-top:8px}
-.option-item{display:flex;align-items:center;margin-bottom:4px;font-size:11px}
-.checkbox{width:11px;height:11px;border:1px solid #000;margin-left:6px;flex-shrink:0;text-align:center;font-size:9px;line-height:11px}
-.info-line{font-size:11px;margin-bottom:5px}
-.line-fill{border-bottom:1px dotted #000;display:inline-block;width:60%;height:12px}
-.dimensions-container{display:flex;align-items:center;margin-top:10px;width:100%}
-.dimensions-label{font-weight:bold;font-size:11px;margin-left:8px;white-space:nowrap}
-.independent-dimensions-table{flex-grow:1;border-collapse:collapse}
-.independent-dimensions-table td{border:1px solid #000;text-align:center;padding:4px;font-size:11px}
-.notes-wrapper{display:flex;flex-direction:column;align-items:center;width:100%}
-.note-line{border-bottom:1px dotted #000;height:18px;width:100%}
-.approval-table{width:100%;border-collapse:collapse;margin-top:12px}
-.approval-table td{border:1px solid #000;height:25px;text-align:center;font-size:12px}
-.bg-gray{background-color:#f0f0f0;font-weight:bold;width:100px}
-</style>
-</head>
-<body>
-<div class="page">
-
-<div class="header">
-  <div class="top-id"><span>رقمنا :</span><span class="dots">${fmt(d.ID)}</span></div>
-  <div class="main-title">بطاقة إنتاج</div>
-  <div class="logo-box">
-    <div class="logo-tpp">TPP</div>
-    <div class="logo-sub">TARABICHI</div>
-  </div>
-</div>
-<div class="content-layout">
-  <div class="column">
-    <div class="field"><span class="label">الاسم :</span><span class="dots">${fmt(d.Customer)}</span></div>
-    <div class="field"><span class="label">النموذج :</span><span class="dots">${fmt(d.Pattern)} ${fmt(d.Pattern2)}</span></div>
-    <div class="field"><span class="label">العدد المطلوب :</span><span class="dots">${fmt(d.Demand)}</span></div>
-    <div class="field"><span class="label">ملاحظات :</span><span class="dots">${fmt(d.note_ord)}</span></div>
-  </div>
-  <div class="column">
-    <div class="field"><span class="label">رقم الطلب :</span><span class="dots">${fmt(d.marji3)}</span></div>
-    <div class="field"><span class="label">تاريخ الورود :</span><span class="dots">${fmt(d.date_come)}</span></div>
-    <div class="field"><span class="label">موعد التسليم :</span><div class="gray-box">${fmt(d.Apoent_Delv_date)}</div></div>
-    <div class="field"><span class="label">أرسلت للفرز :</span><span class="dots">${fmt(d.Perioud)}</span></div>
-  </div>
-</div>
-<div class="extra-lines"><div class="line"></div><div class="line"></div></div>
-<div class="footer-right">كود النموذج الطبي : ${fmt(d.Code_M) || '....................'}</div>
-
-<div class="warehouse-container">
-  <div class="wrapper">
-    <div class="main-container">
-      <div class="grid-table">
-        <div class="grid-item grid-header">طبق</div>
-        <div class="grid-item grid-header">النوع</div>
-        <div class="grid-item grid-header">بلد المصدر</div>
-        <div class="grid-item grid-header">المورد</div>
-        <div class="grid-item grid-header">القياس</div>
-        <div class="grid-item grid-header">غراماج</div>
-        <div class="grid-item grid-header">الوزن</div>
-        <div class="grid-item data-row"></div>
-        <div class="grid-item data-row"></div>
-        <div class="grid-item data-row"></div>
-        <div class="grid-item data-row"></div>
-        <div class="grid-item data-row"></div>
-        <div class="grid-item data-row"></div>
-        <div class="grid-item data-row"></div>
-      </div>
-      <div class="bottom-section">
-        <div class="col-tabaq">
-          <div class="empty-cell"></div>
-          <div class="gray-cell"></div>
-        </div>
-        <div class="col-details">
-          <div class="label-cell">اخراج زيادة طبع</div>
-          <div class="label-cell grid-header">المجموع المستهلك في الطبعة</div>
-        </div>
-        <div class="col-approval">
-          <div class="approval-head">موافقة المدير الفني على :</div>
-          <div class="checks">
-            <span><div class="check-box"></div> القساوة</span>
-            <span><div class="check-box"></div> قياس الطبع</span>
-            <span><div class="check-box"></div> صلاحية الكرتون</span>
-          </div>
-        </div>
-      </div>
-      <div class="footer">
-        <div style="display:flex;justify-content:space-between;margin-bottom:8px">
-          <div style="display:grid;grid-template-columns:80px 130px;gap:4px;font-size:11px">
-            <div><div class="check-box"></div> تلف</div>
-            <div><div class="check-box"></div> خطأ</div>
-            <div><div class="check-box"></div> زيادة كمية الطبع</div>
-            <div><div class="check-box"></div> تم معالجة الفروقات</div>
-          </div>
-          <div style="flex-grow:1;display:flex;align-items:baseline;margin-right:15px;font-size:11px">
-            <b>تعليل سبب إخراج الأطباق زيادة:</b>
-            <div class="reason-line"></div>
-          </div>
-        </div>
-        <div style="text-align:left;font-weight:bold;font-size:12px">توقيع أمين المستودع: .......................................</div>
-      </div>
-    </div>
-    <div class="side-table">
-      <div class="side-cell" style="height:75px">
-        الحجم النهائي
-        <span>${fmt(d.final_size_tall) || 'X'} × ${fmt(d.final_size_width) || 'X'}</span>
-        <span>${fmt(d.final_size_tall2) || 'X'} × ${fmt(d.final_size_width2) || 'X'}</span>
-      </div>
-      <div class="side-cell" style="height:75px">
-        الطبع
-        <span style="text-align:right;padding-right:15px">على ${fmt(d.print_on) || ''}</span>
-        <span style="text-align:right;padding-right:15px">على ${fmt(d.print_on2) || ''}</span>
-      </div>
-      <div class="side-cell">يفصل الطبق: ${fmt(d.sheet_unit_qunt)}</div>
-      <div class="side-cell">إجمالي العدد: ${fmt(d.grnd_qunt)}</div>
-      <div class="side-cell">عدد الألوان: ${fmt(d.Clr_qunt)}</div>
-    </div>
-  </div>
-</div>
-
-<div class="container">
-  <div class="header-split">
-    <div class="header-item">التفصيل للمقطع</div>
-    <div class="header-item">تاريخ القطع: <span class="date-space"></span> / <span class="date-space"></span> / <span class="date-space"></span></div>
-  </div>
-  <div class="main-grid">
-    <div>
-      <div class="sketch-box"></div>
-      <div class="top-columns">
-        <div>
-          <div class="info-line">آلة الطبع: <span class="line-fill">${fmt(d.Machin_Print)}</span></div>
-          <div class="info-line">آلة التقطيع: <span class="line-fill">${fmt(d.Machin_Cut)}</span></div>
-          <div class="info-line">رقم القالب: <span class="line-fill">${fmt(d.MontagNum)}</span></div>
-        </div>
-        <div>
-          <div class="option-item"><div class="checkbox">${chkd(checks.varn)}</div> برنيـــش</div>
-          <div class="option-item"><div class="checkbox">${chkd(custChecks['مع تطوية'])}</div> مع تطويــة</div>
-          <div class="option-item"><div class="checkbox">${chkd(mfgChecks['تلميع كامل'])}</div> تلميع كامل</div>
-          <div class="option-item"><div class="checkbox">${chkd(mfgChecks['تلميع بقعي'])}</div> تلميع بقعي</div>
-        </div>
-      </div>
-      <div class="dimensions-container">
-        <div class="dimensions-label">الأبعاد:</div>
-        <table class="independent-dimensions-table">
-          <tr><td>الطول</td><td>العرض</td><td>الإرتفاع</td></tr>
-          <tr style="height:20px"><td>${fmt(d.LongU)}</td><td>${fmt(d.WedthU)}</td><td>${fmt(d.HightU)}</td></tr>
-        </table>
-      </div>
-    </div>
-    <div>
-      <div class="sketch-box"></div>
-      <div class="top-columns-left">
-        <div>
-          <div class="option-item"><div class="checkbox">${chkd(mfgChecks['سلفان لميع'])}</div> سلفان لميع</div>
-          <div class="option-item"><div class="checkbox">${chkd(mfgChecks['سلفان مات'])}</div> سلفان مت</div>
-          <div class="option-item"><div class="checkbox">${chkd(custChecks['حراري'])}</div> حــــراري</div>
-          <div class="option-item"><div class="checkbox">${chkd(custChecks['بلص'])}</div> بـــلص</div>
-        </div>
-        <div class="notes-wrapper">
-          <div style="font-weight:bold;margin-bottom:4px;text-align:center;font-size:12px">ملاحظات:</div>
-          <div class="note-line"></div>
-          <div class="note-line"></div>
-          <div class="note-line"></div>
-          <div class="note-line"></div>
-        </div>
-      </div>
-    </div>
-  </div>
-  <table class="approval-table">
-    <tr><td class="bg-gray">موافقة الإدارة</td><td></td><td></td><td></td><td></td></tr>
-    <tr><td></td><td></td><td></td><td></td><td></td></tr>
-  </table>
-</div>
-
-</div>
-<script>window.addEventListener('load', () => { window.focus(); window.print(); });</script>
-</body>
-</html>`;
+<head><meta charset="UTF-8"><style>@page{margin:8mm;size:A4 portrait}*{box-sizing:border-box;margin:0;padding:0}body{font-family:'Arial',sans-serif;background:#fff;direction:rtl;margin:0;padding:0}.page{width:100%;box-sizing:border-box}</style></head>
+<body><div class="page">بطاقة إنتاج - ${fmt(d.ID)}</div></body></html>`;
 
     const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
     const url = URL.createObjectURL(blob);
@@ -1179,10 +940,6 @@ body{font-family:'Arial',sans-serif;background:#fff;direction:rtl;margin:0;paddi
 
   if (isLoading) return <Loading />;
 
-  const G = ({ label, req, children }: { label: string; req?: boolean; children: React.ReactNode }) => (
-    <FormGroup label={label} required={req}>{children}</FormGroup>
-  );
-  
   return (
     <div style={{ direction: 'rtl' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
@@ -1225,9 +982,16 @@ body{font-family:'Arial',sans-serif;background:#fff;direction:rtl;margin:0;paddi
         </Btn>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)}>
+      <form onSubmit={handleSubmit(onSubmit)} onChange={(e: any) => {
+        const target = e.target;
+        if (target.name && target.value !== undefined) {
+          formDataRef.current = {
+            ...formDataRef.current,
+            [target.name]: target.value
+          };
+        }
+      }}>
 
-        {/* ══ 1. بيانات الطلب الأساسية ══ */}
         <AccordionCard 
           title="📋 بيانات الطلب الأساسية"
           isOpen={openSections.basic}
@@ -1243,7 +1007,7 @@ body{font-family:'Arial',sans-serif;background:#fff;direction:rtl;margin:0;paddi
           <datalist id="cust-list">
             {customers.map(c => <option key={(c as any).ID1} value={c.Customer} />)}
           </datalist>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(8,1fr)', gap: 12, marginTop: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 12, marginTop: 12 }}>
             <G label="تاريخ الورود"><input className="fc" type="date" {...register('date_come')} style={{ textAlign: 'right' }} /></G>
             <G label="تاريخ الطلب"><input className="fc" {...register('delev_date')} style={{ textAlign: 'right' }} /></G>
             <G label="موعد التسليم"><input className="fc" {...register('Apoent_Delv_date')} style={{ textAlign: 'right' }} /></G>
@@ -1254,7 +1018,6 @@ body{font-family:'Arial',sans-serif;background:#fff;direction:rtl;margin:0;paddi
           </div>
         </AccordionCard>
 
-        {/* ══ 2. مواصفات المطبوعة ══ */}
         <AccordionCard 
           title="🎨 مواصفات المطبوعة"
           isOpen={openSections.specs}
@@ -1267,8 +1030,8 @@ body{font-family:'Arial',sans-serif;background:#fff;direction:rtl;margin:0;paddi
                 {['علبة','كرتون','بروشور','استيكر','غلاف','وراقة دحابة'].map(v => <option key={v}>{v}</option>)}
               </select>
             </G>
-            <G label="الاسم "><input className="fc" {...register('Pattern')} style={{ textAlign: 'right' }} /></G>
-            <G label=" الوصف"><input className="fc" {...register('Pattern2')} style={{ textAlign: 'right' }} /></G>
+            <G label="الاسم"><input className="fc" {...register('Pattern')} style={{ textAlign: 'right' }} /></G>
+            <G label="الوصف"><input className="fc" {...register('Pattern2')} style={{ textAlign: 'right' }} /></G>
             <G label="العيار"><input className="fc" {...register('ear')} style={{ textAlign: 'right' }} /></G>
             <G label="الوحدة">
               <select className="fc" {...register('UnitMed')} style={{ textAlign: 'right' }}>
@@ -1295,10 +1058,10 @@ body{font-family:'Arial',sans-serif;background:#fff;direction:rtl;margin:0;paddi
             <G label="تاريخ الإنتاج"><input className="fc" type="date" {...register('ProDate')} style={{ textAlign: 'right' }} /></G>
             <G label="تاريخ الانتهاء"><input className="fc" type="date" {...register('ExpDate')} style={{ textAlign: 'right' }} /></G>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 12, marginTop: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 12, marginTop: 12 }}>
             <G label="شركة الامتياز"><input className="fc" {...register('Authr_co')} style={{ textAlign: 'right' }} /></G>
             <G label="رقم النموذج"><input className="fc" {...register('Pat_Num')} style={{ textAlign: 'right' }} /></G>
-            <G label="ملاحظات الطلبية"><input className="fc" style={{ textAlign: 'right' }} /></G>
+            <G label="ملاحظات الطلبية"><input className="fc" {...register('note_ord')} style={{ textAlign: 'right' }} /></G>
             <G label="تعديل بالمونتاج"><input className="fc" {...register('modefyM')} style={{ textAlign: 'right' }} /></G>
           </div>
 
@@ -1311,7 +1074,6 @@ body{font-family:'Arial',sans-serif;background:#fff;direction:rtl;margin:0;paddi
           />
         </AccordionCard>
 
-        {/* ══ 3. مواصفات الطباعة والمونتاج ══ */}
         <AccordionCard 
           title="⚙️ مواصفات الطباعة والمونتاج"
           isOpen={openSections.printing}
@@ -1344,7 +1106,7 @@ body{font-family:'Arial',sans-serif;background:#fff;direction:rtl;margin:0;paddi
             <G label="فصل الطبق"><input className="fc" {...register('sheet_unit_qunt')} style={{ textAlign: 'right' }} /></G>
             <G label="2فصل الطبق"><input className="fc" {...register('sheet_unit_qunt2')} style={{ textAlign: 'right' }} /></G>
             <G label="عدد الطبع"><input className="fc"  {...register('Qunt_of_print_on')} style={{ textAlign: 'right' }} /></G>
-            <G label="عدد الطبع"><input className="fc"  {...register('Qunt_of_print_on2')} style={{ textAlign: 'right' }} /></G>
+            <G label="عدد الطبع2"><input className="fc"  {...register('Qunt_of_print_on2')} style={{ textAlign: 'right' }} /></G>
             <G label="عدد الألوان"><input className="fc" type="number" {...register('Clr_qunt')} style={{ textAlign: 'right' }} /></G>
             <G label="منها نموذج طبي"><input className="fc"  {...register('Med_Sampel')} style={{ textAlign: 'right' }} /></G>
             <G label="العدد المنتج">
@@ -1365,7 +1127,6 @@ body{font-family:'Arial',sans-serif;background:#fff;direction:rtl;margin:0;paddi
           />
         </AccordionCard>
 
-        {/* ══ 4. مراقبة الجودة والمشاكل ══ */}
         <AccordionCard 
           title="🔍 مراقبة الجودة والمشاكل"
           isOpen={openSections.quality}
@@ -1373,7 +1134,6 @@ body{font-family:'Arial',sans-serif;background:#fff;direction:rtl;margin:0;paddi
         >
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
             
-            {/* أثناء التصنيع */}
             <div style={{ border: '1.5px solid var(--border)', borderRadius: 10, overflow: 'hidden' }}>
               <div style={{ padding: '9px 13px', background: 'rgba(214,137,16,.1)', color: 'var(--warn)', fontSize: 12, fontWeight: 700, borderBottom: '1px solid rgba(214,137,16,.2)', textAlign: 'right' }}>
                 ⚠️ المشاكل الواردة أثناء التصنيع
@@ -1423,49 +1183,11 @@ body{font-family:'Arial',sans-serif;background:#fff;direction:rtl;margin:0;paddi
               </div>
             </div>
 
-            {/* من الزبون */}
             <div style={{ border: '1.5px solid var(--border)', borderRadius: 10, overflow: 'hidden' }}>
               <div style={{ padding: '9px 13px', background: 'rgba(192,57,43,.08)', color: 'var(--red)', fontSize: 12, fontWeight: 700, borderBottom: '1px solid rgba(192,57,43,.15)', textAlign: 'right' }}>
                 🚨 المشاكل الواردة من الزبون
               </div>
               <div style={{ padding: 12 }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 10 }}>
-                  <div>
-                    <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--steel)', marginBottom: 4, display: 'block', textAlign: 'right' }}>رقم الطبع</label>
-                    <input className="fc" style={{ fontSize: 12, textAlign: 'right' }} />
-                  </div>
-                  <div>
-                    <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--steel)', marginBottom: 4, display: 'block', textAlign: 'right' }}>عدد الطبع</label>
-                    <input className="fc" type="number" style={{ fontSize: 12, textAlign: 'right' }} />
-                  </div>
-                </div>
-                
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 10 }}>
-                  <div>
-                    <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--steel)', marginBottom: 4, display: 'block', textAlign: 'right' }}>الأبعاد</label>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                      <input className="fc" type="number" defaultValue={23} style={{ fontSize: 12, textAlign: 'right' }} />
-                      <span style={{ color: 'var(--muted)', fontWeight: 700 }}>×</span>
-                      <input className="fc" type="number" defaultValue={25} style={{ fontSize: 12, textAlign: 'right' }} />
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                      <input className="fc" type="number" defaultValue={23} style={{ fontSize: 12, textAlign: 'right' }} />
-                      <span style={{ color: 'var(--muted)', fontWeight: 700 }}>×</span>
-                      <input className="fc" type="number" defaultValue={25} style={{ fontSize: 12, textAlign: 'right' }} />
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <input className="fc" type="number" defaultValue={23} style={{ fontSize: 12, textAlign: 'right' }} />
-                      <span style={{ color: 'var(--muted)', fontWeight: 700 }}>×</span>
-                      <input className="fc" type="number" defaultValue={25} style={{ fontSize: 12, textAlign: 'right' }} />
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--steel)', marginBottom: 4, display: 'block', textAlign: 'right' }}>تاريخ الانتهاء</label>
-                    <input className="fc" type="date" style={{ fontSize: 12, textAlign: 'right' }} />
-                  </div>
-                </div>
-                
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 8 }}>
                   {CHK_CUST.map((label) => (
                     <label 
@@ -1494,11 +1216,6 @@ body{font-family:'Arial',sans-serif;background:#fff;direction:rtl;margin:0;paddi
                     </label>
                   ))}
                 </div>
-                
-                <div style={{ marginTop: 10 }}>
-                  <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--steel)', marginBottom: 6, display: 'block', textAlign: 'right' }}>اختبار</label>
-                  <input className="fc" placeholder="ادخل نص الاختبار" style={{ fontSize: 12, textAlign: 'right' }} />
-                </div>
               </div>
             </div>
           </div>
@@ -1512,7 +1229,6 @@ body{font-family:'Arial',sans-serif;background:#fff;direction:rtl;margin:0;paddi
           />
         </AccordionCard>
 
-        {/* ══ 5. التسليم والفوترة ══ */}
         <AccordionCard 
           title="🚚 التسليم والفوترة"
           isOpen={openSections.delivery}
@@ -1573,7 +1289,6 @@ body{font-family:'Arial',sans-serif;background:#fff;direction:rtl;margin:0;paddi
           </div>
         </AccordionCard>
 
-        {/* ── Footer ── */}
         <div style={{ background: '#fff', borderRadius: 14, border: '1px solid var(--border)', padding: '12px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <span style={{ fontSize: 12, color: 'var(--muted)' }}>سنة العمل: <strong>{currentYear}</strong></span>
           <div style={{ display: 'flex', gap: 10 }}>
