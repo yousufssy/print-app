@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useForm, useWatch } from 'react-hook-form';
 import { useQuery } from '@tanstack/react-query';
-import { advancedSearchApi } from '../api/searchService';
+import { advancedSearchApi } from '../api/searchService'; // تحديث المسار
 import type { 
   AdvancedSearchFilters, 
   AdvancedSearchResult, 
@@ -13,6 +13,7 @@ import type {
 import { Btn, FormGroup, SectionDiv, Card } from '../components/ui';
 
 // ── ثوابت المسارات والإعدادات ──────────────────────────────────────────────
+const SEARCH_PATH = '/orders/search';
 const DEFAULT_YEAR = new Date().getFullYear().toString();
 
 // ── مكونات فرعية قابلة لإعادة الاستخدام ───────────────────────────────────
@@ -125,7 +126,7 @@ export default function AdvancedSearchPage() {
   // 🎣 Form state
   const { register, handleSubmit, reset, watch, setValue, control } = useForm<AdvancedSearchFilters>({
     defaultValues: {
-      Year: DEFAULT_YEAR, // ✅ تغيير من year إلى Year
+      year: DEFAULT_YEAR,
       sortBy: 'ID',
       sortOrder: 'desc',
       limit: 50
@@ -134,7 +135,7 @@ export default function AdvancedSearchPage() {
 
   // ✅ useWatch لعرض الفلاتر النشطة بدون re-render غير ضروري
   const allFilters = useWatch({ control });
-  const sortOrder = allFilters.sortOrder;
+  const sortOrder = allFilters.sortOrder; // ✅ استخراج القيمة مرة واحدة
   
   // 🔄 Search state
   const [isSearching, setIsSearching] = useState(false);
@@ -150,7 +151,7 @@ export default function AdvancedSearchPage() {
   const [exportFormat, setExportFormat] = useState<'csv' | 'excel' | 'pdf'>('csv');
   const [isExporting, setIsExporting] = useState(false);
   
-  // 📊 بيانات مساعدة للقوائم
+  // 📊 بيانات مساعدة للقوائم — مع تحسينات الأداء والأخطاء
   const { 
     data: customers = [], 
     isLoading: isLoadingCustomers 
@@ -161,7 +162,7 @@ export default function AdvancedSearchPage() {
       if (!res.ok) throw new Error('فشل تحميل قائمة العملاء');
       return res.json();
     },
-    staleTime: 5 * 60 * 1000,
+    staleTime: 5 * 60 * 1000, // 5 دقائق
     retry: 1,
     onError: (err) => console.error('Error loading customers:', err)
   });
@@ -179,21 +180,21 @@ export default function AdvancedSearchPage() {
     { value: 'Customer', label: '👤 الزبون' },
   ], []);
   
-  // 🔍 حساب عدد الفلاتر النشطة
+  // 🔍 حساب عدد الفلاتر النشطة — بدون re-render في كل keystroke
   useEffect(() => {
     const subscription = watch((values) => {
       const count = Object.entries(values || {}).filter(([key, v]) => {
         if (v === undefined || v === '' || v === null) return false;
-        if (key === 'Year' && String(v) === DEFAULT_YEAR) return false; // ✅ تغيير من year
+        if (key === 'year' && String(v) === DEFAULT_YEAR) return false;
         if (['sortBy', 'sortOrder', 'limit', 'page'].includes(key)) return false;
         return true;
       }).length;
       setActiveFiltersCount(count);
     });
-    return () => subscription.unsubscribe();
+    return () => subscription.unsubscribe(); // ✅ تنظيف الاشتراك
   }, [watch]);
   
-  // 💾 تحميل البحوث المحفوظة
+  // 💾 تحميل البحوث المحفوظة من التخزين المحلي
   useEffect(() => {
     try {
       const saved = localStorage.getItem('savedOrderSearches');
@@ -203,30 +204,22 @@ export default function AdvancedSearchPage() {
     }
   }, []);
   
-  // 🔍 تنفيذ البحث - ✅ إصلاح المسار
+  // 🔍 تنفيذ البحث
   const onSearch = useCallback(async (filters: AdvancedSearchFilters) => {
     setIsSearching(true);
     try {
-      // ✅ لا تغيير المسار - البقاء في صفحة البحث
-      // فقط تحديث الـ URL params للمشاركة
+      // ✅ تحديث URL بارامترز للمشاركة — مسار موحد
       const params = new URLSearchParams();
       Object.entries(filters).forEach(([k, v]) => {
         if (v !== undefined && v !== '') params.set(k, String(v));
       });
-      
-      // ✅ استخدام replace للحفاظ على المسار الحالي
-      navigate(`?${params.toString()}`, { replace: true });
+      navigate(`${SEARCH_PATH}?${params.toString()}`, { replace: true });
       
       // ✅ تنفيذ البحث عبر API
       const result = await advancedSearchApi.search(filters);
+      setSearchResults(result);
       
-      // ✅ تحويل last_page إلى totalPages
-      setSearchResults({
-        ...result,
-        totalPages: result.last_page || Math.ceil(result.total / (filters.limit || 50))
-      });
-      
-      // حفظ الفلاتر
+      // ✅ حفظ الفلاتر الحالية للاستخدام لاحقاً
       localStorage.setItem('lastOrderSearch', JSON.stringify(filters));
       
     } catch (error: any) {
@@ -245,47 +238,65 @@ export default function AdvancedSearchPage() {
     }
     
     const filters = watch();
-    const newSearch: SavedSearch = {
+    const newSaved: SavedSearch = {
       id: Date.now().toString(),
       name: newSearchName,
       filters,
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
+      createdBy: 'current_user' // ✅ يمكن استبداله بـ user.id من auth
     };
     
-    const updated = [...savedSearches, newSearch];
+    const updated = [...savedSearches, newSaved];
     setSavedSearches(updated);
     localStorage.setItem('savedOrderSearches', JSON.stringify(updated));
+    
     setNewSearchName('');
+    setShowSavedModal(false);
     alert('✅ تم حفظ البحث بنجاح');
   };
   
-  // 📥 تحميل بحث محفوظ
+  // 📂 تحميل بحث محفوظ
   const onLoadSavedSearch = (search: SavedSearch) => {
     reset(search.filters);
     setShowSavedModal(false);
-    handleSubmit(onSearch)();
+    setTimeout(() => handleSubmit(onSearch)(), 100);
   };
   
   // 🗑️ حذف بحث محفوظ
   const onDeleteSavedSearch = (id: string) => {
-    if (!confirm('هل تريد حذف هذا البحث؟')) return;
-    const updated = savedSearches.filter(s => s.id !== id);
-    setSavedSearches(updated);
-    localStorage.setItem('savedOrderSearches', JSON.stringify(updated));
+    if (confirm('هل تريد حذف هذا البحث المحفوظ؟')) {
+      const updated = savedSearches.filter(s => s.id !== id);
+      setSavedSearches(updated);
+      localStorage.setItem('savedOrderSearches', JSON.stringify(updated));
+    }
   };
   
   // 📤 تصدير النتائج
   const onExport = async () => {
-    if (!searchResults?.data.length) {
-      alert('⚠️ لا توجد نتائج للتصدير');
+    if (!searchResults?.data?.length) {
+      alert('⚠️ لا توجد نتائج لتصديرها');
+      return;
+    }
+    
+    // 🔐 تحقق أمان: منع تصدير كميات ضخمة
+    if (searchResults.total > 10000) {
+      alert('⚠️ عدد النتائج كبير جداً، يُفضل تطبيق فلاتر إضافية قبل التصدير');
       return;
     }
     
     setIsExporting(true);
     try {
       const filters = watch();
-      await advancedSearchApi.export(filters, exportFormat);
-      alert('✅ تم تصدير النتائج بنجاح');
+      const blob = await advancedSearchApi.export(filters, exportFormat);
+      
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `order_search_${new Date().toISOString().split('T')[0]}.${exportFormat === 'excel' ? 'xlsx' : exportFormat}`;
+      a.click();
+      URL.revokeObjectURL(url);
+      
+      alert('✅ تم تصدير الملف بنجاح');
     } catch (error: any) {
       console.error('Export failed:', error);
       alert('❌ فشل التصدير: ' + (error.message || 'خطأ غير معروف'));
@@ -294,374 +305,704 @@ export default function AdvancedSearchPage() {
     }
   };
   
-  // 🔄 إعادة تعيين النموذج
+  // 🔄 إعادة تعيين الفلاتر
   const onReset = () => {
     reset({
-      Year: DEFAULT_YEAR, // ✅ تغيير من year
+      year: DEFAULT_YEAR,
       sortBy: 'ID',
       sortOrder: 'desc',
       limit: 50
     });
     setSearchResults(null);
-    navigate('', { replace: true });
+    navigate(SEARCH_PATH, { replace: true }); // ✅ مسار موحد
   };
   
-  // ⌨️ البحث السريع عند الضغط على Enter
+  // ⌨️ اختصار لوحة المفاتيح: Ctrl+Enter للبحث
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Enter' && !e.shiftKey && document.activeElement?.tagName !== 'TEXTAREA') {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
         e.preventDefault();
         handleSubmit(onSearch)();
       }
+      if (e.key === 'Escape') {
+        setShowSavedModal(false);
+      }
     };
-    
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handleSubmit, onSearch]);
+  }, [onSearch, handleSubmit]);
+  
+  // 🗺️ خريطة تسميات الحقول للـ Tags
+  const FILTER_LABELS = useMemo(() => ({
+    customer: '👤 الزبون',
+    orderId: '🔢 رقم الطلب',
+    pattern: '🎨 النموذج',
+    dateComeFrom: '📅 من تاريخ',
+    dateComeTo: '📅 إلى تاريخ',
+    isPrinted: '🖨️ مطبوع',
+    isBilled: '🧾 مفوتر',
+    hasVouchers: '🧾 له إيصالات'
+  }), []);
   
   return (
     <div style={{ 
-      maxWidth: 1600, 
-      margin: '0 auto', 
-      padding: '20px', 
       direction: 'rtl', 
+      padding: 20, 
+      maxWidth: 1400, 
+      margin: '0 auto', 
       fontFamily: 'Cairo, sans-serif' 
     }}>
       
-      {/* 🎯 Header */}
+      {/* 📍 Header */}
       <header style={{ 
         display: 'flex', 
-        justifyContent: 'space-between', 
         alignItems: 'center', 
-        marginBottom: 24 
+        gap: 16, 
+        marginBottom: 24,
+        paddingBottom: 16, 
+        borderBottom: '1px solid var(--border)'
       }}>
+        <button 
+          onClick={() => navigate('/orders')} 
+          aria-label="العودة لقائمة الطلبات"
+          style={{ 
+            background: 'none', 
+            border: 'none', 
+            fontSize: 20, 
+            cursor: 'pointer', 
+            color: 'var(--ink)' 
+          }}
+        >←</button>
         <div>
-          <h1 style={{ fontSize: 24, fontWeight: 700, marginBottom: 4 }}>
-            🔍 البحث المتقدم في الطلبات
-          </h1>
-          <p style={{ color: 'var(--muted)', fontSize: 13 }}>
-            ابحث عن الطلبات باستخدام فلاتر متقدمة ومعايير دقيقة
+          <h1 style={{ fontSize: 22, fontWeight: 800, margin: 0 }}>🔍 البحث المتقدم في الطلبات</h1>
+          <p style={{ fontSize: 13, color: 'var(--muted)', margin: '4px 0 0' }}>
+            ابحث عبر جميع حقول النظام مع خيارات تصفية متقدمة
           </p>
         </div>
         
-        <div style={{ display: 'flex', gap: 8 }}>
-          <Btn 
-            variant="outline" 
-            type="button" 
-            onClick={() => setShowSavedModal(true)}
-            title="البحوث المحفوظة"
-          >
-            📂 البحوث المحفوظة ({savedSearches.length})
-          </Btn>
-          
-          <Btn 
-            variant="outline" 
-            type="button" 
-            onClick={() => navigate('/orders')}
-            title="العودة للقائمة الرئيسية"
-          >
-            ← العودة
-          </Btn>
-        </div>
+        {/* 📊 إحصائيات سريعة */}
+        {searchResults && (
+          <div style={{ 
+            marginRight: 'auto', 
+            display: 'flex', 
+            gap: 16, 
+            background: '#f8f9fa', 
+            padding: '8px 16px', 
+            borderRadius: 8 
+          }}>
+            <span><b>{searchResults.total}</b> نتيجة</span>
+            <span aria-hidden="true">•</span>
+            <span>صفحة <b>{searchResults.page}</b> من <b>{searchResults.totalPages}</b></span>
+          </div>
+        )}
       </header>
       
-      {/* 📋 نموذج البحث */}
-      <form onSubmit={handleSubmit(onSearch)} style={{ marginBottom: 20 }}>
+      {/* 🎛️ شريط الأدوات العلوي */}
+      <nav style={{ 
+        display: 'flex', 
+        gap: 8, 
+        marginBottom: 20, 
+        flexWrap: 'wrap',
+        background: '#fff', 
+        padding: 12, 
+        borderRadius: 12, 
+        border: '1px solid var(--border)'
+      }}>
+        <Btn 
+          variant="primary" 
+          type="button" 
+          onClick={handleSubmit(onSearch)} 
+          disabled={isSearching}
+          aria-busy={isSearching}
+        >
+          {isSearching ? '⏳ جاري البحث...' : '🔍 تنفيذ البحث'} 
+          {activeFiltersCount > 0 && `(${activeFiltersCount})`}
+        </Btn>
         
-        <div style={{ 
-          display: 'grid', 
-          gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', 
-          gap: 12 
-        }}>
-          
-          {/* 📌 معلومات أساسية */}
-          <FilterCard title="📌 معلومات أساسية" badge={activeFiltersCount}>
-            
-            <FilterGroup label="رقم الطلب">
-              <input 
-                className="fc" 
-                type="number" 
-                placeholder="أدخل رقم الطلب..."
-                {...register('ID')}
-                style={{ textAlign: 'right' }}
-              />
-            </FilterGroup>
-            
-            <FilterGroup label="اسم الزبون">
-              {isLoadingCustomers ? (
-                <input className="fc" disabled placeholder="جاري التحميل..." />
-              ) : (
-                <select className="fc" {...register('Customer')} style={{ textAlign: 'right' }}>
-                  <option value="">-- اختر زبون --</option>
-                  {customers.map(c => (
-                    <option key={c.id} value={c.name}>{c.name}</option>
-                  ))}
-                </select>
-              )}
-            </FilterGroup>
-            
-            <FilterGroup label="البيان / الطلب">
-              <input 
-                className="fc" 
-                placeholder="مثال: علب كرتون، بروشور..."
-                {...register('Demand')}
-                style={{ textAlign: 'right' }}
-              />
-            </FilterGroup>
-            
-            <FilterGroup label="السنة">
-              <input 
-                className="fc" 
-                type="number" 
-                placeholder="2024"
-                {...register('Year')} 
-                style={{ textAlign: 'right' }}
-              />
-            </FilterGroup>
-            
-          </FilterCard>
-          
-          {/* 📅 تواريخ */}
-          <FilterCard title="📅 الفترة الزمنية">
-            
-            <FilterGroup label="تاريخ الورود من">
-              <input className="fc" type="date" {...register('date_from')} />
-            </FilterGroup>
-            
-            <FilterGroup label="تاريخ الورود إلى">
-              <input className="fc" type="date" {...register('date_to')} />
-            </FilterGroup>
-            
-          </FilterCard>
-          
-          {/* ✅ حالة الطلب */}
-          <FilterCard title="✅ حالة الطلب">
-            
-            <FilterGroup label="حالة الطباعة">
-              <select className="fc" {...register('Printed')} style={{ textAlign: 'right' }}>
-                <option value="">-- الكل --</option>
-                <option value="1">مطبوع ✅</option>
-                <option value="0">غير مطبوع ❌</option>
-              </select>
-            </FilterGroup>
-            
-            <FilterGroup label="حالة الفوترة">
-              <select className="fc" {...register('Billed')} style={{ textAlign: 'right' }}>
-                <option value="">-- الكل --</option>
-                <option value="1">مفوتر ✅</option>
-                <option value="0">غير مفوتر ❌</option>
-              </select>
-            </FilterGroup>
-            
-          </FilterCard>
-          
-          {/* ⚙️ إعدادات العرض */}
-          <FilterCard title="⚙️ الترتيب والعرض" defaultOpen={false}>
-            
-            <FilterGroup label="ترتيب حسب">
-              <select className="fc" {...register('sortBy')} style={{ textAlign: 'right' }}>
-                {SORT_OPTIONS.map(opt => (
-                  <option key={opt.value} value={opt.value}>{opt.label}</option>
-                ))}
-              </select>
-            </FilterGroup>
-            
-            <FilterGroup label="نوع الترتيب">
-              <div style={{ display: 'flex', gap: 8, direction: 'rtl' }}>
-                <label style={{ 
-                  flex: 1, 
-                  padding: '8px 12px', 
-                  border: '1px solid var(--border)', 
-                  borderRadius: 8,
-                  cursor: 'pointer',
-                  background: sortOrder === 'desc' ? 'var(--steel)' : '#fff',
-                  color: sortOrder === 'desc' ? '#fff' : 'var(--ink)',
-                  textAlign: 'center',
-                  fontWeight: 500,
-                  transition: 'all 0.2s'
-                }}>
-                  <input 
-                    type="radio" 
-                    value="desc" 
-                    {...register('sortOrder')} 
-                    style={{ display: 'none' }}
-                  />
-                  ⬇️ تنازلي
-                </label>
-                
-                <label style={{ 
-                  flex: 1, 
-                  padding: '8px 12px', 
-                  border: '1px solid var(--border)', 
-                  borderRadius: 8,
-                  cursor: 'pointer',
-                  background: sortOrder === 'asc' ? 'var(--steel)' : '#fff',
-                  color: sortOrder === 'asc' ? '#fff' : 'var(--ink)',
-                  textAlign: 'center',
-                  fontWeight: 500,
-                  transition: 'all 0.2s'
-                }}>
-                  <input 
-                    type="radio" 
-                    value="asc" 
-                    {...register('sortOrder')} 
-                    style={{ display: 'none' }}
-                  />
-                  ⬆️ تصاعدي
-                </label>
-              </div>
-            </FilterGroup>
-            
-            <FilterGroup label="عدد النتائج في الصفحة">
-              <select className="fc" {...register('limit')} style={{ textAlign: 'right' }}>
-                <option value="10">10</option>
-                <option value="25">25</option>
-                <option value="50">50</option>
-                <option value="100">100</option>
-                <option value="200">200</option>
-              </select>
-            </FilterGroup>
-            
-          </FilterCard>
-        </div>
+        <Btn variant="outline" type="button" onClick={onReset}>🗑️ إعادة تعيين</Btn>
         
-        {/* 🎮 أزرار التحكم */}
+        <Btn 
+          variant="outline" 
+          type="button" 
+          onClick={() => setShowSavedModal(true)}
+          aria-haspopup="dialog"
+        >
+          📂 البحوث المحفوظة {savedSearches.length > 0 && `(${savedSearches.length})`}
+        </Btn>
+        
+        <div style={{ width: 1, background: 'var(--border)', margin: '0 4px' }} aria-hidden="true" />
+        
+        <label htmlFor="export-format" className="sr-only">تنسيق التصدير</label>
+        <select 
+          id="export-format"
+          value={exportFormat} 
+          onChange={(e) => setExportFormat(e.target.value as 'csv' | 'excel' | 'pdf')}
+          style={{ 
+            padding: '8px 12px', 
+            borderRadius: 6, 
+            border: '1px solid var(--border)', 
+            background: '#fff' 
+          }}
+        >
+          <option value="csv">📄 CSV</option>
+          <option value="excel">📊 Excel</option>
+          <option value="pdf">📕 PDF</option>
+        </select>
+        <Btn 
+          variant="outline" 
+          type="button" 
+          onClick={onExport} 
+          disabled={isExporting || !searchResults?.data?.length}
+          aria-busy={isExporting}
+        >
+          {isExporting ? '⏳...' : '📤 تصدير'}
+        </Btn>
+        
+        <div style={{ width: 1, background: 'var(--border)', margin: '0 4px' }} aria-hidden="true" />
+        
+        <Btn 
+          variant="outline" 
+          type="button" 
+          onClick={() => {
+            const filters = watch();
+            navigator.clipboard.writeText(JSON.stringify(filters, null, 2));
+            alert('✅ تم نسخ إعدادات البحث للحافظة');
+          }}
+          aria-label="نسخ إعدادات البحث الحالية"
+        >
+          📋 نسخ الإعدادات
+        </Btn>
+      </nav>
+      
+      {/* 🔄 عرض الفلاتر النشطة كـ Tags */}
+      {activeFiltersCount > 0 && (
         <div style={{ 
           display: 'flex', 
-          gap: 10, 
-          justifyContent: 'flex-end', 
-          marginTop: 20,
-          flexWrap: 'wrap'
-        }}>
-          <Btn 
-            variant="outline" 
-            type="button" 
-            onClick={onReset}
-          >
-            🔄 إعادة تعيين
-          </Btn>
-          
-          <Btn 
-            variant="primary" 
-            type="submit"
-            disabled={isSearching}
-          >
-            {isSearching ? '⏳ جاري البحث...' : '🔍 بحث'}
-          </Btn>
+          gap: 8, 
+          marginBottom: 16, 
+          flexWrap: 'wrap',
+          padding: '8px 12px', 
+          background: '#e3f2fd', 
+          borderRadius: 8 
+        }} role="list" aria-label="الفلاتر النشطة">
+          {Object.entries(allFilters).map(([key, value]) => {
+            if (value === undefined || value === '' || value === null) return null;
+            if (['year', 'sortBy', 'sortOrder', 'limit'].includes(key)) return null;
+            if (key === 'year' && value === DEFAULT_YEAR) return null;
+            
+            return (
+              <span 
+                key={key} 
+                role="listitem"
+                style={{
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: 6,
+                  padding: '4px 10px', 
+                  background: '#fff', 
+                  borderRadius: 16,
+                  fontSize: 12, 
+                  border: '1px solid #bbdefb'
+                }}
+              >
+                {FILTER_LABELS[key as keyof typeof FILTER_LABELS] || key}: 
+                <b>{String(value)}</b>
+                <button 
+                  onClick={() => setValue(key as keyof AdvancedSearchFilters, undefined)} 
+                  aria-label={`إزالة فلتر ${key}`}
+                  style={{ 
+                    background: 'none', 
+                    border: 'none', 
+                    cursor: 'pointer', 
+                    fontSize: 14, 
+                    color: '#666',
+                    padding: 0,
+                    lineHeight: 1
+                  }}
+                >✕</button>
+              </span>
+            );
+          })}
         </div>
-        
-      </form>
+      )}
       
-      {/* 📊 نتائج البحث */}
-      {searchResults && (
-        <section style={{ 
-          background: '#fff', 
-          borderRadius: 12, 
-          padding: 20, 
-          border: '1px solid var(--border)' 
-        }}>
+      {/* 📋 نموذج البحث المتقدم */}
+      <form onSubmit={handleSubmit(onSearch)} style={{ 
+        display: 'grid', 
+        gridTemplateColumns: '1fr 380px', 
+        gap: 20 
+      }}>
+        
+        {/* 🎛️ أعمدة الفلاتر */}
+        <section aria-label="خيارات التصفية">
+          {/* 🔍 بحث نصي عام */}
+          <FilterCard title="🔍 بحث نصي سريع" defaultOpen={true}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <FilterGroup label="كلمة مفتاحية" hint="ابحث في جميع الحقول النصية">
+                <input 
+                  className="fc" 
+                  {...register('query')} 
+                  placeholder="اكتب للبحث..." 
+                  style={{ textAlign: 'right' }} 
+                  aria-label="كلمة مفتاحية للبحث"
+                />
+              </FilterGroup>
+              <FilterGroup label="اسم الزبون">
+                <input 
+                  className="fc" 
+                  {...register('customer')} 
+                  list="search-customers" 
+                  placeholder="ابحث بالاسم..." 
+                  style={{ textAlign: 'right' }}
+                  aria-label="اسم الزبون"
+                />
+                <datalist id="search-customers">
+                  {customers.map((c) => (
+                    <option key={c._ID} value={c.Customer} />
+                  ))}
+                </datalist>
+              </FilterGroup>
+            </div>
+          </FilterCard>
           
-          {/* 📈 عداد النتائج + تصدير */}
-          <div style={{ 
-            display: 'flex', 
-            justifyContent: 'space-between', 
-            alignItems: 'center', 
-            marginBottom: 16,
-            paddingBottom: 12,
-            borderBottom: '1px solid var(--border)'
-          }}>
-            <div>
-              <h2 style={{ fontSize: 16, fontWeight: 700 }}>
-                📋 النتائج ({searchResults.total} طلب)
-              </h2>
-              <small style={{ color: 'var(--muted)' }}>
-                الصفحة {searchResults.page} من {searchResults.totalPages || searchResults.last_page}
-              </small>
+          {/* 📋 بيانات الطلب */}
+          <FilterCard title="📋 بيانات الطلب الأساسية" badge={activeFiltersCount}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+              <FilterGroup label="رقم الطلب">
+                <input 
+                  className="fc" 
+                  type="number" 
+                  {...register('orderId')} 
+                  placeholder="4085" 
+                  style={{ textAlign: 'right' }}
+                  aria-label="رقم الطلب"
+                />
+              </FilterGroup>
+              <FilterGroup label="رقم التسلسل">
+                <input 
+                  className="fc" 
+                  type="number" 
+                  {...register('serialNumber')} 
+                  style={{ textAlign: 'right' }}
+                  aria-label="رقم التسلسل"
+                />
+              </FilterGroup>
+              <FilterGroup label="المرجع">
+                <input 
+                  className="fc" 
+                  {...register('reference')} 
+                  style={{ textAlign: 'right' }}
+                  aria-label="المرجع"
+                />
+              </FilterGroup>
+              <FilterGroup label="سنة العمل">
+                <input 
+                  className="fc" 
+                  type="number" 
+                  {...register('year')} 
+                  min="2020" 
+                  max="2030" 
+                  style={{ textAlign: 'right' }}
+                  aria-label="سنة العمل"
+                />
+              </FilterGroup>
+              <FilterGroup label="من تاريخ الورود">
+                <input 
+                  className="fc" 
+                  type="date" 
+                  {...register('dateComeFrom')} 
+                  style={{ textAlign: 'right' }}
+                  aria-label="من تاريخ الورود"
+                />
+              </FilterGroup>
+              <FilterGroup label="إلى تاريخ الورود">
+                <input 
+                  className="fc" 
+                  type="date" 
+                  {...register('dateComeTo')} 
+                  style={{ textAlign: 'right' }}
+                  aria-label="إلى تاريخ الورود"
+                />
+              </FilterGroup>
+            </div>
+          </FilterCard>
+          
+          {/* 🎨 مواصفات المطبوعة */}
+          <FilterCard title="🎨 مواصفات المطبوعة">
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+              <FilterGroup label="اسم النموذج">
+                <input 
+                  className="fc" 
+                  {...register('pattern')} 
+                  placeholder="Pattern" 
+                  style={{ textAlign: 'right' }}
+                  aria-label="اسم النموذج"
+                />
+              </FilterGroup>
+              <FilterGroup label="وصف النموذج">
+                <input 
+                  className="fc" 
+                  {...register('pattern2')} 
+                  placeholder="Pattern2" 
+                  style={{ textAlign: 'right' }}
+                  aria-label="وصف النموذج"
+                />
+              </FilterGroup>
+              <FilterGroup label="نوع المطبوعة">
+                <select 
+                  className="fc" 
+                  {...register('unitType')} 
+                  style={{ textAlign: 'right' }}
+                  aria-label="نوع المطبوعة"
+                >
+                  <option value="">-- الكل --</option>
+                  {UNIT_TYPES.map(u => <option key={u} value={u}>{u}</option>)}
+                </select>
+              </FilterGroup>
+              <FilterGroup label="الكود">
+                <input 
+                  className="fc" 
+                  {...register('code')} 
+                  style={{ textAlign: 'right' }}
+                  aria-label="كود المطبوعة"
+                />
+              </FilterGroup>
+              <FilterGroup label="الحد الأدنى للكمية">
+                <input 
+                  className="fc" 
+                  type="number" 
+                  {...register('demandMin')} 
+                  style={{ textAlign: 'right' }}
+                  aria-label="الحد الأدنى للكمية"
+                />
+              </FilterGroup>
+              <FilterGroup label="الحد الأقصى للكمية">
+                <input 
+                  className="fc" 
+                  type="number" 
+                  {...register('demandMax')} 
+                  style={{ textAlign: 'right' }}
+                  aria-label="الحد الأقصى للكمية"
+                />
+              </FilterGroup>
+            </div>
+          </FilterCard>
+          
+          {/* ✅ فلاتر الحالة */}
+          <FilterCard title="✅ حالة الطلب والخصائص">
+            <fieldset style={{ 
+              display: 'grid', 
+              gridTemplateColumns: 'repeat(2, 1fr)', 
+              gap: 10,
+              border: 'none',
+              padding: 0,
+              margin: 0
+            }}>
+              <legend className="sr-only">فلاتر حالة الطلب</legend>
+              {[
+                { key: 'isPrinted', label: '🖨️ مطبوع' },
+                { key: 'isBilled', label: '🧾 مفوتر' },
+                { key: 'isDelivered', label: '🚚 مُسلَّم' },
+                { key: 'hasVouchers', label: '🧾 له إيصالات' },
+                { key: 'hasProblems', label: '⚠️ له مشاكل' },
+                { key: 'hasCartons', label: '📦 له مواد' },
+              ].map(({ key, label }) => (
+                <label 
+                  key={key} 
+                  style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: 8, 
+                    padding: '8px 12px', 
+                    background: '#f8f9fa', 
+                    borderRadius: 6, 
+                    cursor: 'pointer'
+                  }}
+                >
+                  <input 
+                    type="checkbox" 
+                    {...register(key as keyof AdvancedSearchFilters)} 
+                    style={{ width: 16, height: 16 }}
+                    aria-label={label}
+                  />
+                  <span style={{ fontSize: 13 }}>{label}</span>
+                </label>
+              ))}
+            </fieldset>
+          </FilterCard>
+          
+          {/* ⚙️ فلاتر العمليات والمواد */}
+          <FilterCard title="⚙️ العمليات والمواد">
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <FilterGroup label="نوع العملية">
+                <input 
+                  className="fc" 
+                  {...register('operationType')} 
+                  placeholder="طباعة، تقطيع..." 
+                  style={{ textAlign: 'right' }}
+                  aria-label="نوع العملية"
+                />
+              </FilterGroup>
+              <FilterGroup label="اسم الآلة">
+                <input 
+                  className="fc" 
+                  {...register('machineName')} 
+                  style={{ textAlign: 'right' }}
+                  aria-label="اسم الآلة"
+                />
+              </FilterGroup>
+              <FilterGroup label="المورد">
+                <input 
+                  className="fc" 
+                  {...register('materialSupplier')} 
+                  style={{ textAlign: 'right' }}
+                  aria-label="اسم المورد"
+                />
+              </FilterGroup>
+              <FilterGroup label="الحد الأدنى للسعر">
+                <input 
+                  className="fc" 
+                  type="number" 
+                  step="0.01" 
+                  {...register('priceMin')} 
+                  style={{ textAlign: 'right' }}
+                  aria-label="الحد الأدنى للسعر"
+                />
+              </FilterGroup>
+            </div>
+          </FilterCard>
+        </section>
+        
+        {/* ⚙️ لوحة التحكم الجانبية */}
+        <aside style={{ position: 'sticky', top: 20, height: 'fit-content' }}>
+          <Card style={{ padding: 16 }}>
+            <h4 style={{ margin: '0 0 16px', fontSize: 15, fontWeight: 700 }}>⚙️ خيارات العرض</h4>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <FilterGroup label="ترتيب النتائج حسب">
+                <select 
+                  className="fc" 
+                  {...register('sortBy')} 
+                  style={{ textAlign: 'right' }}
+                  aria-label="ترتيب النتائج حسب"
+                >
+                  {SORT_OPTIONS.map(opt => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+              </FilterGroup>
+              
+              <FilterGroup label="اتجاه الترتيب">
+                <div style={{ display: 'flex', gap: 8 }} role="radiogroup" aria-label="اتجاه ترتيب النتائج">
+                  <label style={{ 
+                    flex: 1, 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: 6, 
+                    padding: '8px 12px', 
+                    background: sortOrder === 'desc' ? '#e3f2fd' : '#f8f9fa', 
+                    borderRadius: 6, 
+                    cursor: 'pointer' 
+                  }}>
+                    <input 
+                      type="radio" 
+                      value="desc" 
+                      {...register('sortOrder')} 
+                      aria-label="ترتيب تنازلي"
+                    /> 
+                    تنازلي ↓
+                  </label>
+                  <label style={{ 
+                    flex: 1, 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: 6, 
+                    padding: '8px 12px', 
+                    background: sortOrder === 'asc' ? '#e3f2fd' : '#f8f9fa', 
+                    borderRadius: 6, 
+                    cursor: 'pointer' 
+                  }}>
+                    <input 
+                      type="radio" 
+                      value="asc" 
+                      {...register('sortOrder')} 
+                      aria-label="ترتيب تصاعدي"
+                    /> 
+                    تصاعدي ↑
+                  </label>
+                </div>
+              </FilterGroup>
+              
+              <FilterGroup label="عدد النتائج في الصفحة">
+                <select 
+                  className="fc" 
+                  {...register('limit', { valueAsNumber: true })} 
+                  style={{ textAlign: 'right' }}
+                  aria-label="عدد النتائج في الصفحة"
+                >
+                  <option value={25}>25 نتيجة</option>
+                  <option value={50}>50 نتيجة</option>
+                  <option value={100}>100 نتيجة</option>
+                  <option value={200}>200 نتيجة</option>
+                </select>
+              </FilterGroup>
             </div>
             
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-              <select 
-                className="fc" 
-                value={exportFormat} 
-                onChange={(e) => setExportFormat(e.target.value as any)}
-                style={{ width: 'auto', padding: '6px 10px', fontSize: 13 }}
+            <div style={{ margin: '20px 0', borderTop: '1px solid var(--border)', paddingTop: 16 }}>
+              <Btn 
+                variant="primary" 
+                type="submit" 
+                style={{ width: '100%', marginBottom: 8 }} 
+                disabled={isSearching}
+                aria-busy={isSearching}
               >
-                <option value="csv">CSV</option>
-                <option value="excel">Excel</option>
-                <option value="pdf">PDF</option>
-              </select>
-              
+                {isSearching ? '⏳ جاري البحث...' : '🔍 تنفيذ البحث'}
+              </Btn>
               <Btn 
                 variant="outline" 
                 type="button" 
-                onClick={onExport}
-                disabled={isExporting || !searchResults.data.length}
+                onClick={() => setShowSavedModal(true)} 
+                style={{ width: '100%' }}
+                aria-haspopup="dialog"
               >
-                {isExporting ? '⏳ جاري التصدير...' : `📤 تصدير ${exportFormat.toUpperCase()}`}
+                📂 حفظ/تحميل بحث
               </Btn>
+            </div>
+            
+            <div style={{ fontSize: 11, color: 'var(--muted)', textAlign: 'center' }}>
+              💡 اضغط <kbd style={{ background: '#eee', padding: '2px 6px', borderRadius: 4 }}>Ctrl+Enter</kbd> للبحث السريع
+            </div>
+          </Card>
+          
+          {/* 📊 معاينة سريعة للنتائج */}
+          {searchResults && (
+            <Card style={{ padding: 16, marginTop: 16 }}>
+              <h4 style={{ margin: '0 0 12px', fontSize: 15, fontWeight: 700 }}>📊 ملخص النتائج</h4>
+              <dl style={{ 
+                display: 'grid', 
+                gridTemplateColumns: '1fr 1fr', 
+                gap: 8, 
+                fontSize: 13,
+                margin: 0 
+              }}>
+                <dt>📦 إجمالي النتائج:</dt>
+                <dd style={{ fontWeight: 700, textAlign: 'left', margin: 0 }}>{searchResults.total}</dd>
+                <dt>📄 الصفحات:</dt>
+                <dd style={{ fontWeight: 700, textAlign: 'left', margin: 0 }}>{searchResults.totalPages}</dd>
+                <dt>⏱️ وقت الاستجابة:</dt>
+                <dd style={{ fontWeight: 700, textAlign: 'left', margin: 0 }}>-</dd>
+              </dl>
+            </Card>
+          )}
+        </aside>
+      </form>
+      
+      {/* 📋 جدول النتائج */}
+      {searchResults && searchResults.data.length > 0 && (
+        <section style={{ marginTop: 24 }} aria-label="نتائج البحث">
+          <div style={{ 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            alignItems: 'center',
+            marginBottom: 12, 
+            paddingBottom: 8, 
+            borderBottom: '1px solid var(--border)'
+          }}>
+            <h3 style={{ margin: 0, fontSize: 16 }}>
+              📋 نتائج البحث ({searchResults.data.length} من {searchResults.total})
+            </h3>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <Btn 
+                variant="outline" 
+                size="sm" 
+                onClick={() => {
+                  const csv = [
+                    ['رقم الطلب', 'الزبون', 'النموذج', 'الكمية', 'السعر', 'تاريخ الورود', 'الحالة'].join(','),
+                    ...searchResults.data.map((r) => [
+                      r.ID, 
+                      r.Customer, 
+                      r.Pattern, 
+                      r.Demand, 
+                      r.Price, 
+                      r.date_come,
+                      [r.Printed ? 'مطبوع' : '', r.Billed ? 'مفوتر' : '', r.Reseved ? 'مُسلَّم' : ''].filter(Boolean).join('/')
+                    ].join(','))
+                  ].join('\n');
+                  
+                  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = 'search_results.csv';
+                  a.click();
+                  URL.revokeObjectURL(url);
+                }}
+              >📥 تصدير سريع (CSV)</Btn>
             </div>
           </div>
           
-          {/* 📄 الجدول */}
-          <div style={{ overflowX: 'auto' }}>
+          <div style={{ 
+            overflowX: 'auto', 
+            background: '#fff', 
+            borderRadius: 12, 
+            border: '1px solid var(--border)' 
+          }}>
             <table style={{ 
               width: '100%', 
               borderCollapse: 'collapse', 
-              fontSize: 13 
+              fontSize: 12 
             }}>
               <thead>
-                <tr style={{ background: 'var(--bg)', borderBottom: '2px solid var(--border)' }}>
-                  <th style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 600 }}>رقم الطلب</th>
-                  <th style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 600 }}>السنة</th>
-                  <th style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 600 }}>الزبون</th>
-                  <th style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 600 }}>البيان</th>
-                  <th style={{ padding: '10px 12px', textAlign: 'center', fontWeight: 600 }}>تاريخ الورود</th>
-                  <th style={{ padding: '10px 12px', textAlign: 'center', fontWeight: 600 }}>موعد التسليم</th>
-                  <th style={{ padding: '10px 12px', textAlign: 'center', fontWeight: 600 }}>الكمية</th>
-                  <th style={{ padding: '10px 12px', textAlign: 'center', fontWeight: 600 }}>السعر</th>
-                  <th style={{ padding: '10px 12px', textAlign: 'center', fontWeight: 600 }}>الحالة</th>
-                  <th style={{ padding: '10px 12px', textAlign: 'center', fontWeight: 600 }}>الإجراءات</th>
+                <tr style={{ background: 'var(--steel)', color: '#fff' }}>
+                  {['🔢', '👤 الزبون', '🎨 النموذج', '📦 الكمية', '💰 السعر', '📥 الورود', '📅 التسليم', '✅ الحالة', '🔗'].map(h => (
+                    <th 
+                      key={h} 
+                      scope="col"
+                      style={{ 
+                        padding: '10px 12px', 
+                        textAlign: 'right', 
+                        fontWeight: 600, 
+                        whiteSpace: 'nowrap' 
+                      }}
+                    >
+                      <span className="sr-only">{h}</span>
+                      <span aria-hidden="true">{h}</span>
+                    </th>
+                  ))}
                 </tr>
               </thead>
               <tbody>
-                {searchResults.data.map((order, idx) => (
+                {searchResults.data.map((order, i: number) => (
                   <tr 
-                    key={`${order.ID}-${order.Year}`}
+                    key={order._ID || order.ID || i} 
                     style={{ 
                       borderBottom: '1px solid var(--border)',
-                      background: idx % 2 === 0 ? '#fff' : '#fafafa',
-                      cursor: 'pointer',
-                      transition: 'background 0.2s'
+                      background: i % 2 === 0 ? '#fff' : '#fafafa',
+                      cursor: 'pointer'
                     }}
-                    onMouseEnter={(e) => e.currentTarget.style.background = '#f0f7ff'}
-                    onMouseLeave={(e) => e.currentTarget.style.background = idx % 2 === 0 ? '#fff' : '#fafafa'}
-                    onClick={() => navigate(`/orders/${order.ID}/${order.Year || allFilters.Year}`)}
+                    onClick={() => navigate(`/orders/${order.ID}/${order.Year || allFilters.year}`)}
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        navigate(`/orders/${order.ID}/${order.Year || allFilters.year}`);
+                      }
+                    }}
                   >
                     <td style={{ padding: '10px 12px', fontWeight: 600 }}>{order.ID}</td>
-                    <td style={{ padding: '10px 12px' }}>{order.Year}</td>
-                    <td style={{ padding: '10px 12px' }}>{order.Customer}</td>
-                    <td style={{ padding: '10px 12px', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {order.Demand}
-                    </td>
-                    <td style={{ padding: '10px 12px', textAlign: 'center', fontSize: 12 }}>
-                      {order.date_come ? new Date(order.date_come).toLocaleDateString('ar-SA') : '-'}
-                    </td>
-                    <td style={{ padding: '10px 12px', textAlign: 'center', fontSize: 12 }}>
-                      {order.Apoent_Delv_date ? new Date(order.Apoent_Delv_date).toLocaleDateString('ar-SA') : '-'}
-                    </td>
-                    <td style={{ padding: '10px 12px', textAlign: 'center' }}>{order.Demand}</td>
-                    <td style={{ padding: '10px 12px', textAlign: 'center', fontWeight: 600 }}>
-                      {order.Price ? `${order.Price.toLocaleString()} ل.س` : '-'}
-                    </td>
-                    <td style={{ padding: '10px 12px', textAlign: 'center' }}>
-                      <span style={{
-                        display: 'inline-block',
-                        padding: '4px 8px',
-                        borderRadius: 6,
+                    <td style={{ padding: '10px 12px' }}>{order.Customer || '—'}</td>
+                    <td style={{ padding: '10px 12px' }}>{order.Pattern} {order.Pattern2 ? `(${order.Pattern2})` : ''}</td>
+                    <td style={{ padding: '10px 12px', textAlign: 'center' }}>{order.Demand || '—'}</td>
+                    <td style={{ padding: '10px 12px', textAlign: 'center' }}>{order.Price ? `${order.Price} ر.س` : '—'}</td>
+                    <td style={{ padding: '10px 12px' }}>{order.date_come || '—'}</td>
+                    <td style={{ padding: '10px 12px' }}>{order.Apoent_Delv_date || '—'}</td>
+                    <td style={{ padding: '10px 12px' }}>
+                      <span style={{ 
+                        padding: '3px 8px', 
+                        borderRadius: 12, 
                         fontSize: 11,
-                        fontWeight: 600,
-                        background: order.Printed ? '#d4edda' : order.Billed ? '#fff3cd' : '#f8d7da',
-                        color: order.Printed ? '#155724' : order.Billed ? '#856404' : '#721c24'
+                        background: order.Printed ? '#e8f5e9' : order.Billed ? '#fff3e0' : '#f5f5f5',
+                        color: order.Printed ? '#2e7d32' : order.Billed ? '#ef6c00' : '#666'
                       }}>
                         {order.Printed ? '🖨️' : order.Billed ? '🧾' : '⏳'} 
                         {order.Printed ? 'مطبوع' : order.Billed ? 'مفوتر' : 'قيد المعالجة'}
@@ -681,7 +1022,7 @@ export default function AdvancedSearchPage() {
                         aria-label={`عرض تفاصيل الطلب ${order.ID}`}
                         onClick={(e) => {
                           e.stopPropagation();
-                          navigate(`/orders/${order.ID}/${order.Year || allFilters.Year}`);
+                          navigate(`/orders/${order.ID}/${order.Year || allFilters.year}`);
                         }}
                       >👁️</button>
                     </td>
@@ -692,16 +1033,16 @@ export default function AdvancedSearchPage() {
           </div>
           
           {/* 📄 Pagination */}
-          {(searchResults.totalPages || searchResults.last_page) > 1 && (
+          {searchResults.totalPages > 1 && (
             <nav style={{ 
               display: 'flex', 
               justifyContent: 'center', 
               gap: 4, 
               marginTop: 16 
             }} aria-label="ترقيم الصفحات">
-              {Array.from({ length: searchResults.totalPages || searchResults.last_page }, (_, i) => i + 1).slice(
+              {Array.from({ length: searchResults.totalPages }, (_, i) => i + 1).slice(
                 Math.max(0, searchResults.page - 3), 
-                Math.min(searchResults.totalPages || searchResults.last_page, searchResults.page + 2)
+                Math.min(searchResults.totalPages, searchResults.page + 2)
               ).map(page => (
                 <button
                   key={page}
@@ -714,7 +1055,6 @@ export default function AdvancedSearchPage() {
                     width: 32, 
                     height: 32, 
                     borderRadius: 6, 
-                    border: 'none',
                     background: page === searchResults.page ? 'var(--steel)' : '#fff',
                     color: page === searchResults.page ? '#fff' : 'var(--ink)',
                     cursor: 'pointer', 
@@ -883,7 +1223,7 @@ export default function AdvancedSearchPage() {
         </div>
       )}
       
-      {/* 🎨 Styles */}
+      {/* 🎨 Styles مساعدة للشاشات */}
       <style>{`
         .sr-only {
           position: absolute;
