@@ -89,7 +89,7 @@ function AccordionCard({
 }
 
 // ── Inline editable table ──────────────────────────────────────────────────────
-function InlineTable({
+const InlineTable = React.memo(function InlineTable({
   cols,
   rows,
   onRowsChange,
@@ -118,7 +118,7 @@ function InlineTable({
     [cols]
   );
 
-  const cleanNumber = (value: string) => {
+  const cleanNumber = React.useCallback((value: string) => {
       if (value === '') return '';
   
       let v = value.replace(/[^0-9.\-]/g, '');
@@ -141,7 +141,7 @@ function InlineTable({
       if (v === '-' || v === '.' || v === '-.' || v === '') return '';
   
       return v;
-  };
+  }, []);
 
   const pushDraftRows = React.useCallback(
     (nextRows: Record<string, string>[]) => {
@@ -151,28 +151,26 @@ function InlineTable({
     [onRowsChange, syncDraftRows]
   );
 
-  const addRow = () => {
+  const addRow = React.useCallback(() => {
     const empty = Object.fromEntries(cols.map((c) => [c.key, '']));
     setLocalRows((prev) => {
       const nextRows = [...prev, { ...empty, ID: '', _isNew: 'true' }];
       pushDraftRows(nextRows);
       return nextRows;
     });
-  };
+  }, [cols, pushDraftRows]);
 
-  const setCell = (i: number, key: string, value: string) => {
-    const finalValue = isNumericCol(key) ? cleanNumber(value) : value;
-
+  const setCell = React.useCallback((i: number, key: string, value: string) => {
     setLocalRows((prev) => {
       const nextRows = prev.map((r, idx) =>
-        idx === i ? { ...r, [key]: finalValue } : r
+        idx === i ? { ...r, [key]: value } : r
       );
-      pushDraftRows(nextRows);
+      // ✅ فقط نُحدث الحالة المحلية دون إعادة رسم المكون
       return nextRows;
     });
-  };
+  }, []);
 
-  const saveRow = async (i: number) => {
+  const saveRow = React.useCallback(async (i: number) => {
     const row = localRows[i];
     if (!row) return;
 
@@ -194,9 +192,9 @@ function InlineTable({
     } finally {
       setSaving((s) => ({ ...s, [i]: false }));
     }
-  };
+  }, [cols, localRows, onRowsChange]);
 
-  const delRow = async (i: number) => {
+  const delRow = React.useCallback(async (i: number) => {
     const row = localRows[i];
     if (!row) return;
 
@@ -211,7 +209,7 @@ function InlineTable({
       const remaining = rowsRef.current.filter((r) => r.ID !== row.ID);
       await onRowsChange(remaining);
     }
-  };
+  }, [localRows, pushDraftRows, onRowsChange]);
 
   return (
     <div style={{ overflowX: 'auto', marginTop: 8 }}>
@@ -272,7 +270,7 @@ function InlineTable({
                   : (row[c.key] ?? '');
 
                 return (
-                  <td key={c.key} style={{ padding: '3px 5px' }}>
+                  <td key={`${c.key}-${i}`} style={{ padding: '3px 5px' }}>
                     <input
                       value={value}
                       type={c.type === 'date' ? 'date' : 'text'}
@@ -376,7 +374,8 @@ function InlineTable({
       </table>
     </div>
   );
-}
+});
+
 // ── Voucher Modal ──────────────────────────────────────────────────────────────
 function VoucherModal({ open, onClose, orderId, orderYear }: {
   open: boolean; onClose: () => void; orderId: string; orderYear: string;
