@@ -478,6 +478,15 @@ const MFG_MAP: Record<string, string> = {
   'طُبعت؟':     'Printed',
 };
 
+// ✅ ربط صحيح بين Labels و Fields
+const CUST_MAP: Record<string, string> = {
+  'مع طبخة':     'cust_with_baking',
+  'مع تطوية':    'cust_with_folding',
+  'تدعيم زكزاك': 'cust_tad3em_zkzk',
+  'حراري':       'cust_harary',
+  'بلص':         'cust_bp',
+};
+
 // ── Helper: تحويل أي قيمة boolean لـ 1 أو 0 ──────────────────────────────────
 const toBit = (val: any): number =>
   val === true || val === 1 || val === '1' || String(val).toLowerCase() === 'true' ? 1 : 0;
@@ -492,8 +501,6 @@ const BOOL_FIELDS = [
   'Tad3em','Tay','harary','rolling','Printed','Billed','Reseved'
 ];
 
-const CUST_LABELS = ['مع طبخة','مع تطوية','تدعيم زكزاك','حراري','بلص'];
-const CUST_FIELDS = ['cust_with_baking','cust_with_folding','cust_tad3em_zkzk','cust_harary','cust_bp','cust_tlm3_bq3y'];
 
 // ══════════════════════════════════════════════════════
 //  🎯 MAIN COMPONENT - OrderFormPage
@@ -684,19 +691,23 @@ export default function OrderFormPage() {
   const { register, handleSubmit, reset, watch, setValue, getValues } = useForm<Order>();
 
   // ✅ تحميل البيانات عند التعديل — مع قراءة صحيحة للـ boolean ومزامنة mfgChecks
-  useEffect(() => {
+ useEffect(() => {
     if (isEdit && existing && !duplicatedData) {
       reset(existing);
 
-      // ── ✅ ربط checkboxes التصنيع بقيم الداتابيز ──
-      setMfgChecks({
-        'برنيش':      fromBit(existing.varnich),
-        'تلميع بقعي': fromBit(existing.uv_Spot),
-        'تلميع كامل': fromBit(existing.uv),
-        'سلفان لميع': fromBit(existing.seluvan_lum),
-        'سلفان مات':  fromBit(existing.seluvan_mat),
-        'طُبعت؟':     fromBit(existing.Printed),
+      // ✅ تحميل checkboxes التصنيع تلقائيا من MFG_MAP
+      const loadedMfg: Record<string, boolean> = {};
+      Object.entries(MFG_MAP).forEach(([label, field]) => {
+        loadedMfg[label] = fromBit((existing as any)[field]);
       });
+      setMfgChecks(loadedMfg);
+
+      // ✅ تحميل checkboxes الزبون تلقائيا من CUST_MAP
+      const loadedCust: Record<string, boolean> = {};
+      Object.entries(CUST_MAP).forEach(([label, field]) => {
+        (data as any)[field] = toBit(custChecks[label]);
+      });
+      setCustChecks(loadedCust);
 
       // ── ربط checks العامة ──
       setChecks({
@@ -716,14 +727,6 @@ export default function OrderFormPage() {
         varn:       fromBit(existing.varnich),
       });
 
-      // ── ربط custChecks ──
-      setCustChecks({
-        'مع طبخة':     fromBit(existing.cust_with_baking),
-        'مع تطوية':    fromBit(existing.cust_with_folding),
-        'تدعيم زكزاك': fromBit(existing.cust_tad3em_zkzk),
-        'حراري':       fromBit(existing.cust_harary),
-        'بلص':         fromBit(existing.cust_bp),
-      });
     }
   }, [isEdit, existing, duplicatedData]);
 
