@@ -695,15 +695,19 @@ useEffect(() => {
 // ✅ دالة نسخ بسيطة تعتمد على البيانات الأصلية من السيرفر:
 const handleDuplicate = () => {
     const sourceData = isEdit && existing ? { ...existing } : {};
-    
-    // 🚨 تشخيص: اعرض البيانات قبل النسخ
-    console.log('📦 مصدر النسخ (existing):', existing);
-    console.log('📦 البيانات بعد الاستبعاد:', sourceData);
-    
-    const excludeFields = ['ID', 'Ser', 'Year', 'AttachmentsOrders', 'marji3', 'date_come', 'Perioud', 'ID1'];
+  
+    // الحقول المستبعدة: التسلسل، رقم الأمر، السنة، والتواريخ
+    const excludeFields = [
+      'ID', 'ID1', 'Ser',           // التسلسل ورقم الأمر
+      'Year',                        // سنة العمل
+      'date_come', 'Perioud',        // التواريخ
+      'marji3',
+      'AttachmentsOrders',
+    ];
+  
     const dataToCopy = { ...sourceData };
     excludeFields.forEach(field => delete dataToCopy[field]);
-    
+  
     navigate('/orders/new', {
       state: {
         duplicatedData: {
@@ -713,6 +717,7 @@ const handleDuplicate = () => {
           checks: { ...checks },
           mfgChecks: { ...mfgChecks },
           custChecks: { ...custChecks },
+          // 🚫 لا ننقل الجداول: cartons, operations, vouchers
         }
       }
     });
