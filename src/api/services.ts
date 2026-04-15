@@ -39,7 +39,7 @@ export const advancedSearchApi = {
    * دالة البحث التي تقوم بتنظيف الفلاتر تلقائياً قبل الإرسال
    * تضمن عدم إرسال "all" أو القيم الفارغة التي تعطل عمل الـ Multi-filter
    */
-  search: (filters: Record<string, any>) => {
+search: (filters: Record<string, any>) => {
     const cleanFilters = Object.fromEntries(
       Object.entries(filters).filter(([_, v]) => 
         v !== undefined && 
@@ -49,7 +49,7 @@ export const advancedSearchApi = {
       )
     );
     
-    return client.post('/orders/search', cleanFilters).then(r => r.data);
+  return client.post('/orders/search', clean).then(r => r.data);
   },
   
   export: (filters: Record<string, any>, format: 'csv' | 'excel' | 'pdf' = 'csv') => {
