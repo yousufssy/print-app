@@ -478,7 +478,7 @@ const MFG_MAP: Record<string, string> = {
   'طُبعت؟':     'Printed',
 };
 
-// ✅ ربط صحيح بين Labels و Fields
+// ✅ ربط checkboxes الزبون بحقول الداتابيز
 const CUST_MAP: Record<string, string> = {
   'مع طبخة':     'cust_with_baking',
   'مع تطوية':    'cust_with_folding',
@@ -500,7 +500,6 @@ const BOOL_FIELDS = [
   'varnich','uv','uv_Spot','seluvan_lum','seluvan_mat',
   'Tad3em','Tay','harary','rolling','Printed','Billed','Reseved'
 ];
-
 
 // ══════════════════════════════════════════════════════
 //  🎯 MAIN COMPONENT - OrderFormPage
@@ -690,22 +689,24 @@ export default function OrderFormPage() {
 
   const { register, handleSubmit, reset, watch, setValue, getValues } = useForm<Order>();
 
-  // ✅ تحميل البيانات عند التعديل — مع قراءة صحيحة للـ boolean ومزامنة mfgChecks
- useEffect(() => {
+  // ✅ تحميل البيانات عند التعديل
+  useEffect(() => {
     if (isEdit && existing && !duplicatedData) {
       reset(existing);
 
-      // ✅ تحميل checkboxes التصنيع
+      // ✅ تحميل checkboxes التصنيع تلقائياً
       const loadedMfg: Record<string, boolean> = {};
       Object.entries(MFG_MAP).forEach(([label, field]) => {
-        loadedMfg[label] = fromBit(existing[field as keyof typeof existing]);
+        const value = (existing as Record<string, any>)[field];
+        loadedMfg[label] = fromBit(value);
       });
       setMfgChecks(loadedMfg);
 
-      // ✅ تحميل checkboxes الزبون
+      // ✅ تحميل checkboxes الزبون تلقائياً
       const loadedCust: Record<string, boolean> = {};
       Object.entries(CUST_MAP).forEach(([label, field]) => {
-        loadedCust[label] = fromBit(existing[field as keyof typeof existing]);
+        const value = (existing as Record<string, any>)[field];
+        loadedCust[label] = fromBit(value);
       });
       setCustChecks(loadedCust);
 
@@ -726,7 +727,6 @@ export default function OrderFormPage() {
         CTB:        fromBit(existing.DubelM),
         varn:       fromBit(existing.varnich),
       });
-
     }
   }, [isEdit, existing, duplicatedData, reset]);
   
@@ -754,7 +754,7 @@ export default function OrderFormPage() {
     setPendingOps([]);
     setPendingProblems([]);
     
-  }, [duplicatedData]);
+  }, [duplicatedData, reset]);
 
   const watchYear = watch('Year') || String(new Date().getFullYear());
   const watchId   = watch('ID') || '';
@@ -779,27 +779,29 @@ export default function OrderFormPage() {
     }
   }, [isEdit, orders, setValue, getValues, idInitialized]);
 
-  // ✅ الحفظ — مع إرسال 1/0 لجميع الحقول بما فيها mfgChecks
+  // ✅ الحفظ — مع إرسال 1/0 لجميع الحقول
   const onSubmit = async (data: Order) => {
-    // ── تحويل BOOL_FIELDS العامة ──
+    // ── 1. BOOL_FIELDS العامة ──
     BOOL_FIELDS.forEach(f => {
       (data as any)[f] = toBit(checks[f]);
     });
 
-    // ── ✅ حفظ checkboxes التصنيع بقيم 1/0 ──
+    // ── 2. ✅ checkboxes التصنيع (mfgChecks) ──
     Object.entries(MFG_MAP).forEach(([label, field]) => {
       (data as any)[field] = toBit(mfgChecks[label]);
     });
 
-    // ── حقول الزبون ──
-    CUST_FIELDS.forEach((field, i) => {
-      (data as any)[field] = toBit(custChecks[CUST_LABELS[i]]);
+    // ── 3. ✅ checkboxes الزبون (custChecks) ──
+    Object.entries(CUST_MAP).forEach(([label, field]) => {
+      (data as any)[field] = toBit(custChecks[label]);
     });
 
+    // ── 4. حقول إضافية ──
     (data as any).DubelM = toBit(checks.CTB);
     (data as any).tabkha = 0;
     (data as any).bals   = 0;
 
+    // ── 5. إنشاء طلب جديد ──
     if (!isEdit) {
       const maxRowId = orders.length > 0
         ? Math.max(...orders.map((o: any) => o.ID)) + 1
@@ -807,6 +809,7 @@ export default function OrderFormPage() {
       (data as any).ID = maxRowId;
     }
 
+    // ── 6. حفظ أو تعديل ──
     if (isEdit) {
       await updateOrder.mutateAsync(data);
     } else {
@@ -823,6 +826,7 @@ export default function OrderFormPage() {
           createOperation.mutateAsync({ ...f, ID: newId, Year: yr })),
       ]);
     }
+
     navigate('/orders');
   };
 
@@ -1304,7 +1308,6 @@ body{font-family:'Arial',sans-serif;background:#fff;direction:rtl;margin:0;paddi
         </AccordionCard>
 
         {/* ══ 4. مراقبة الجودة والمشاكل ══ */}
-                {/* ══ 4. مراقبة الجودة والمشاكل ══ */}
         <AccordionCard 
           title="🔍 مراقبة الجودة والمشاكل"
           isOpen={openSections.quality}
@@ -1463,26 +1466,24 @@ body{font-family:'Arial',sans-serif;background:#fff;direction:rtl;margin:0;paddi
           />
         </AccordionCard>
 
-
-        
-          {/* ══ 5. التسليم والفوترة ══ */}
-          <AccordionCard 
-            title="🚚 التسليم والفوترة"
-            isOpen={openSections.delivery}
-            onToggle={() => toggleSection('delivery')}
-          >
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 10 }}>
-              <G label="الكمية المسلمة"><input className="fc" type="number" defaultValue={0} {...register('Qunt_Ac')} style={{ textAlign: 'right' }} /></G>
-              <G label="التعبئة عند الزبون"><input className="fc" {...register('Cus_Paking')} style={{ textAlign: 'right' }} /></G>
-              <G label="طريقة تلزيق العلبة"><input className="fc" {...register('box_stk_typ')} style={{ textAlign: 'right' }} /></G>
-              <G label="الحالة">
-                <div style={{ display: 'flex', gap: 8, paddingTop: 4, flexWrap: 'wrap' }}>
-                  <CheckItem label="سُلِّمت" checked={!!checks.Reseved} onChange={chk('Reseved')} />
-                  <CheckItem label="فوترة"  checked={!!checks.Billed}  onChange={chk('Billed')} />
-                  <CheckItem label="مطبوعة" checked={!!checks.Printed} onChange={chk('Printed')} />
-                </div>
-              </G>
-            </div>
+        {/* ══ 5. التسليم والفوترة ══ */}
+        <AccordionCard 
+          title="🚚 التسليم والفوترة"
+          isOpen={openSections.delivery}
+          onToggle={() => toggleSection('delivery')}
+        >
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 10 }}>
+            <G label="الكمية المسلمة"><input className="fc" type="number" defaultValue={0} {...register('Qunt_Ac')} style={{ textAlign: 'right' }} /></G>
+            <G label="التعبئة عند الزبون"><input className="fc" {...register('Cus_Paking')} style={{ textAlign: 'right' }} /></G>
+            <G label="طريقة تلزيق العلبة"><input className="fc" {...register('box_stk_typ')} style={{ textAlign: 'right' }} /></G>
+            <G label="الحالة">
+              <div style={{ display: 'flex', gap: 8, paddingTop: 4, flexWrap: 'wrap' }}>
+                <CheckItem label="سُلِّمت" checked={!!checks.Reseved} onChange={chk('Reseved')} />
+                <CheckItem label="فوترة"  checked={!!checks.Billed}  onChange={chk('Billed')} />
+                <CheckItem label="مطبوعة" checked={!!checks.Printed} onChange={chk('Printed')} />
+              </div>
+            </G>
+          </div>
 
           <SectionDiv label="الإيصالات" />
           <div style={{ overflowX: 'auto' }}>
