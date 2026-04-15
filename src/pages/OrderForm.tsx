@@ -446,7 +446,7 @@ const MATERIALS_COLS = [
   { key: 'Width1',       label: 'العرض',        type: 'number' },
   { key: 'Gramage1',     label: 'غراماج',       type: 'number' },
   { key: 'Sheet_count1', label: 'عدد الأطباق',  type: 'number' },
-  { key: 'Price',        label: 'السعر',        type: 'number' },
+  { key: 'Price',        label: 'السعر',    },
   { key: 'Out_Date',     label: 'تاريخ الإخراج', type: 'date' },
   { key: 'Out_ord_num',  label: 'رقم أمر الإخراج' },
   { key: 'note_crt',     label: 'ملاحظات' },
