@@ -511,6 +511,28 @@ export default function OrderFormPage() {
   const [custChecks, setCustChecks] = useState<Record<string, boolean>>({});
   const [voucherOpen, setVoucherOpen] = useState(false);
 
+
+
+
+
+
+
+
+
+
+  useEffect(() => {
+        if (isEdit && existing) {
+          // تعبئة النموذج بالبيانات الأصلية
+          reset(existing);
+        }
+      }, [isEdit, existing, reset]);
+    
+
+
+
+
+
+  
   // أضف هذا الـ useEffect بعد تعريف المتغيرات
 useEffect(() => {
     if (isEdit && existing) {
