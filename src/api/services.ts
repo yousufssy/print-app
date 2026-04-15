@@ -1,11 +1,10 @@
-// 📁 api/services.ts
 import client from './client';
 import type {
   LoginPayload, LoginResponse, Order, OrdersResponse,
   Voucher, Customer, DashboardData, SystemUser,
 } from '../types/index';
 
-// ── Auth (المصادقة) ──────────────────────────────────────────────
+// ── Auth ──────────────────────────────────────────────
 export const authApi = {
   login:  (data: LoginPayload) =>
     client.post<LoginResponse>('/login', data).then(r => r.data),
@@ -13,13 +12,13 @@ export const authApi = {
   me:     () => client.get('/me').then(r => r.data),
 };
 
-// ── Dashboard (لوحة التحكم) ─────────────────────────────────────────
+// ── Dashboard ─────────────────────────────────────────
 export const dashboardApi = {
   get: (year: string) =>
     client.get<DashboardData>(`/dashboard?year=${year}`).then(r => r.data),
 };
 
-// ── Orders (الطلبات العادية) ────────────────────────────────────────────
+// ── Orders ────────────────────────────────────────────
 export const ordersApi = {
   list: (params: { year: string; q?: string; page?: number; status?: string }) =>
     client.get<OrdersResponse>('/orders', { params }).then(r => r.data),
@@ -33,34 +32,37 @@ export const ordersApi = {
     client.delete(`/orders/${id}/${year}`),
 };
 
-// ── Advanced Search (البحث المتقدم المطور) ──────────────────────────────────
+// ── Advanced Search ──────────────────────────────────
 export const advancedSearchApi = {
-  /**
-   * دالة البحث التي تقوم بتنظيف الفلاتر تلقائياً قبل الإرسال
-   * تضمن عدم إرسال "all" أو القيم الفارغة التي تعطل عمل الـ Multi-filter
-   */
-search: (filters: Record<string, any>) => {
+  search: (filters: Record<string, any>) => {
     const cleanFilters = Object.fromEntries(
       Object.entries(filters).filter(([_, v]) => 
         v !== undefined && 
         v !== '' && 
         v !== null && 
-        v !== 'all' // تجاهل قيم "الكل" لكي لا تؤثر على الفلترة
+        v !== 'all'
       )
     );
     
-  return client.post('/orders/search', clean).then(r => r.data);
+    return client.post('/orders/search', cleanFilters).then(r => r.data);
   },
   
   export: (filters: Record<string, any>, format: 'csv' | 'excel' | 'pdf' = 'csv') => {
     const cleanFilters = Object.fromEntries(
-      Object.entries(filters).filter(([_, v]) => v !== undefined && v !== '' && v !== null)
+      Object.entries(filters).filter(([_, v]) => 
+        v !== undefined && 
+        v !== '' && 
+        v !== null
+      )
     );
-    return client.post('/orders/search/export', { ...cleanFilters, format }, { responseType: 'blob' });
+    
+    return client.post('/orders/search/export', { ...cleanFilters, format }, { 
+      responseType: 'blob' 
+    }).then(r => r.data);
   },
 };
 
-// ── Vouchers (سندات القبض/الإيصالات) ──────────────────────────────────
+// ── Vouchers ──────────────────────────────────────────
 export const vouchersApi = {
   list: (order_id?: string, year?: string) =>
     client.get<Voucher[]>('/vouchers', { params: { order_id, year } }).then(r => r.data),
@@ -70,7 +72,7 @@ export const vouchersApi = {
     client.delete(`/vouchers/${id}`),
 };
 
-// ── Customers (العملاء) ─────────────────────────────────────────────
+// ── Customers ─────────────────────────────────────────
 export const customersApi = {
   list: (q?: string) =>
     client.get<Customer[]>('/customers', { params: { q } }).then(r => r.data),
@@ -78,7 +80,7 @@ export const customersApi = {
     client.post<Customer>('/customers', data).then(r => r.data),
 };
 
-// ── Users (المستخدمين - للمدراء فقط) ─────────────────────────────────────
+// ── Users ─────────────────────────────────────────────
 export const usersApi = {
   list: () =>
     client.get<SystemUser[]>('/users').then(r => r.data),
@@ -90,7 +92,7 @@ export const usersApi = {
     client.delete(`/users/${id}`),
 };
 
-// ── Operations (العمليات الفنية/Actions) ──────────────────────────────
+// ── Operations (Actions) ──────────────────────────────
 export const operationsApi = {
   list: (order_id: string, year: string) =>
     client.get(`/actions?order_id=${order_id}&year=${year}`).then(r => r.data),
@@ -99,18 +101,29 @@ export const operationsApi = {
   delete: (id: string) => client.delete(`/actions/${id}`),
 };
 
-// ── Materials & Cartons (الخامات والكرتون) ──────────────────────────────
+// ── Materials ─────────────────────────────────────────
 export const materialsApi = {
   list: (order_id: string, year: string) =>
     client.get(`/materials?order_id=${order_id}&year=${year}`).then(r => r.data),
+  create: (data: any) => client.post('/materials', data).then(r => r.data),
+  update: (id: string, data: any) => client.put(`/materials/${id}`, data).then(r => r.data),
+  delete: (id: string) => client.delete(`/materials/${id}`),
 };
 
+// ── Cartons ───────────────────────────────────────────
 export const cartonsApi = {
   list: (order_id: string, year: string) =>
     client.get(`/cartons?order_id=${order_id}&year=${year}`).then(r => r.data),
+  create: (data: any) => client.post('/cartons', data).then(r => r.data),
+  update: (id: string, data: any) => client.put(`/cartons/${id}`, data).then(r => r.data),
+  delete: (id: string) => client.delete(`/cartons/${id}`),
 };
 
+// ── Problems ──────────────────────────────────────────
 export const problemsApi = {
   list: (order_id: string, year: string) =>
     client.get(`/problems?order_id=${order_id}&year=${year}`).then(r => r.data),
+  create: (data: any) => client.post('/problems', data).then(r => r.data),
+  update: (id: string, data: any) => client.put(`/problems/${id}`, data).then(r => r.data),
+  delete: (id: string) => client.delete(`/problems/${id}`),
 };
