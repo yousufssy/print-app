@@ -737,16 +737,9 @@ export default function OrderFormPage() {
     });
 
   // ✅ watch محسّن باستخدام state
-  const [watchYear, setWatchYear] = useState(String(new Date().getFullYear()));
-  const [watchId, setWatchId] = useState('');
-
-  useEffect(() => {
-    const subscription = watch((value, { name }) => {
-      if (name === 'Year') setWatchYear(value.Year || String(new Date().getFullYear()));
-      if (name === 'ID') setWatchId(value.ID || '');
-    });
-    return () => subscription.unsubscribe();
-  }, [watch]);
+// ✅ قراءة القيم مباشرة بدون watch مستمر
+  const watchYear = getValues('Year') || String(new Date().getFullYear());
+  const watchId = getValues('ID') || '';
 
   const { data: ordersResponse } = useOrders({ year: watchYear });
   const orders = ordersResponse?.data || [];
@@ -755,23 +748,24 @@ export default function OrderFormPage() {
   const deleteVoucher = useDeleteVoucher();
 
   // ✅ تهيئة شاملة - مرة واحدة فقط
+  // ✅ 1️⃣ تحميل بيانات التعديل - مرة واحدة
   useEffect(() => {
-    // 1️⃣ تحميل بيانات التعديل
-    if (isEdit && existing && !hasLoadedEdit && !duplicatedData) {
+      if (!isEdit || !existing || hasLoadedEdit || duplicatedData) return;
+      
       reset(existing);
-
+    
       const loadedMfg: Record<string, boolean> = {};
       Object.entries(MFG_MAP).forEach(([label, field]) => {
         loadedMfg[label] = fromBit((existing as any)[field]);
       });
       setMfgChecks(loadedMfg);
-
+    
       const loadedCust: Record<string, boolean> = {};
       Object.entries(CUST_MAP).forEach(([label, field]) => {
         loadedCust[label] = fromBit((existing as any)[field]);
       });
       setCustChecks(loadedCust);
-
+    
       setChecks({
         varnich: fromBit(existing.varnich),
         uv: fromBit(existing.uv),
@@ -788,13 +782,14 @@ export default function OrderFormPage() {
         CTB: fromBit(existing.DubelM),
         varn: fromBit(existing.varnich),
       });
-
+    
       setHasLoadedEdit(true);
-      return;
-    }
-
-    // 2️⃣ تحميل بيانات النسخ
-    if (duplicatedData && !hasLoadedDuplicate) {
+    }, [isEdit, existing, hasLoadedEdit, duplicatedData]);
+    
+    // ✅ 2️⃣ تحميل بيانات النسخ - مرة واحدة
+    useEffect(() => {
+      if (!duplicatedData || hasLoadedDuplicate) return;
+      
       const {
         checks: copiedChecks,
         mfgChecks: copiedMfg,
@@ -802,7 +797,7 @@ export default function OrderFormPage() {
         idInitialized: copiedIdInitialized,
         ...orderData
       } = duplicatedData;
-
+    
       reset(orderData);
       setChecks(copiedChecks ?? {});
       setMfgChecks(copiedMfg ?? {});
@@ -813,34 +808,22 @@ export default function OrderFormPage() {
       setPendingOps([]);
       setPendingProblems([]);
       setHasLoadedDuplicate(true);
-      return;
-    }
-
-    // 3️⃣ تهيئة طلب جديد
-    if (!isEdit && orders.length > 0 && !idInitialized && !duplicatedData) {
+    }, [duplicatedData, hasLoadedDuplicate]);
+    
+    // ✅ 3️⃣ تهيئة طلب جديد - مرة واحدة
+    useEffect(() => {
+      if (isEdit || orders.length === 0 || idInitialized || duplicatedData) return;
+    
       const latestOrder = orders[orders.length - 1];
       const lastSer = parseInt(latestOrder?.Ser || '0') || 0;
       const newId = String((Number(latestOrder?.ID) || 0) + 1);
-
-      setValue('Ser', String(lastSer + 1), { shouldDirty: false, shouldTouch: false });
-      setValue('ID', newId, { shouldDirty: false, shouldTouch: false });
-      setValue('Year', watchYear, { shouldDirty: false, shouldTouch: false });
-
-      setWatchId(newId);
+    
+      setValue('Ser', String(lastSer + 1));
+      setValue('ID', newId);
+      setValue('Year', String(new Date().getFullYear()));
+    
       setIdInitialized(true);
-    }
-  }, [
-    isEdit,
-    existing,
-    hasLoadedEdit,
-    duplicatedData,
-    hasLoadedDuplicate,
-    orders.length,
-    idInitialized,
-    watchYear,
-    reset,
-    setValue
-  ]);
+    }, [isEdit, orders, idInitialized, duplicatedData]);
 
   // ✅ الحفظ - مع معالجة أخطاء شاملة
   const onSubmit = async (data: Order) => {
