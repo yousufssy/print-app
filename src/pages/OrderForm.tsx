@@ -826,22 +826,16 @@ useEffect(() => {
 }, [isEdit, existing, hasLoadedEdit, duplicatedData, reset]);
 
 // ✅ 2️⃣ تحميل بيانات النسخ - مرة واحدة
-// ════════════════════════════════════════════════════════════
-// 🔧 الإصلاح: الآن يحسب ID و Ser من أعلى قيمة موجودة + 1
-//    بدلاً من نسخ القيم القديمة أو تركها فارغة
-// ════════════════════════════════════════════════════════════
 useEffect(() => {
   console.log('🔄 تحقق من تحميل بيانات النسخ', { 
     duplicatedData: !!duplicatedData, 
     hasLoadedDuplicate 
   });
-
+  
   if (!duplicatedData || hasLoadedDuplicate) return;
-  // انتظر حتى يتم تحميل بيانات الطلبات من الـ API
-  if (!ordersResponse) return;
 
   console.log('🔄 جاري تحميل بيانات النسخ:', duplicatedData);
-
+  
   const {
     checks: copiedChecks,
     mfgChecks: copiedMfg,
@@ -850,41 +844,20 @@ useEffect(() => {
     ...orderData
   } = duplicatedData;
 
-  // ✅ حساب أعلى قيمة لـ ID في العمود وإضافة 1
-  const lastId = orders.length > 0
-    ? Math.max(...orders.map((o: any) => parseInt(String(o.ID)) || 0))
-    : 0;
-
-  // ✅ حساب أعلى قيمة لـ Ser في العمود وإضافة 1
-  const lastSer = orders.length > 0
-    ? Math.max(...orders.map((o: any) => parseInt(String(o.Ser)) || 0))
-    : 0;
-
-  const newId  = String(lastId  + 1);
-  const newSer = String(lastSer + 1);
-
-  console.log('🔄 القيم الجديدة المحسوبة — ID:', newId, '| Ser:', newSer);
-
-  reset({
-    ...orderData,
-    ID: newId,
-    Ser: newSer,
-    Year: String(new Date().getFullYear()),
-  });
-  formDataRef.current = { ...orderData, ID: newId, Ser: newSer };
-
+  reset(orderData);
+  formDataRef.current = { ...orderData };
   setChecks(copiedChecks ?? {});
   setMfgChecks(copiedMfg ?? {});
   setCustChecks(copiedCust ?? {});
-  setIdInitialized(true);
+  setIdInitialized(copiedIdInitialized ?? false);
   setMaterialsRows([]);
   setPendingMaterials([]);
   setPendingOps([]);
   setPendingProblems([]);
   setHasLoadedDuplicate(true);
-
-  console.log('✅ تم تحميل بيانات النسخ بنجاح — ID:', newId, '| Ser:', newSer);
-}, [duplicatedData, hasLoadedDuplicate, orders, ordersResponse, reset]);
+  
+  console.log('✅ تم تحميل بيانات النسخ بنجاح');
+}, [duplicatedData, hasLoadedDuplicate, reset]);
 
 // ✅ 3️⃣ تهيئة طلب جديد - مرة واحدة فقط
 const idInitializedRef = useRef(false);
@@ -928,7 +901,6 @@ useEffect(() => {
   console.log('✅ تم تهيئة طلب جديد بنجاح');
 // eslint-disable-next-line react-hooks/exhaustive-deps
 }, [orders]);
-
 // ✅ الحفظ - مع معالجة أخطاء شاملة
 const onSubmit = useCallback(async (data: Order) => {
 try {
