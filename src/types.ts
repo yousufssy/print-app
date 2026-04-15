@@ -78,6 +78,7 @@ export interface Order {
   harary?: 'True' | 'False';
   rolling?: 'True' | 'False';
   Printed?: 'True' | 'False';
+  tabkha?: 'True' | 'False';
   Billed?: 'True' | 'False';
   Reseved?: 'True' | 'False';
   cust_with_baking?: 'True' | 'False';
