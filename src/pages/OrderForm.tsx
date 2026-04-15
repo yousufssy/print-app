@@ -24,7 +24,7 @@ function AccordionCard({
   const [internalOpen, setInternalOpen] = useState(defaultOpen);
   const isControlled = isOpen !== undefined;
   const open = isControlled ? isOpen : internalOpen;
-  
+  const [idInitialized, setIdInitialized] = useState(false);
   const toggle = () => {
     if (isControlled) onToggle?.();
     else setInternalOpen(!open);
@@ -723,35 +723,36 @@ useEffect(() => {
   // ✅ الكود الجديد (انسخ هذا):
 // ✅ انسخ هذا الكود وضعه مرة واحدة فقط في ملفك:
 // ✅ دالة نسخ بسيطة تعتمد على البيانات الأصلية من السيرفر:
-const handleDuplicate = () => {
-    const sourceData = isEdit && existing ? { ...existing } : {};
-  
-    // الحقول المستبعدة: التسلسل، رقم الأمر، السنة، والتواريخ
-    const excludeFields = [
-      'ID', 'ID1', 'Ser',           // التسلسل ورقم الأمر
-      'Year',                        // سنة العمل
-      'date_come', 'Perioud',        // التواريخ
-      'marji3',
-      'AttachmentsOrders',
-    ];
-  
-    const dataToCopy = { ...sourceData };
-    excludeFields.forEach(field => delete dataToCopy[field]);
-  
-    navigate('/orders/new', {
-      state: {
-        duplicatedData: {
-          ...dataToCopy,
-          Ser: '',
-          Year: String(new Date().getFullYear()),
-          checks: { ...checks },
-          mfgChecks: { ...mfgChecks },
-          custChecks: { ...custChecks },
-          // 🚫 لا ننقل الجداول: cartons, operations, vouchers
+  const handleDuplicate = () => {
+      const sourceData = isEdit && existing ? { ...existing } : {};
+      
+      // الحقول المستبعدة: التسلسل، رقم الأمر، السنة، والتواريخ
+      const excludeFields = [
+        'ID', 'ID1', 'Ser',           // التسلسل ورقم الأمر
+        'Year',                        // سنة العمل
+        'date_come', 'Perioud',        // التواريخ
+        'marji3',
+        'AttachmentsOrders',
+      ];
+      
+      const dataToCopy = { ...sourceData };
+      excludeFields.forEach(field => delete dataToCopy[field]);
+      
+      navigate('/orders/new', {
+        state: {
+          duplicatedData: {
+            ...dataToCopy,
+            Ser: '',
+            Year: String(new Date().getFullYear()),
+            checks: { ...checks },
+            mfgChecks: { ...mfgChecks },
+            custChecks: { ...custChecks },
+            idInitialized: false, // إضافة هذه السطر
+            // 🚫 لا ننقل الجداول: cartons, operations, vouchers
+          }
         }
-      }
-    });
-  };
+      });
+    };
   
   const watchYear = watch('Year') || String(new Date().getFullYear());
   const watchId   = watch('ID') || '';
@@ -764,44 +765,50 @@ const handleDuplicate = () => {
 
   // ✅ تحميل البيانات عند التعديل — مع قراءة صحيحة للـ boolean
 // ✅ useEffect واحد فقط لاستقبال البيانات المنسوخة:
-useEffect(() => {
-      if (!duplicatedData) return;
-    
-      const { 
-        checks: copiedChecks, 
-        mfgChecks: copiedMfg, 
-        custChecks: copiedCust, 
-        ...orderData 
-      } = duplicatedData;
-      
-      reset(orderData);
-    
-      setChecks(copiedChecks ?? {});
-      setMfgChecks(copiedMfg ?? {});
-      setCustChecks(copiedCust ?? {});
-      
-      setMaterialsRows([]);
-      setPendingMaterials([]);
-      setPendingOps([]);
-      setPendingProblems([]);
-    
-    }, [duplicatedData]);
+    useEffect(() => {
+        if (!duplicatedData) return;
+        
+        const { 
+          checks: copiedChecks, 
+          mfgChecks: copiedMfg, 
+          custChecks: copiedCust,
+          idInitialized: copiedIdInitialized, // إضافة هذه السطر
+          ...orderData 
+        } = duplicatedData;
+        
+        reset(orderData);
+        
+        setChecks(copiedChecks ?? {});
+        setMfgChecks(copiedMfg ?? {});
+        setCustChecks(copiedCust ?? {});
+        
+        // تعيين حالة idInitialized من البيانات المنسوخة
+        setIdInitialized(copiedIdInitialized ?? false);
+        
+        setMaterialsRows([]);
+        setPendingMaterials([]);
+        setPendingOps([]);
+        setPendingProblems([]);
+        
+      }, [duplicatedData]);
 
   
 
     useEffect(() => {
-        if (!isEdit && orders.length >= 0) {
-          const latestOrder = orders.sort((a: any, b: any) => b.ID - a.ID)[0];
-          const lastSer = latestOrder ? parseInt(latestOrder.Ser || '0') || 0 : 0;
-          setValue('Ser', String(lastSer + 1));
-          
-          // تعيين ID تلقائي إذا لم يكن موجوداً
-          if (!watch('ID')) {
-            const newId = latestOrder ? String(Number(latestOrder.ID) + 1) : "1";
-            setValue('ID', newId);
-          }
+      if (!isEdit && orders.length > 0 && !idInitialized) {
+        // تجنب إعادة الترتيب في كل مرة (تحسين الأداء)
+        const latestOrder = orders[orders.length - 1];
+        const lastSer = latestOrder ? parseInt(latestOrder.Ser || '0') || 0 : 0;
+        setValue('Ser', String(lastSer + 1));
+        
+        // تعيين ID تلقائي فقط إذا لم يتم تعيينه مسبقاً
+        if (!watch('ID')) {
+          const newId = String(Number(latestOrder.ID) + 1);
+          setValue('ID', newId);
+          setIdInitialized(true);
         }
-      }, [isEdit, orders, setValue, watch]);
+      }
+    }, [isEdit, orders, setValue, idInitialized]);
 
   // ✅ الحفظ — مع إرسال 1/0 بدل True/False
   const onSubmit = async (data: Order) => {
