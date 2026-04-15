@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { useOrder, useCreateOrder, useUpdateOrder, useCustomers, useVouchers, useCreateVoucher, useDeleteVoucher, useOrders, useOperations, useCreateOperation, useUpdateOperation, useDeleteOperation, useCartons, useCreateCarton, useUpdateCarton, useDeleteCarton, useProblems, useCreateProblem, useUpdateProblem, useDeleteProblem } from '../hooks/useApi';
@@ -478,7 +478,7 @@ const MFG_MAP: Record<string, string> = {
   'طُبعت؟':     'Printed',
 };
 
-// ✅ ربط checkboxes الزبون بحقول الداتابيز (نفس طريقة MFG_MAP تماماً)
+// ✅ ربط checkboxes الزبون بحقول الداتابيز
 const CUST_MAP: Record<string, string> = {
   'مع طبخة':     'tabkha',
   'مع تطوية':    'Tay',
@@ -487,11 +487,11 @@ const CUST_MAP: Record<string, string> = {
   'بلص':         'bals',
 };
 
-// ── Helper: تحويل أي قيمة boolean لـ 1 أو 0 (نفس CHK_MFG) ──────────────────
+// ── Helper: تحويل أي قيمة boolean لـ 1 أو 0 ──────────────────────────────────
 const toBit = (val: any): number =>
   val === true || val === 1 || val === '1' || String(val).toLowerCase() === 'true' ? 1 : 0;
 
-// ── Helper: قراءة boolean من الداتابيز بأي صيغة (نفس CHK_MFG) ──────────────
+// ── Helper: قراءة boolean من الداتابيز بأي صيغة ──────────────────────────────
 const fromBit = (val: any): boolean =>
   val === true || val === 1 || val === '1' || String(val).toLowerCase() === 'true';
 
@@ -521,7 +521,13 @@ export default function OrderFormPage() {
   const [custChecks, setCustChecks] = useState<Record<string, boolean>>({});
   const [voucherOpen, setVoucherOpen] = useState(false);
   
+  // ✅ Flags لمنع re-execution
   const [idInitialized, setIdInitialized] = useState(false);
+  const [hasLoadedEdit, setHasLoadedEdit] = useState(false);
+  const [hasLoadedDuplicate, setHasLoadedDuplicate] = useState(false);
+  
+  // ✅ useRef لمنع infinite loop
+  const isFirstRender = useRef(true);
 
   // ── helper مشترك لمزامنة أي InlineTable مع الداتابيز ────────────────────────
   const syncRows = async (
@@ -534,16 +540,29 @@ export default function OrderFormPage() {
     const oldIds = new Set(oldRows.map(r => r.ID).filter(v => !!v));
     const newIds = new Set(newRows.map(r => r.ID).filter(v => !!v));
 
-    for (const old of oldRows)
-      if (old.ID && !newIds.has(old.ID))
-        await onDelete(Number(old.ID));
+    try {
+      for (const old of oldRows) {
+        if (old.ID && !newIds.has(old.ID)) {
+          await onDelete(Number(old.ID)).catch(err => {
+            console.error('❌ Delete error:', err);
+          });
+        }
+      }
 
-    for (const row of newRows) {
-      const { ID, _isNew, ...fields } = row;
-      if (ID && oldIds.has(ID))
-        await onUpdate(Number(ID), fields);
-      else if (!ID)
-        await onCreate(fields);
+      for (const row of newRows) {
+        const { ID, _isNew, ...fields } = row;
+        if (ID && oldIds.has(ID)) {
+          await onUpdate(Number(ID), fields).catch(err => {
+            console.error('❌ Update error:', err);
+          });
+        } else if (!ID) {
+          await onCreate(fields).catch(err => {
+            console.error('❌ Create error:', err);
+          });
+        }
+      }
+    } catch (error) {
+      console.error('❌ syncRows error:', error);
     }
   };
 
@@ -584,15 +603,23 @@ export default function OrderFormPage() {
   const [pendingOps,       setPendingOps]       = useState<Record<string, string>[]>([]);
 
   const handleMaterialsChange = async (newRows: Record<string, string>[]) => {
-    if (!isEdit) { setPendingMaterials(newRows); return; }
-    const currentId = getValues('ID');
-    const currentYear = getValues('Year');
-    await syncRows(
-      materialsRows, newRows,
-      (f) => createCarton.mutateAsync({ ...f, ID: currentId, year: currentYear }),
-      (rowId, f) => updateCarton.mutateAsync({ rowId, data: f }),
-      (rowId) => deleteCarton.mutateAsync(rowId),
-    );
+    if (!isEdit) { 
+      setPendingMaterials(newRows); 
+      return; 
+    }
+    
+    try {
+      const currentId = getValues('ID');
+      const currentYear = getValues('Year');
+      await syncRows(
+        materialsRows, newRows,
+        (f) => createCarton.mutateAsync({ ...f, ID: currentId, year: currentYear }),
+        (rowId, f) => updateCarton.mutateAsync({ rowId, data: f }),
+        (rowId) => deleteCarton.mutateAsync(rowId),
+      );
+    } catch (error) {
+      console.error('❌ handleMaterialsChange error:', error);
+    }
   };
 
   // ── سجل المشاكل ───────────────────────────────────────────────────────────────
@@ -618,13 +645,21 @@ export default function OrderFormPage() {
   }));
 
   const handleProblemsChange = async (newRows: Record<string, string>[]) => {
-    if (!isEdit) { setPendingProblems(newRows); return; }
-    await syncRows(
-      problemsRows, newRows,
-      (f) => createProblem.mutateAsync({ ...f, ID: watchId, Year: watchYear }),
-      (rowId, f) => updateProblem.mutateAsync({ rowId, data: f }),
-      (rowId) => deleteProblem.mutateAsync(rowId),
-    );
+    if (!isEdit) { 
+      setPendingProblems(newRows); 
+      return; 
+    }
+    
+    try {
+      await syncRows(
+        problemsRows, newRows,
+        (f) => createProblem.mutateAsync({ ...f, ID: watchId, Year: watchYear }),
+        (rowId, f) => updateProblem.mutateAsync({ rowId, data: f }),
+        (rowId) => deleteProblem.mutateAsync(rowId),
+      );
+    } catch (error) {
+      console.error('❌ handleProblemsChange error:', error);
+    }
   };
 
   // ── العمليات ──────────────────────────────────────────────────────────────────
@@ -654,13 +689,21 @@ export default function OrderFormPage() {
   }));
 
   const handleOperationsChange = async (newRows: Record<string, string>[]) => {
-    if (!isEdit) { setPendingOps(newRows); return; }
-    await syncRows(
-      operationsRows, newRows,
-      (f) => createOperation.mutateAsync({ ...f, ID: watchId, Year: watchYear }),
-      (rowId, f) => updateOperation.mutateAsync({ rowId, data: f }),
-      (rowId) => deleteOperation.mutateAsync(rowId),
-    );
+    if (!isEdit) { 
+      setPendingOps(newRows); 
+      return; 
+    }
+    
+    try {
+      await syncRows(
+        operationsRows, newRows,
+        (f) => createOperation.mutateAsync({ ...f, ID: watchId, Year: watchYear }),
+        (rowId, f) => updateOperation.mutateAsync({ rowId, data: f }),
+        (rowId) => deleteOperation.mutateAsync(rowId),
+      );
+    } catch (error) {
+      console.error('❌ handleOperationsChange error:', error);
+    }
   };
 
   // ── حالة الأقسام ──────────────────────────────────────────────────────────────
@@ -689,12 +732,11 @@ export default function OrderFormPage() {
 
   const { register, handleSubmit, reset, watch, setValue, getValues } = useForm<Order>();
 
-  // ✅ تحميل البيانات عند التعديل (نفس طريقة MFG تماماً)
+  // ✅ تحميل البيانات عند التعديل - مع flag لمنع re-execution
   useEffect(() => {
-    if (isEdit && existing && !duplicatedData) {
+    if (isEdit && existing && !duplicatedData && !hasLoadedEdit) {
       reset(existing);
 
-      // ✅ تحميل checkboxes التصنيع تلقائياً
       const loadedMfg: Record<string, boolean> = {};
       Object.entries(MFG_MAP).forEach(([label, field]) => {
         const value = (existing as Record<string, any>)[field];
@@ -702,18 +744,13 @@ export default function OrderFormPage() {
       });
       setMfgChecks(loadedMfg);
 
-      // ✅ تحميل checkboxes الزبون تلقائياً (نفس الطريقة تماماً)
       const loadedCust: Record<string, boolean> = {};
       Object.entries(CUST_MAP).forEach(([label, field]) => {
         const value = (existing as Record<string, any>)[field];
         loadedCust[label] = fromBit(value);
-        
-        // 🔍 Debug
-        console.log(`Loading ${label} (${field}):`, value, '→', fromBit(value));
       });
       setCustChecks(loadedCust);
 
-      // ── ربط checks العامة ──
       setChecks({
         varnich:    fromBit(existing.varnich),
         uv:         fromBit(existing.uv),
@@ -730,12 +767,14 @@ export default function OrderFormPage() {
         CTB:        fromBit(existing.DubelM),
         varn:       fromBit(existing.varnich),
       });
+      
+      setHasLoadedEdit(true);
     }
-  }, [isEdit, existing, duplicatedData, reset]);
+  }, [isEdit, existing, duplicatedData, hasLoadedEdit]); // ✅ أزلنا reset
   
-  // ✅ تحميل البيانات المنسوخة
+  // ✅ تحميل البيانات المنسوخة - مع flag
   useEffect(() => {
-    if (!duplicatedData) return;
+    if (!duplicatedData || hasLoadedDuplicate) return;
     
     const { 
       checks: copiedChecks, 
@@ -757,7 +796,8 @@ export default function OrderFormPage() {
     setPendingOps([]);
     setPendingProblems([]);
     
-  }, [duplicatedData, reset]);
+    setHasLoadedDuplicate(true);
+  }, [duplicatedData, hasLoadedDuplicate]); // ✅ أزلنا reset
 
   const watchYear = watch('Year') || String(new Date().getFullYear());
   const watchId   = watch('ID') || '';
@@ -768,77 +808,85 @@ export default function OrderFormPage() {
   const { data: vouchers = [] } = useVouchers(isEdit ? watchId : '', watchYear);
   const deleteVoucher = useDeleteVoucher();
 
+  // ✅ تهيئة ID و Ser - مع flag
   useEffect(() => {
     if (!isEdit && orders.length > 0 && !idInitialized) {
       const latestOrder = orders[orders.length - 1];
       const lastSer = latestOrder ? parseInt(latestOrder.Ser || '0') || 0 : 0;
-      setValue('Ser', String(lastSer + 1));
+      setValue('Ser', String(lastSer + 1), { shouldDirty: false });
       
-      if (!getValues('ID')) {
+      const currentId = getValues('ID');
+      if (!currentId) {
         const newId = String(Number(latestOrder.ID) + 1);
-        setValue('ID', newId);
+        setValue('ID', newId, { shouldDirty: false });
       }
       setIdInitialized(true);
     }
-  }, [isEdit, orders, setValue, getValues, idInitialized]);
+  }, [isEdit, orders, idInitialized]); // ✅ أزلنا setValue و getValues
 
-  // ✅ الحفظ — نفس طريقة MFG تماماً
+  // ✅ الحفظ - مع معالجة أخطاء شاملة
   const onSubmit = async (data: Order) => {
-    // ── 1. BOOL_FIELDS العامة ──
-    BOOL_FIELDS.forEach(f => {
-      (data as any)[f] = toBit(checks[f]);
-    });
+    try {
+      // ── 1. BOOL_FIELDS العامة ──
+      BOOL_FIELDS.forEach(f => {
+        (data as any)[f] = toBit(checks[f]);
+      });
 
-    // ── 2. ✅ checkboxes التصنيع (mfgChecks) ──
-    Object.entries(MFG_MAP).forEach(([label, field]) => {
-      (data as any)[field] = toBit(mfgChecks[label]);
-    });
+      // ── 2. ✅ checkboxes التصنيع ──
+      Object.entries(MFG_MAP).forEach(([label, field]) => {
+        (data as any)[field] = toBit(mfgChecks[label]);
+      });
 
-    // ── 3. ✅ checkboxes الزبون (custChecks) - نفس الطريقة تماماً ──
-    Object.entries(CUST_MAP).forEach(([label, field]) => {
-      (data as any)[field] = toBit(custChecks[label]);
-    });
+      // ── 3. ✅ checkboxes الزبون ──
+      Object.entries(CUST_MAP).forEach(([label, field]) => {
+        (data as any)[field] = toBit(custChecks[label]);
+      });
 
-    // ── 4. حقول إضافية ──
-    (data as any).DubelM = toBit(checks.CTB);
+      // ── 4. حقول إضافية ──
+      (data as any).DubelM = toBit(checks.CTB);
 
-    // 🔍 Debug: اطبع القيم قبل الحفظ
-    console.log('🔍 custChecks:', custChecks);
-    console.log('🔍 Data to save:', {
-      tabkha: (data as any).tabkha,
-      Tay: (data as any).Tay,
-      Tad3em: (data as any).Tad3em,
-      harary: (data as any).harary,
-      bals: (data as any).bals,
-    });
+      // ── 5. إنشاء طلب جديد ──
+      if (!isEdit) {
+        const maxRowId = orders.length > 0
+          ? Math.max(...orders.map((o: any) => o.ID)) + 1
+          : 1;
+        (data as any).ID = maxRowId;
+      }
 
-    // ── 5. إنشاء طلب جديد ──
-    if (!isEdit) {
-      const maxRowId = orders.length > 0
-        ? Math.max(...orders.map((o: any) => o.ID)) + 1
-        : 1;
-      (data as any).ID = maxRowId;
+      // ── 6. حفظ أو تعديل ──
+      if (isEdit) {
+        await updateOrder.mutateAsync(data);
+      } else {
+        const created = await createOrder.mutateAsync(data);
+        const newId   = String((created as any)?.ID ?? (data as any).ID);
+        const yr      = String((data as any).Year ?? watchYear);
+
+        await Promise.all([
+          ...pendingMaterials.map(({ ID, _isNew, ...f }) =>
+            createCarton.mutateAsync({ ...f, ID: newId, year: yr }).catch(err => {
+              console.error('❌ Create carton error:', err);
+              return null;
+            })),
+          ...pendingProblems.map(({ ID, _isNew, ...f }) =>
+            createProblem.mutateAsync({ ...f, ID: newId, Year: yr }).catch(err => {
+              console.error('❌ Create problem error:', err);
+              return null;
+            })),
+          ...pendingOps.map(({ ID, _isNew, ...f }) =>
+            createOperation.mutateAsync({ ...f, ID: newId, Year: yr }).catch(err => {
+              console.error('❌ Create operation error:', err);
+              return null;
+            })),
+        ]);
+      }
+
+      // ✅ تأخير صغير قبل التنقل
+      await new Promise(resolve => setTimeout(resolve, 100));
+      navigate('/orders');
+    } catch (error) {
+      console.error('❌ Submit error:', error);
+      alert('حدث خطأ أثناء الحفظ. الرجاء المحاولة مرة أخرى.');
     }
-
-    // ── 6. حفظ أو تعديل ──
-    if (isEdit) {
-      await updateOrder.mutateAsync(data);
-    } else {
-      const created = await createOrder.mutateAsync(data);
-      const newId   = String((created as any)?.ID ?? (data as any).ID);
-      const yr      = String((data as any).Year ?? watchYear);
-
-      await Promise.all([
-        ...pendingMaterials.map(({ ID, _isNew, ...f }) =>
-          createCarton.mutateAsync({ ...f, ID: newId, year: yr })),
-        ...pendingProblems.map(({ ID, _isNew, ...f }) =>
-          createProblem.mutateAsync({ ...f, ID: newId, Year: yr })),
-        ...pendingOps.map(({ ID, _isNew, ...f }) =>
-          createOperation.mutateAsync({ ...f, ID: newId, Year: yr })),
-      ]);
-    }
-
-    navigate('/orders');
   };
 
   const handleDuplicate = () => {
@@ -1183,9 +1231,9 @@ body{font-family:'Arial',sans-serif;background:#fff;direction:rtl;margin:0;paddi
           onToggle={() => toggleSection('basic')}
         >
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 12 }}>
-            <G label="تسلسل"><input className="fc" {...register('Ser')} readOnly={!isEdit} style={{ textAlign: 'right' }} /></G>
+            <G label="تسلسل"><input className="fc" {...register('Ser')} readOnly style={{ textAlign: 'right', background: '#f8f9fa' }} /></G>
             <G label="اسم الزبون" req><input className="fc" {...register('Customer', { required: true })} list="cust-list" placeholder="ابحث عن الزبون..." style={{ textAlign: 'right' }} /></G>
-            <G label="رقمنا"><input className="fc" {...register('ID')} readOnly={!isEdit} style={{ textAlign: 'right', backgroundColor: !isEdit ? '#f8f9fa' : 'white' }} /></G>
+            <G label="رقمنا"><input className="fc" {...register('ID')} readOnly style={{ textAlign: 'right', background: '#f8f9fa' }} /></G>
             <G label="المرجع" req><input className="fc" {...register('marji3', { required: true })} placeholder="65982" style={{ textAlign: 'right' }} /></G>
             <G label="التفصيلات المرتبطة"><input className="fc" {...register('AttachmentsOrders')} style={{ textAlign: 'right' }} /></G>
           </div>
@@ -1268,12 +1316,12 @@ body{font-family:'Arial',sans-serif;background:#fff;direction:rtl;margin:0;paddi
         >
           <SectionDiv label="الأبعاد" />
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(8,1fr)', gap: 12 }}>
-            <G label="الطري"><input className="fc" type="number" step="0.01" {...register('SoftU')} defaultValue={0} style={{ textAlign: 'right' }} /></G>
-            <G label="القاسي"><input className="fc" type="number" step="0.01" {...register('TafU')} defaultValue={0} style={{ textAlign: 'right' }} /></G>
-            <G label="الطول"><input className="fc" type="number" step="0.01" {...register('LongU')} defaultValue={0} style={{ textAlign: 'right' }} /></G>
-            <G label="العرض"><input className="fc" type="number" step="0.01" {...register('WedthU')} defaultValue={0} style={{ textAlign: 'right' }} /></G>
-            <G label="الارتفاع"><input className="fc" type="number" step="0.01" {...register('HightU')} defaultValue={0} style={{ textAlign: 'right' }} /></G>
-            <G label="لسان التدكيك"><input className="fc" type="number" step="0.01" {...register('Lesan')} defaultValue={0} style={{ textAlign: 'right' }} /></G>
+            <G label="الطري"><input className="fc" type="number" step="0.01" {...register('SoftU')} style={{ textAlign: 'right' }} /></G>
+            <G label="القاسي"><input className="fc" type="number" step="0.01" {...register('TafU')} style={{ textAlign: 'right' }} /></G>
+            <G label="الطول"><input className="fc" type="number" step="0.01" {...register('LongU')} style={{ textAlign: 'right' }} /></G>
+            <G label="العرض"><input className="fc" type="number" step="0.01" {...register('WedthU')} style={{ textAlign: 'right' }} /></G>
+            <G label="الارتفاع"><input className="fc" type="number" step="0.01" {...register('HightU')} style={{ textAlign: 'right' }} /></G>
+            <G label="لسان التدكيك"><input className="fc" type="number" step="0.01" {...register('Lesan')} style={{ textAlign: 'right' }} /></G>
             <G label="رقم المونتاج"><input className="fc" {...register('MontagNum')} style={{ textAlign: 'right' }} /></G>
             <G label="القالب">
               <select className="fc" {...register('Cut_num')} style={{ textAlign: 'right' }}>
@@ -1284,29 +1332,25 @@ body{font-family:'Arial',sans-serif;background:#fff;direction:rtl;margin:0;paddi
 
           <SectionDiv label="الطلبية والإنتاج" />
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(8,1fr)', gap: 12 }}>
-            <G label="الحجم النهائي - طري"><input className="fc" type="number" step="0.01" {...register('final_size_tall')} defaultValue={0} style={{ textAlign: 'right' }} /></G>
-            <G label="الحجم النهائي - طري2"><input className="fc" type="number" step="0.01" {...register('final_size_tall2')} defaultValue={0} style={{ textAlign: 'right' }} /></G>
-            <G label="الحجم النهائي - قاسي"><input className="fc" type="number" step="0.01" {...register('final_size_width')} defaultValue={0} style={{ textAlign: 'right' }} /></G>
-            <G label="الحجم النهائي - قاسي2"><input className="fc" type="number" step="0.01" {...register('final_size_width2')} defaultValue={0} style={{ textAlign: 'right' }} /></G>
-            <G label="الطبع على"><input className="fc" type="number" {...register('print_on')} defaultValue={0} style={{ textAlign: 'right' }} /></G>
-            <G label="الطبع على"><input className="fc" type="number" {...register('print_on2')} defaultValue={0} style={{ textAlign: 'right' }} /></G>
-            <G label="فصل الطبق"><input className="fc" type="number" {...register('sheet_unit_qunt')} defaultValue={0} style={{ textAlign: 'right' }} /></G>
-            <G label="2فصل الطبق"><input className="fc" type="number" {...register('sheet_unit_qunt2')} defaultValue={0} style={{ textAlign: 'right' }} /></G>
-            <G label="عدد الطبع"><input className="fc" type="number" {...register('Qunt_of_print_on')} defaultValue={0} style={{ textAlign: 'right' }} /></G>
-            <G label="عدد الطبع"><input className="fc" type="number" {...register('Qunt_of_print_on2')} defaultValue={0} style={{ textAlign: 'right' }} /></G>
-            <G label="عدد الألوان"><input className="fc" type="number" {...register('Clr_qunt')} defaultValue={0} style={{ textAlign: 'right' }} /></G>
-            <G label="منها نموذج طبي"><input className="fc" type="number" {...register('Med_Sample')} defaultValue={0} style={{ textAlign: 'right' }} /></G>
+            <G label="الحجم النهائي - طري"><input className="fc" type="number" step="0.01" {...register('final_size_tall')} style={{ textAlign: 'right' }} /></G>
+            <G label="الحجم النهائي - طري2"><input className="fc" type="number" step="0.01" {...register('final_size_tall2')} style={{ textAlign: 'right' }} /></G>
+            <G label="الحجم النهائي - قاسي"><input className="fc" type="number" step="0.01" {...register('final_size_width')} style={{ textAlign: 'right' }} /></G>
+            <G label="الحجم النهائي - قاسي2"><input className="fc" type="number" step="0.01" {...register('final_size_width2')} style={{ textAlign: 'right' }} /></G>
+            <G label="الطبع على"><input className="fc" type="number" {...register('print_on')} style={{ textAlign: 'right' }} /></G>
+            <G label="الطبع على"><input className="fc" type="number" {...register('print_on2')} style={{ textAlign: 'right' }} /></G>
+            <G label="فصل الطبق"><input className="fc" type="number" {...register('sheet_unit_qunt')} style={{ textAlign: 'right' }} /></G>
+            <G label="2فصل الطبق"><input className="fc" type="number" {...register('sheet_unit_qunt2')} style={{ textAlign: 'right' }} /></G>
+            <G label="عدد الطبع"><input className="fc" type="number" {...register('Qunt_of_print_on')} style={{ textAlign: 'right' }} /></G>
+            <G label="عدد الطبع"><input className="fc" type="number" {...register('Qunt_of_print_on2')} style={{ textAlign: 'right' }} /></G>
+            <G label="عدد الألوان"><input className="fc" type="number" {...register('Clr_qunt')} style={{ textAlign: 'right' }} /></G>
+            <G label="منها نموذج طبي"><input className="fc" type="number" {...register('Med_Sample')} style={{ textAlign: 'right' }} /></G>
             <G label="العدد المنتج">
-              <input className="fc" type="number" {...register('grnd_qunt')} defaultValue={0}
+              <input className="fc" type="number" {...register('grnd_qunt')}
                 style={{ background: '#f0f9f0', borderColor: '#27ae60', textAlign: 'right' }} />
             </G>
             <G label="المعلومات الفنية"><input className="fc" {...register('note_ord')} style={{ textAlign: 'right' }} /></G>
             <G label="برنيش"><CheckItem label="برنيش" checked={!!checks.varn} {...register('Varnish')} onChange={chk('varn')} /></G>
-            <G label="CTB"><CheckItem
-              label="CTB"
-              checked={!!checks.CTB}
-              onChange={chk('CTB')}
-            /></G>
+            <G label="CTB"><CheckItem label="CTB" checked={!!checks.CTB} onChange={chk('CTB')} /></G>
           </div>
 
           <SectionDiv label="العمليات" />
@@ -1345,7 +1389,6 @@ body{font-family:'Arial',sans-serif;background:#fff;direction:rtl;margin:0;paddi
                   <input className="fc" type="number" {...register('clr_Qnt_order')} style={{ fontSize: 12, textAlign: 'right' }} />
                 </div>
                 
-                {/* ✅ checkboxes التصنيع */}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 8 }}>
                   {CHK_MFG.map(label => (
                     <label 
@@ -1366,14 +1409,9 @@ body{font-family:'Arial',sans-serif;background:#fff;direction:rtl;margin:0;paddi
                         type="checkbox"
                         checked={!!mfgChecks[label]}
                         onChange={(e) => {
-                          const newVal = e.target.checked;
-                          setMfgChecks(prev => ({ ...prev, [label]: newVal }));
+                          setMfgChecks(prev => ({ ...prev, [label]: e.target.checked }));
                         }}
-                        style={{ 
-                          width: 16, 
-                          height: 16,
-                          cursor: 'pointer'
-                        }}
+                        style={{ width: 16, height: 16, cursor: 'pointer' }}
                       />
                       <span style={{ fontSize: 12, fontWeight: 500 }}>{label}</span>
                     </label>
@@ -1425,7 +1463,6 @@ body{font-family:'Arial',sans-serif;background:#fff;direction:rtl;margin:0;paddi
                   </div>
                 </div>
                 
-                {/* ✅ checkboxes الزبون - نفس طريقة MFG تماماً */}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 8 }}>
                   {CHK_CUST.map((label) => (
                     <label 
@@ -1446,14 +1483,9 @@ body{font-family:'Arial',sans-serif;background:#fff;direction:rtl;margin:0;paddi
                         type="checkbox"
                         checked={!!custChecks[label]}
                         onChange={(e) => {
-                          const newVal = e.target.checked;
-                          setCustChecks(prev => ({ ...prev, [label]: newVal }));
+                          setCustChecks(prev => ({ ...prev, [label]: e.target.checked }));
                         }}
-                        style={{ 
-                          width: 16, 
-                          height: 16,
-                          cursor: 'pointer'
-                        }}
+                        style={{ width: 16, height: 16, cursor: 'pointer' }}
                       />
                       <span style={{ fontSize: 12, fontWeight: 500 }}>{label}</span>
                     </label>
@@ -1484,7 +1516,7 @@ body{font-family:'Arial',sans-serif;background:#fff;direction:rtl;margin:0;paddi
           onToggle={() => toggleSection('delivery')}
         >
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 10 }}>
-            <G label="الكمية المسلمة"><input className="fc" type="number" defaultValue={0} {...register('Qunt_Ac')} style={{ textAlign: 'right' }} /></G>
+            <G label="الكمية المسلمة"><input className="fc" type="number" {...register('Qunt_Ac')} style={{ textAlign: 'right' }} /></G>
             <G label="التعبئة عند الزبون"><input className="fc" {...register('Cus_Paking')} style={{ textAlign: 'right' }} /></G>
             <G label="طريقة تلزيق العلبة"><input className="fc" {...register('box_stk_typ')} style={{ textAlign: 'right' }} /></G>
             <G label="الحالة">
