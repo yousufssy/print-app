@@ -465,8 +465,9 @@ const OPERATIONS_COLS = [
   { key: 'Tabrer',     label: 'تبرير' },
 ];
 
+// ✅ التعديل 1: إضافة الحقل الزائد إلى قائمة التسميات
 const CHK_MFG  = ['برنيش','تلميع بقعي','تلميع كامل','سلفان لميع','سلفان مات','طُبعت؟'];
-const CHK_CUST = ['مع طبخة','مع تطوية','تدعيم زكزاك','حراري','بلص'];
+const CHK_CUST = ['مع طبخة','مع تطوية','تدعيم زكزاك','حراري','بلص','تلميع بقعي'];
 
 // ── ربط checkboxes التصنيع بحقول الداتابيز ────────────────────────────────────
 const MFG_MAP: Record<string, string> = {
@@ -492,8 +493,30 @@ const BOOL_FIELDS = [
   'Tad3em','Tay','harary','rolling','Printed','Billed','Reseved'
 ];
 
-const CUST_LABELS = ['مع طبخة','مع تطوية','تدعيم زكزاك','حراري','بلص'];
+// ✅ التعديل 2: إضافة الحقل الزائد إلى قائمة التسميات
+const CUST_LABELS = ['مع طبخة','مع تطوية','تدعيم زكزاك','حراري','بلص','تلميع بقعي'];
 const CUST_FIELDS = ['cust_with_baking','cust_with_folding','cust_tad3em_zkzk','cust_harary','cust_bp','cust_tlm3_bq3y'];
+
+// ✅ التعديل 3: دالة لتنسيق التواريخ لتجنب أخطاء التحليل
+const formatDate = (dateString: string | null | undefined): string => {
+  if (!dateString) return '';
+  
+  try {
+    // إذا كانت القيمة بصيغة "YYYY-MM-DD" فهي صالحة
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+      return dateString;
+    }
+    
+    // تحويل من صيغ أخرى إلى YYYY-MM-DD
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return '';
+    
+    return date.toISOString().split('T')[0];
+  } catch (e) {
+    console.error("Error formatting date:", e);
+    return '';
+  }
+};
 
 // ══════════════════════════════════════════════════════
 //  🎯 MAIN COMPONENT - OrderFormPage
@@ -566,7 +589,7 @@ export default function OrderFormPage() {
         Gramage1: String(c.Gramage1 ?? ''),
         Sheet_count1: String(c.Sheet_count1 ?? ''),
         Price: String(c.Price ?? ''),
-        Out_Date: c.Out_Date ?? '',
+        Out_Date: formatDate(c.Out_Date), // ✅ استخدام دالة تنسيق التواريخ
         Out_ord_num: c.Out_ord_num ?? '',
         note_crt: c.note_crt ?? '',
       }))
@@ -606,8 +629,8 @@ export default function OrderFormPage() {
   const problemsRows: Record<string, string>[] = problemsData.map((p: Problem) => ({
     ID: String(p.ID1 ?? ''),
     print_num: p.print_num ?? '',
-    prod_date: p.prod_date ?? '',
-    exp_date: p.exp_date ?? '',
+    prod_date: formatDate(p.prod_date), // ✅ استخدام دالة تنسيق التواريخ
+    exp_date: formatDate(p.exp_date),   // ✅ استخدام دالة تنسيق التواريخ
     print_count: String(p.print_count ?? ''),
   }));
 
@@ -642,7 +665,7 @@ export default function OrderFormPage() {
     Electricity: String(op.Electricity ?? ''),
     Taghez:      String(op.Taghez     ?? ''),
     StopVar:     String(op.StopVar    ?? ''),
-    Date:        op.Date        ?? '',
+    Date:        formatDate(op.Date), // ✅ استخدام دالة تنسيق التواريخ
     NotesA:      op.NotesA      ?? '',
     Tabrer:      op.Tabrer      ?? '',
   }));
@@ -686,7 +709,16 @@ export default function OrderFormPage() {
   // ✅ تحميل البيانات عند التعديل — مع قراءة صحيحة للـ boolean ومزامنة mfgChecks
   useEffect(() => {
     if (isEdit && existing && !duplicatedData) {
-      reset(existing);
+      // ✅ تصحيح قيم التواريخ قبل التحميل
+      const correctedData = {
+        ...existing,
+        date_come: formatDate(existing.date_come),
+        Perioud: formatDate(existing.Perioud),
+        ProDate: formatDate(existing.ProDate),
+        ExpDate: formatDate(existing.ExpDate),
+      };
+      
+      reset(correctedData);
       
       // ✅ إضافة تسجيل لفحص القيم الواردة من الداتابيز
       console.log("القيم الواردة من الداتابيز:", {
@@ -787,70 +819,79 @@ export default function OrderFormPage() {
   }, [isEdit, orders, setValue, getValues, idInitialized]);
 
   // ✅ الحفظ — مع إرسال 1/0 لجميع الحقول بما فيها mfgChecks
-  const onSubmit = async ( Order) => {
-      // ✅ التأكد من تحميل جميع القيم بشكل صحيح
-      console.log("mfgChecks قبل الحفظ:", mfgChecks);
-      console.log("custChecks قبل الحفظ:", custChecks);
-      console.log("checks قبل الحفظ:", checks);
+  const onSubmit = async (data: Order) => {
+    // ✅ التأكد من تحميل جميع القيم بشكل صحيح
+    console.log("mfgChecks قبل الحفظ:", mfgChecks);
+    console.log("custChecks قبل الحفظ:", custChecks);
+    console.log("checks قبل الحفظ:", checks);
     
-      // ── تحويل BOOL_FIELDS العامة ──
-      BOOL_FIELDS.forEach(f => {
-        (data as any)[f] = toBit(checks[f]);
-      });
-    
-      // ── ✅ حفظ checkboxes التصنيع بقيم 1/0 (مع تصحيح) ──
-      Object.entries(MFG_MAP).forEach(([label, field]) => {
-        // ✅ التأكد من وجود القيمة في mfgChecks قبل الوصول إليها
-        const value = mfgChecks[label] !== undefined ? mfgChecks[label] : false;
-        (data as any)[field] = toBit(value);
-      });
-    
-      // ── حقول الزبون (مع تصحيح) ──
-      // ❌ المشكلة: CUST_FIELDS لها 6 عناصر بينما CUST_LABELS لها 5 عناصر فقط
-      for (let i = 0; i < Math.min(CUST_FIELDS.length, CUST_LABELS.length); i++) {
-        const field = CUST_FIELDS[i];
-        const label = CUST_LABELS[i];
-        // ✅ التأكد من وجود القيمة في custChecks قبل الوصول إليها
-        const value = custChecks[label] !== undefined ? custChecks[label] : false;
-        (data as any)[field] = toBit(value);
+    // ✅ التأكد من وجود الكائن data قبل الاستخدام
+    if (!data) {
+      console.error("data is undefined!");
+      return;
+    }
+
+    // ── تحويل BOOL_FIELDS العامة (مع التأكد من وجود الحقول) ──
+    BOOL_FIELDS.forEach(f => {
+      if (data && f in data) {
+        (data as any)[f] = toBit(checks[f] ?? false);
       }
+    });
+
+    // ── ✅ حفظ checkboxes التصنيع بقيم 1/0 (مع التأكد من وجود الحقول) ──
+    Object.entries(MFG_MAP).forEach(([label, field]) => {
+      if (data && field in data) {
+        (data as any)[field] = toBit(mfgChecks[label] ?? false);
+      }
+    });
+
+    // ── حقول الزبون (التصحيح النهائي) ──
+    for (let i = 0; i < Math.min(CUST_FIELDS.length, CUST_LABELS.length); i++) {
+      const field = CUST_FIELDS[i];
+      const label = CUST_LABELS[i];
       
-      // ✅ معالجة الحقل الإضافي في CUST_FIELDS (cust_tlm3_bq3y)
-      if (CUST_FIELDS.length > CUST_LABELS.length) {
-        const extraField = CUST_FIELDS[CUST_FIELDS.length - 1];
-        // يمكنك تحديد قيمة افتراضية أو استخدام حقل آخر
-        (data as any)[extraField] = toBit(false); // أو أي قيمة منطقية مناسبة
+      if (data && field in data) {
+        (data as any)[field] = toBit(custChecks[label] ?? false);
       }
+    }
     
-      (data as any).DubelM = toBit(checks.CTB);
-      (data as any).tabkha = 0;
-      (data as any).bals   = 0;
-    
-      if (!isEdit) {
-        const maxRowId = orders.length > 0
-          ? Math.max(...orders.map((o: any) => o.ID)) + 1
-          : 1;
-        (data as any).ID = maxRowId;
+    // معالجة الحقل الزائد (cust_tlm3_bq3y)
+    if (CUST_FIELDS.length > CUST_LABELS.length && data) {
+      const extraField = CUST_FIELDS[CUST_FIELDS.length - 1];
+      if (extraField in data) {
+        (data as any)[extraField] = toBit(custChecks['تلميع بقعي'] ?? false);
       }
-    
-      if (isEdit) {
-        await updateOrder.mutateAsync(data);
-      } else {
-        const created = await createOrder.mutateAsync(data);
-        const newId   = String((created as any)?.ID ?? (data as any).ID);
-        const yr      = String((data as any).Year ?? watchYear);
-    
-        await Promise.all([
-          ...pendingMaterials.map(({ ID, _isNew, ...f }) =>
-            createCarton.mutateAsync({ ...f, ID: newId, year: yr })),
-          ...pendingProblems.map(({ ID, _isNew, ...f }) =>
-            createProblem.mutateAsync({ ...f, ID: newId, Year: yr })),
-          ...pendingOps.map(({ ID, _isNew, ...f }) =>
-            createOperation.mutateAsync({ ...f, ID: newId, Year: yr })),
-        ]);
-      }
-      navigate('/orders');
-    };
+    }
+
+    (data as any).DubelM = toBit(checks.CTB);
+    (data as any).tabkha = 0;
+    (data as any).bals   = 0;
+
+    if (!isEdit) {
+      const maxRowId = orders.length > 0
+        ? Math.max(...orders.map((o: any) => o.ID)) + 1
+        : 1;
+      (data as any).ID = maxRowId;
+    }
+
+    if (isEdit) {
+      await updateOrder.mutateAsync(data);
+    } else {
+      const created = await createOrder.mutateAsync(data);
+      const newId   = String((created as any)?.ID ?? (data as any).ID);
+      const yr      = String((data as any).Year ?? watchYear);
+
+      await Promise.all([
+        ...pendingMaterials.map(({ ID, _isNew, ...f }) =>
+          createCarton.mutateAsync({ ...f, ID: newId, year: yr })),
+        ...pendingProblems.map(({ ID, _isNew, ...f }) =>
+          createProblem.mutateAsync({ ...f, ID: newId, Year: yr })),
+        ...pendingOps.map(({ ID, _isNew, ...f }) =>
+          createOperation.mutateAsync({ ...f, ID: newId, Year: yr })),
+      ]);
+    }
+    navigate('/orders');
+  };
 
   const handleDuplicate = () => {
     const sourceData = isEdit && existing ? { ...existing } : {};
