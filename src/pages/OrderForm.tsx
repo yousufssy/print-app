@@ -516,18 +516,31 @@ export default function OrderFormPage() {
   const updateOrder = useUpdateOrder(id ?? '', year ?? '');
   const { data: customers = [] } = useCustomers();
 
-  const [checks,     setChecks]     = useState<Record<string, boolean>>({});
-  const [mfgChecks,  setMfgChecks]  = useState<Record<string, boolean>>({});
+  const [checks, setChecks] = useState<Record<string, boolean>>({});
+  const [mfgChecks, setMfgChecks] = useState<Record<string, boolean>>({});
   const [custChecks, setCustChecks] = useState<Record<string, boolean>>({});
   const [voucherOpen, setVoucherOpen] = useState(false);
   
-  // ✅ Flags لمنع re-execution
   const [idInitialized, setIdInitialized] = useState(false);
   const [hasLoadedEdit, setHasLoadedEdit] = useState(false);
   const [hasLoadedDuplicate, setHasLoadedDuplicate] = useState(false);
 
+  const [currentYear] = useState(String(new Date().getFullYear()));
+
+  // ✅ useForm بدون dependencies معقدة
+  const { register, handleSubmit, reset, setValue } = useForm<Order>({
+    defaultValues: {
+      Year: currentYear,
+      ID: '',
+      Ser: ''
+    }
+  });
+
+  // ✅ استخدام useRef لحفظ بيانات الفورم
+  const formDataRef = useRef<Partial<Order>>({});
+
   // ── helper مشترك لمزامنة أي InlineTable مع الداتابيز ────────────────────────
-  const syncRows = async (
+  const syncRows = useCallback(async (
     oldRows: Record<string, string>[],
     newRows: Record<string, string>[],
     onCreate: (fields: any) => Promise<any>,
@@ -561,7 +574,7 @@ export default function OrderFormPage() {
     } catch (error) {
       console.error('❌ syncRows error:', error);
     }
-  };
+  }, []);
 
   // ── الكرتون ───────────────────────────────────────────────────────────────────
   const { data: cartonsData = [] } = useCartons(
@@ -596,26 +609,26 @@ export default function OrderFormPage() {
   }, [cartonsData]);
 
   const [pendingMaterials, setPendingMaterials] = useState<Record<string, string>[]>([]);
-  const [pendingProblems,  setPendingProblems]  = useState<Record<string, string>[]>([]);
-  const [pendingOps,       setPendingOps]       = useState<Record<string, string>[]>([]);
+  const [pendingProblems, setPendingProblems] = useState<Record<string, string>[]>([]);
+  const [pendingOps, setPendingOps] = useState<Record<string, string>[]>([]);
 
-  const handleMaterialsChange = async (newRows: Record<string, string>[]) => {
-      if (!isEdit) { 
-        setPendingMaterials(newRows); 
-        return; 
-      }
-      
-      try {
-        await syncRows(
-          materialsRows, newRows,
-          (f) => createCarton.mutateAsync({ ...f, ID: id!, year: year! }),
-          (rowId, f) => updateCarton.mutateAsync({ rowId, data: f }),
-          (rowId) => deleteCarton.mutateAsync(rowId),
-        );
-      } catch (error) {
-        console.error('❌ handleMaterialsChange error:', error);
-      }
-    };
+  const handleMaterialsChange = useCallback(async (newRows: Record<string, string>[]) => {
+    if (!isEdit) { 
+      setPendingMaterials(newRows); 
+      return; 
+    }
+    
+    try {
+      await syncRows(
+        materialsRows, newRows,
+        (f) => createCarton.mutateAsync({ ...f, ID: id!, year: year! }),
+        (rowId, f) => updateCarton.mutateAsync({ rowId, data: f }),
+        (rowId) => deleteCarton.mutateAsync(rowId),
+      );
+    } catch (error) {
+      console.error('❌ handleMaterialsChange error:', error);
+    }
+  }, [isEdit, materialsRows, syncRows, createCarton, updateCarton, deleteCarton, id, year]);
 
   // ── سجل المشاكل ───────────────────────────────────────────────────────────────
   const { data: problemsData = [] } = useProblems(isEdit ? (id ?? '') : '', isEdit ? (year ?? '') : '');
@@ -631,31 +644,33 @@ export default function OrderFormPage() {
     print_count?: number;
   }
   
-  const problemsRows: Record<string, string>[] = problemsData.map((p: Problem) => ({
-    ID: String(p.ID1 ?? ''),
-    print_num: p.print_num ?? '',
-    prod_date: p.prod_date ?? '',
-    exp_date: p.exp_date ?? '',
-    print_count: String(p.print_count ?? ''),
-  }));
+  const problemsRows: Record<string, string>[] = useMemo(() => 
+    problemsData.map((p: Problem) => ({
+      ID: String(p.ID1 ?? ''),
+      print_num: p.print_num ?? '',
+      prod_date: p.prod_date ?? '',
+      exp_date: p.exp_date ?? '',
+      print_count: String(p.print_count ?? ''),
+    })), [problemsData]
+  );
 
-  const handleProblemsChange = async (newRows: Record<string, string>[]) => {
-      if (!isEdit) { 
-        setPendingProblems(newRows); 
-        return; 
-      }
-      
-      try {
-        await syncRows(
-          problemsRows, newRows,
-          (f) => createProblem.mutateAsync({ ...f, ID: id!, Year: year! }),
-          (rowId, f) => updateProblem.mutateAsync({ rowId, data: f }),
-          (rowId) => deleteProblem.mutateAsync(rowId),
-        );
-      } catch (error) {
-        console.error('❌ handleProblemsChange error:', error);
-      }
-    };
+  const handleProblemsChange = useCallback(async (newRows: Record<string, string>[]) => {
+    if (!isEdit) { 
+      setPendingProblems(newRows); 
+      return; 
+    }
+    
+    try {
+      await syncRows(
+        problemsRows, newRows,
+        (f) => createProblem.mutateAsync({ ...f, ID: id!, Year: year! }),
+        (rowId, f) => updateProblem.mutateAsync({ rowId, data: f }),
+        (rowId) => deleteProblem.mutateAsync(rowId),
+      );
+    } catch (error) {
+      console.error('❌ handleProblemsChange error:', error);
+    }
+  }, [isEdit, problemsRows, syncRows, createProblem, updateProblem, deleteProblem, id, year]);
 
   // ── العمليات ──────────────────────────────────────────────────────────────────
   const { data: operationsData = [] } = useOperations(isEdit ? (id ?? '') : '', isEdit ? (year ?? '') : '');
@@ -663,43 +678,45 @@ export default function OrderFormPage() {
   const updateOperation = useUpdateOperation();
   const deleteOperation = useDeleteOperation();
 
-  const operationsRows: Record<string, string>[] = operationsData.map((op: any) => ({
-    ID:      String(op.ID1 ?? op.ID ?? ''),
-    Action:      op.Action      ?? '',
-    Color:       op.Color       ?? '',
-    Qunt_Ac:     String(op.Qunt_Ac    ?? ''),
-    On:          String(op.On         ?? ''),
-    Machin:      op.Machin      ?? '',
-    Hours:       String(op.Hours      ?? ''),
-    Kelo:        String(op.Kelo       ?? ''),
-    Actual:      String(op.Actual     ?? ''),
-    Tarkeb:      String(op.Tarkeb     ?? ''),
-    Wash:        String(op.Wash       ?? ''),
-    Electricity: String(op.Electricity ?? ''),
-    Taghez:      String(op.Taghez     ?? ''),
-    StopVar:     String(op.StopVar    ?? ''),
-    Date:        op.Date        ?? '',
-    NotesA:      op.NotesA      ?? '',
-    Tabrer:      op.Tabrer      ?? '',
-  }));
+  const operationsRows: Record<string, string>[] = useMemo(() => 
+    operationsData.map((op: any) => ({
+      ID: String(op.ID1 ?? op.ID ?? ''),
+      Action: op.Action ?? '',
+      Color: op.Color ?? '',
+      Qunt_Ac: String(op.Qunt_Ac ?? ''),
+      On: String(op.On ?? ''),
+      Machin: op.Machin ?? '',
+      Hours: String(op.Hours ?? ''),
+      Kelo: String(op.Kelo ?? ''),
+      Actual: String(op.Actual ?? ''),
+      Tarkeb: String(op.Tarkeb ?? ''),
+      Wash: String(op.Wash ?? ''),
+      Electricity: String(op.Electricity ?? ''),
+      Taghez: String(op.Taghez ?? ''),
+      StopVar: String(op.StopVar ?? ''),
+      Date: op.Date ?? '',
+      NotesA: op.NotesA ?? '',
+      Tabrer: op.Tabrer ?? '',
+    })), [operationsData]
+  );
 
-  const handleOperationsChange = async (newRows: Record<string, string>[]) => {
-      if (!isEdit) { 
-        setPendingOps(newRows); 
-        return; 
-      }
-      
-      try {
-        await syncRows(
-          operationsRows, newRows,
-          (f) => createOperation.mutateAsync({ ...f, ID: id!, Year: year! }),
-          (rowId, f) => updateOperation.mutateAsync({ rowId, data: f }),
-          (rowId) => deleteOperation.mutateAsync(rowId),
-        );
-      } catch (error) {
-        console.error('❌ handleOperationsChange error:', error);
-      }
-    };
+  const handleOperationsChange = useCallback(async (newRows: Record<string, string>[]) => {
+    if (!isEdit) { 
+      setPendingOps(newRows); 
+      return; 
+    }
+    
+    try {
+      await syncRows(
+        operationsRows, newRows,
+        (f) => createOperation.mutateAsync({ ...f, ID: id!, Year: year! }),
+        (rowId, f) => updateOperation.mutateAsync({ rowId, data: f }),
+        (rowId) => deleteOperation.mutateAsync(rowId),
+      );
+    } catch (error) {
+      console.error('❌ handleOperationsChange error:', error);
+    }
+  }, [isEdit, operationsRows, syncRows, createOperation, updateOperation, deleteOperation, id, year]);
 
   // ── حالة الأقسام ──────────────────────────────────────────────────────────────
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
@@ -725,132 +742,125 @@ export default function OrderFormPage() {
     localStorage.setItem('orderFormSections', JSON.stringify(openSections));
   }, [openSections]);
 
-  // ✅ useForm مع إعدادات محسّنة
-  const { register, handleSubmit, reset, watch, setValue, getValues } = useForm<Order>({
-      defaultValues: {
-        Year: String(new Date().getFullYear()),
-        ID: '',
-        Ser: ''
-      }
-    });
-
-  // ✅ watch محسّن باستخدام state
-// ✅ قراءة القيم مباشرة بدون watch مستمر
-// ✅ قراءة السنة مرة واحدة فقط
-  const [currentYear] = useState(String(new Date().getFullYear()));
-  
   const { data: ordersResponse } = useOrders({ year: currentYear });
   const orders = ordersResponse?.data || [];
-  
 
-  
   const { data: vouchers = [] } = useVouchers(
     isEdit ? (id ?? '') : '', 
     isEdit ? (year ?? currentYear) : currentYear
   );
   const deleteVoucher = useDeleteVoucher();
 
-  // ✅ تهيئة شاملة - مرة واحدة فقط
   // ✅ 1️⃣ تحميل بيانات التعديل - مرة واحدة
   useEffect(() => {
-      if (!isEdit || !existing || hasLoadedEdit || duplicatedData) return;
-      
-      reset(existing);
+    if (!isEdit || !existing || hasLoadedEdit || duplicatedData) return;
     
-      const loadedMfg: Record<string, boolean> = {};
-      Object.entries(MFG_MAP).forEach(([label, field]) => {
-        loadedMfg[label] = fromBit((existing as any)[field]);
-      });
-      setMfgChecks(loadedMfg);
-    
-      const loadedCust: Record<string, boolean> = {};
-      Object.entries(CUST_MAP).forEach(([label, field]) => {
-        loadedCust[label] = fromBit((existing as any)[field]);
-      });
-      setCustChecks(loadedCust);
-    
-      setChecks({
-        varnich: fromBit(existing.varnich),
-        uv: fromBit(existing.uv),
-        uv_Spot: fromBit(existing.uv_Spot),
-        seluvan_lum: fromBit(existing.seluvan_lum),
-        seluvan_mat: fromBit(existing.seluvan_mat),
-        Tad3em: fromBit(existing.Tad3em),
-        Tay: fromBit(existing.Tay),
-        harary: fromBit(existing.harary),
-        rolling: fromBit(existing.rolling),
-        Printed: fromBit(existing.Printed),
-        Billed: fromBit(existing.Billed),
-        Reseved: fromBit(existing.Reseved),
-        CTB: fromBit(existing.DubelM),
-        varn: fromBit(existing.varnich),
-      });
-    
-      setHasLoadedEdit(true);
-    }, [isEdit, existing, hasLoadedEdit, duplicatedData]);
-    
-    // ✅ 2️⃣ تحميل بيانات النسخ - مرة واحدة
-    useEffect(() => {
-      if (!duplicatedData || hasLoadedDuplicate) return;
-      
-      const {
-        checks: copiedChecks,
-        mfgChecks: copiedMfg,
-        custChecks: copiedCust,
-        idInitialized: copiedIdInitialized,
-        ...orderData
-      } = duplicatedData;
-    
-      reset(orderData);
-      setChecks(copiedChecks ?? {});
-      setMfgChecks(copiedMfg ?? {});
-      setCustChecks(copiedCust ?? {});
-      setIdInitialized(copiedIdInitialized ?? false);
-      setMaterialsRows([]);
-      setPendingMaterials([]);
-      setPendingOps([]);
-      setPendingProblems([]);
-      setHasLoadedDuplicate(true);
-    }, [duplicatedData, hasLoadedDuplicate]);
-    
-    // ✅ 3️⃣ تهيئة طلب جديد - مرة واحدة
-// ✅ 3️⃣ تهيئة طلب جديد - مرة واحدة
+    reset(existing);
+    formDataRef.current = { ...existing };
+
+    const loadedMfg: Record<string, boolean> = {};
+    Object.entries(MFG_MAP).forEach(([label, field]) => {
+      loadedMfg[label] = fromBit((existing as any)[field]);
+    });
+    setMfgChecks(loadedMfg);
+
+    const loadedCust: Record<string, boolean> = {};
+    Object.entries(CUST_MAP).forEach(([label, field]) => {
+      loadedCust[label] = fromBit((existing as any)[field]);
+    });
+    setCustChecks(loadedCust);
+
+    setChecks({
+      varnich: fromBit(existing.varnich),
+      uv: fromBit(existing.uv),
+      uv_Spot: fromBit(existing.uv_Spot),
+      seluvan_lum: fromBit(existing.seluvan_lum),
+      seluvan_mat: fromBit(existing.seluvan_mat),
+      Tad3em: fromBit(existing.Tad3em),
+      Tay: fromBit(existing.Tay),
+      harary: fromBit(existing.harary),
+      rolling: fromBit(existing.rolling),
+      Printed: fromBit(existing.Printed),
+      Billed: fromBit(existing.Billed),
+      Reseved: fromBit(existing.Reseved),
+      CTB: fromBit(existing.DubelM),
+      varn: fromBit(existing.varnich),
+    });
+
+    setHasLoadedEdit(true);
+  }, [isEdit, existing, hasLoadedEdit, duplicatedData, reset]);
+
+  // ✅ 2️⃣ تحميل بيانات النسخ - مرة واحدة
   useEffect(() => {
-      if (isEdit || !orders || orders.length === 0 || idInitialized || duplicatedData) return;
+    if (!duplicatedData || hasLoadedDuplicate) return;
     
-      const latestOrder = orders[orders.length - 1];
-      const lastSer = parseInt(latestOrder?.Ser || '0') || 0;
-      const newId = String((Number(latestOrder?.ID) || 0) + 1);
-    
-      setValue('Ser', String(lastSer + 1), { shouldDirty: false });
-      setValue('ID', newId, { shouldDirty: false });
-      setValue('Year', currentYear, { shouldDirty: false });
-    
-      setIdInitialized(true);
-    }, [isEdit, orders, idInitialized, duplicatedData, currentYear]);
+    const {
+      checks: copiedChecks,
+      mfgChecks: copiedMfg,
+      custChecks: copiedCust,
+      idInitialized: copiedIdInitialized,
+      ...orderData
+    } = duplicatedData;
+
+    reset(orderData);
+    formDataRef.current = { ...orderData };
+    setChecks(copiedChecks ?? {});
+    setMfgChecks(copiedMfg ?? {});
+    setCustChecks(copiedCust ?? {});
+    setIdInitialized(copiedIdInitialized ?? false);
+    setMaterialsRows([]);
+    setPendingMaterials([]);
+    setPendingOps([]);
+    setPendingProblems([]);
+    setHasLoadedDuplicate(true);
+  }, [duplicatedData, hasLoadedDuplicate, reset]);
+
+  // ✅ 3️⃣ تهيئة طلب جديد - مرة واحدة
+  useEffect(() => {
+    if (isEdit || !orders || orders.length === 0 || idInitialized || duplicatedData) return;
+
+    const latestOrder = orders[orders.length - 1];
+    const lastSer = parseInt(latestOrder?.Ser || '0') || 0;
+    const newId = String((Number(latestOrder?.ID) || 0) + 1);
+
+    setValue('Ser', String(lastSer + 1), { shouldDirty: false });
+    setValue('ID', newId, { shouldDirty: false });
+    setValue('Year', currentYear, { shouldDirty: false });
+
+    formDataRef.current = {
+      Ser: String(lastSer + 1),
+      ID: newId,
+      Year: currentYear
+    };
+
+    setIdInitialized(true);
+  }, [isEdit, orders, idInitialized, duplicatedData, currentYear, setValue]);
+
+  // ✅ تحديث formDataRef عند تغيير الحقول
+  const handleFormChange = useCallback((field: string, value: any) => {
+    formDataRef.current = {
+      ...formDataRef.current,
+      [field]: value
+    };
+  }, []);
 
   // ✅ الحفظ - مع معالجة أخطاء شاملة
-  const onSubmit = async (data: Order) => {
+  const onSubmit = useCallback(async (data: Order) => {
     try {
-      // ── 1. BOOL_FIELDS العامة ──
       BOOL_FIELDS.forEach(f => {
         (data as any)[f] = toBit(checks[f]);
       });
 
-      // ── 2. ✅ checkboxes التصنيع ──
       Object.entries(MFG_MAP).forEach(([label, field]) => {
         (data as any)[field] = toBit(mfgChecks[label]);
       });
 
-      // ── 3. ✅ checkboxes الزبون ──
       Object.entries(CUST_MAP).forEach(([label, field]) => {
         (data as any)[field] = toBit(custChecks[label]);
       });
 
-      // ── 4. حقول إضافية ──
       (data as any).DubelM = toBit(checks.CTB);
 
-      // ── 5. إنشاء طلب جديد ──
       if (!isEdit) {
         const maxRowId = orders.length > 0
           ? Math.max(...orders.map((o: any) => o.ID)) + 1
@@ -858,12 +868,11 @@ export default function OrderFormPage() {
         (data as any).ID = maxRowId;
       }
 
-      // ── 6. حفظ أو تعديل ──
       if (isEdit) {
         await updateOrder.mutateAsync(data);
       } else {
         const created = await createOrder.mutateAsync(data);
-        const newId   = String((created as any)?.ID ?? (data as any).ID);
+        const newId = String((created as any)?.ID ?? (data as any).ID);
         const yr = String((data as any).Year ?? currentYear);
 
         await Promise.all([
@@ -885,16 +894,15 @@ export default function OrderFormPage() {
         ]);
       }
 
-      // ✅ تأخير صغير قبل التنقل
       await new Promise(resolve => setTimeout(resolve, 100));
       navigate('/orders');
     } catch (error) {
       console.error('❌ Submit error:', error);
       alert('حدث خطأ أثناء الحفظ. الرجاء المحاولة مرة أخرى.');
     }
-  };
+  }, [checks, mfgChecks, custChecks, isEdit, orders, updateOrder, createOrder, currentYear, pendingMaterials, pendingProblems, pendingOps, createCarton, createProblem, createOperation, navigate]);
 
-  const handleDuplicate = () => {
+  const handleDuplicate = useCallback(() => {
     const sourceData = isEdit && existing ? { ...existing } : {};
     
     const excludeFields = [
@@ -921,25 +929,25 @@ export default function OrderFormPage() {
         }
       }
     });
-  };
+  }, [isEdit, existing, checks, mfgChecks, custChecks, navigate]);
 
-  const chk  = (k: string) => (v: boolean) => setChecks(c => ({ ...c, [k]: v }));
-  const mchk = (k: string) => (v: boolean) => setMfgChecks(c => ({ ...c, [k]: v }));
-  const cchk = (k: string) => (v: boolean) => setCustChecks(c => ({ ...c, [k]: v }));
+  const chk = useCallback((k: string) => (v: boolean) => setChecks(c => ({ ...c, [k]: v })), []);
+  const mchk = useCallback((k: string) => (v: boolean) => setMfgChecks(c => ({ ...c, [k]: v })), []);
+  const cchk = useCallback((k: string) => (v: boolean) => setCustChecks(c => ({ ...c, [k]: v })), []);
   
-  const toggleSection = (key: string) => {
+  const toggleSection = useCallback((key: string) => {
     setOpenSections(prev => ({ ...prev, [key]: !prev[key] }));
-  };
+  }, []);
 
   const isSaving = createOrder.isPending || updateOrder.isPending;
 
   // ══════════════════════════════════════════════════════
   //  🖨️ طباعة بطاقة الإنتاج
   // ══════════════════════════════════════════════════════
-  const printProductionCard = () => {
-    const d = getValues();
+  const printProductionCard = useCallback(() => {
+    const d = formDataRef.current;
     const chkd = (val: any) => (val ? '✔' : '');
-    const fmt  = (v: any) => v ?? '';
+    const fmt = (v: any) => v ?? '';
 
     const html = `<!DOCTYPE html>
 <html lang="ar" dir="rtl">
@@ -1170,14 +1178,14 @@ body{font-family:'Arial',sans-serif;background:#fff;direction:rtl;margin:0;paddi
 </html>`;
 
     const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
-    const url  = URL.createObjectURL(blob);
-    const a    = document.createElement('a');
-    a.href     = url;
-    a.target   = '_blank';
-    a.rel      = 'noopener';
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.target = '_blank';
+    a.rel = 'noopener';
     a.click();
     setTimeout(() => URL.revokeObjectURL(url), 10000);
-  };
+  }, [checks, custChecks, mfgChecks]);
 
   if (isLoading) return <Loading />;
 
@@ -1227,7 +1235,12 @@ body{font-family:'Arial',sans-serif;background:#fff;direction:rtl;margin:0;paddi
         </Btn>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)}>
+      <form onSubmit={handleSubmit(onSubmit)} onChange={(e: any) => {
+        const target = e.target as HTMLInputElement;
+        if (target.name) {
+          handleFormChange(target.name, target.value);
+        }
+      }}>
 
         {/* ══ 1. بيانات الطلب الأساسية ══ */}
         <AccordionCard 
@@ -1252,11 +1265,11 @@ body{font-family:'Arial',sans-serif;background:#fff;direction:rtl;margin:0;paddi
             <G label="موافقة المونتاج"><input className="fc" type="date" {...register('Perioud')} style={{ textAlign: 'right' }} /></G>
             <G label="المطلوب"><input className="fc" type="number" {...register('Demand')} style={{ textAlign: 'right' }} /></G>
             <G label="نموذج طبي"><input className="fc" type="number" {...register('Med_smpl_Q')} style={{ textAlign: 'right' }} /></G>
-            <G label="سنة العمل" req><input className="fc" {...register('Year', { required: true })} style={{ textAlign: 'right' }} /></G>
+            <G label="سنة ا��عمل" req><input className="fc" {...register('Year', { required: true })} style={{ textAlign: 'right' }} /></G>
           </div>
         </AccordionCard>
 
-        {/* ══ 2. مواصفات المطبوعة ══ */}
+        {/* ══ 2. مواصفات المطبوعة ���═ */}
         <AccordionCard 
           title="🎨 مواصفات المطبوعة"
           isOpen={openSections.specs}
@@ -1354,7 +1367,7 @@ body{font-family:'Arial',sans-serif;background:#fff;direction:rtl;margin:0;paddi
                 style={{ background: '#f0f9f0', borderColor: '#27ae60', textAlign: 'right' }} />
             </G>
             <G label="المعلومات الفنية"><input className="fc" {...register('note_ord')} style={{ textAlign: 'right' }} /></G>
-            <G label="برنيش"><CheckItem label="برنيش" checked={!!checks.varn} {...register('Varnish')} onChange={chk('varn')} /></G>
+            <G label="برنيش"><CheckItem label="برنيش" checked={!!checks.varn} onChange={chk('varn')} /></G>
             <G label="CTB"><CheckItem label="CTB" checked={!!checks.CTB} onChange={chk('CTB')} /></G>
           </div>
 
@@ -1589,7 +1602,12 @@ body{font-family:'Arial',sans-serif;background:#fff;direction:rtl;margin:0;paddi
 
       </form>
 
-      <VoucherModal    open={voucherOpen}    onClose={() => setVoucherOpen(false)}    orderId={id || ''}    orderYear={year || currentYear}  />
+      <VoucherModal 
+        open={voucherOpen} 
+        onClose={() => setVoucherOpen(false)} 
+        orderId={id || ''} 
+        orderYear={year || currentYear} 
+      />
     </div>
   );
 }
