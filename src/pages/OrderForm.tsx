@@ -703,7 +703,7 @@ useEffect(() => {
       if (isEdit && existing && !duplicatedData) {
         reset(existing);
       }
-    }, [isEdit, existing]);
+    }, [isEdit, existing, duplicatedData]);
 
   
   const location = useLocation();
