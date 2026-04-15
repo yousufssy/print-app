@@ -495,7 +495,7 @@ const BOOL_FIELDS = [
   'Tad3em','Tay','harary','rolling','Printed','Billed','Reseved'
 ];
 
-const CUST_LABELS = ['مع طبخة','مع تطوية','تدعيم زكزاك','حراري','بص','تلميع بقعي'];
+const CUST_LABELS = ['مع طبخة','مع تطوية','تدعيم زكزاك','حراري','بلص'];
 const CUST_FIELDS = ['cust_with_baking','cust_with_folding','cust_tad3em_zkzk','cust_harary','cust_bp','cust_tlm3_bq3y'];
 
 // ══════════════════════════════════════════════════════
