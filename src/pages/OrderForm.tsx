@@ -695,17 +695,17 @@ export default function OrderFormPage() {
     if (isEdit && existing && !duplicatedData) {
       reset(existing);
 
-      // ✅ تحميل checkboxes التصنيع تلقائيا من MFG_MAP
+      // ✅ تحميل checkboxes التصنيع
       const loadedMfg: Record<string, boolean> = {};
       Object.entries(MFG_MAP).forEach(([label, field]) => {
-        loadedMfg[label] = fromBit((existing as any)[field]);
+        loadedMfg[label] = fromBit(existing[field as keyof typeof existing]);
       });
       setMfgChecks(loadedMfg);
 
-      // ✅ تحميل checkboxes الزبون تلقائيا من CUST_MAP
+      // ✅ تحميل checkboxes الزبون
       const loadedCust: Record<string, boolean> = {};
       Object.entries(CUST_MAP).forEach(([label, field]) => {
-        (data as any)[field] = toBit(custChecks[label]);
+        loadedCust[label] = fromBit(existing[field as keyof typeof existing]);
       });
       setCustChecks(loadedCust);
 
@@ -728,8 +728,8 @@ export default function OrderFormPage() {
       });
 
     }
-  }, [isEdit, existing, duplicatedData]);
-
+  }, [isEdit, existing, duplicatedData, reset]);
+  
   // ✅ تحميل البيانات المنسوخة
   useEffect(() => {
     if (!duplicatedData) return;
