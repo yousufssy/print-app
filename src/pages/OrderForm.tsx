@@ -795,21 +795,23 @@ useEffect(() => {
 
   
 
-    useEffect(() => {
-        if (!isEdit && orders.length > 0 && !idInitialized) {
-          const latestOrder = orders[orders.length - 1]; // طريقة أكثر كفاءة من الترتيب
-          const lastSer = latestOrder ? parseInt(latestOrder.Ser || '0') || 0 : 0;
-          setValue('Ser', String(lastSer + 1));
-          
-          // تعيين ID تلقائي فقط إذا لم يتم تعيينه مسبقاً
-          if (!watch('ID')) {
-            const newId = String(Number(latestOrder.ID) + 1);
-            setValue('ID', newId);
-            setIdInitialized(true);
+// ✅ بعد - استخدم getValues بدل watch داخل useEffect
+      useEffect(() => {
+          if (!isEdit && orders.length > 0 && !idInitialized) {
+            const latestOrder = orders[orders.length - 1];
+            const lastSer = latestOrder ? parseInt(latestOrder.Ser || '0') || 0 : 0;
+            setValue('Ser', String(lastSer + 1));
+            
+            if (!getValues('ID')) {  // ✅ getValues لا يسبب re-render
+              const newId = String(Number(latestOrder.ID) + 1);
+              setValue('ID', newId);
+            }
+            setIdInitialized(true); // ✅ انقل خارج الـ if الداخلي
           }
-        }
-      }, [isEdit, orders, setValue, idInitialized, watch]);
+        }, [isEdit, orders, setValue, getValues, idInitialized]); // ✅ أزل watch
 
+
+  
   // ✅ الحفظ — مع إرسال 1/0 بدل True/False
   const onSubmit = async (data: Order) => {
     // تحويل boolean fields لـ 1/0
