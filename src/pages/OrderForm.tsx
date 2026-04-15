@@ -1301,12 +1301,14 @@ body{font-family:'Arial',sans-serif;background:#fff;direction:rtl;margin:0;paddi
         </AccordionCard>
 
         {/* ══ 4. مراقبة الجودة والمشاكل ══ */}
+                {/* ══ 4. مراقبة الجودة والمشاكل ══ */}
         <AccordionCard 
           title="🔍 مراقبة الجودة والمشاكل"
           isOpen={openSections.quality}
           onToggle={() => toggleSection('quality')}
         >
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+            
             {/* أثناء التصنيع */}
             <div style={{ border: '1.5px solid var(--border)', borderRadius: 10, overflow: 'hidden' }}>
               <div style={{ padding: '9px 13px', background: 'rgba(214,137,16,.1)', color: 'var(--warn)', fontSize: 12, fontWeight: 700, borderBottom: '1px solid rgba(214,137,16,.2)', textAlign: 'right' }}>
@@ -1325,114 +1327,141 @@ body{font-family:'Arial',sans-serif;background:#fff;direction:rtl;margin:0;paddi
                   <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--steel)', marginBottom: 6, display: 'block', textAlign: 'right' }}>عدد الألوان</label>
                   <input className="fc" type="number" {...register('clr_Qnt_order')} style={{ fontSize: 12, textAlign: 'right' }} />
                 </div>
-                {/* ✅ CHK_MFG مرتبطة بالداتابيز عبر MFG_MAP */}
+                
+                {/* ✅ checkboxes التصنيع */}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 8 }}>
-                  {CHK_MFG.map(l => (
-                    <CheckItem
-                      key={l}
-                      label={l}
-                      checked={!!mfgChecks[l]}
-                      onChange={mchk(l)}
-                    />
+                  {CHK_MFG.map(label => (
+                    <label 
+                      key={label}
+                      style={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: 8,
+                        cursor: 'pointer',
+                        padding: '6px 8px',
+                        borderRadius: 6,
+                        background: mfgChecks[label] ? 'rgba(52,152,219,0.1)' : 'transparent',
+                        border: `1px solid ${mfgChecks[label] ? '#3498db' : 'var(--border)'}`,
+                        transition: 'all 0.2s'
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={!!mfgChecks[label]}
+                        onChange={(e) => {
+                          const newVal = e.target.checked;
+                          setMfgChecks(prev => ({ ...prev, [label]: newVal }));
+                        }}
+                        style={{ 
+                          width: 16, 
+                          height: 16,
+                          cursor: 'pointer'
+                        }}
+                      />
+                      <span style={{ fontSize: 12, fontWeight: 500 }}>{label}</span>
+                    </label>
                   ))}
                 </div>
               </div>
             </div>
 
             {/* من الزبون */}
-                  <div style={{ border: '1.5px solid var(--border)', borderRadius: 10, overflow: 'hidden' }}>
-                    <div style={{ padding: '9px 13px', background: 'rgba(192,57,43,.08)', color: 'var(--red)', fontSize: 12, fontWeight: 700, borderBottom: '1px solid rgba(192,57,43,.15)', textAlign: 'right' }}>
-                      🚨 المشاكل الواردة من الزبون
+            <div style={{ border: '1.5px solid var(--border)', borderRadius: 10, overflow: 'hidden' }}>
+              <div style={{ padding: '9px 13px', background: 'rgba(192,57,43,.08)', color: 'var(--red)', fontSize: 12, fontWeight: 700, borderBottom: '1px solid rgba(192,57,43,.15)', textAlign: 'right' }}>
+                🚨 المشاكل الواردة من الزبون
+              </div>
+              <div style={{ padding: 12 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 10 }}>
+                  <div>
+                    <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--steel)', marginBottom: 4, display: 'block', textAlign: 'right' }}>رقم الطبع</label>
+                    <input className="fc" style={{ fontSize: 12, textAlign: 'right' }} />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--steel)', marginBottom: 4, display: 'block', textAlign: 'right' }}>عدد الطبع</label>
+                    <input className="fc" type="number" style={{ fontSize: 12, textAlign: 'right' }} />
+                  </div>
+                </div>
+                
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 10 }}>
+                  <div>
+                    <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--steel)', marginBottom: 4, display: 'block', textAlign: 'right' }}>الأبعاد</label>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                      <input className="fc" type="number" defaultValue={23} style={{ fontSize: 12, textAlign: 'right' }} />
+                      <span style={{ color: 'var(--muted)', fontWeight: 700 }}>×</span>
+                      <input className="fc" type="number" defaultValue={25} style={{ fontSize: 12, textAlign: 'right' }} />
                     </div>
-                    <div style={{ padding: 12 }}>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 10 }}>
-                        <div>
-                          <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--steel)', marginBottom: 4, display: 'block', textAlign: 'right' }}>رقم الطبع</label>
-                          <input className="fc" style={{ fontSize: 12, textAlign: 'right' }} />
-                        </div>
-                        <div>
-                          <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--steel)', marginBottom: 4, display: 'block', textAlign: 'right' }}>عدد الطبع</label>
-                          <input className="fc" type="number" style={{ fontSize: 12, textAlign: 'right' }} />
-                        </div>
-                      </div>
-                      
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 10 }}>
-                        <div>
-                          <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--steel)', marginBottom: 4, display: 'block', textAlign: 'right' }}>الأبعاد</label>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                            <input className="fc" type="number" defaultValue={23} style={{ fontSize: 12, textAlign: 'right' }} />
-                            <span style={{ color: 'var(--muted)', fontWeight: 700 }}>×</span>
-                            <input className="fc" type="number" defaultValue={25} style={{ fontSize: 12, textAlign: 'right' }} />
-                          </div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                            <input className="fc" type="number" defaultValue={23} style={{ fontSize: 12, textAlign: 'right' }} />
-                            <span style={{ color: 'var(--muted)', fontWeight: 700 }}>×</span>
-                            <input className="fc" type="number" defaultValue={25} style={{ fontSize: 12, textAlign: 'right' }} />
-                          </div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                            <input className="fc" type="number" defaultValue={23} style={{ fontSize: 12, textAlign: 'right' }} />
-                            <span style={{ color: 'var(--muted)', fontWeight: 700 }}>×</span>
-                            <input className="fc" type="number" defaultValue={25} style={{ fontSize: 12, textAlign: 'right' }} />
-                          </div>
-                        </div>
-                        
-                        <div>
-                          <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--steel)', marginBottom: 4, display: 'block', textAlign: 'right' }}>تاريخ الانتهاء</label>
-                          <input className="fc" type="date" style={{ fontSize: 12, textAlign: 'right' }} />
-                        </div>
-                      </div>
-                      
-                      {/* ✅ الـ checkboxes المُحدَّثة */}
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 8 }}>
-                        {CHK_CUST.map((label) => (
-                          <label 
-                            key={label}
-                            style={{ 
-                              display: 'flex', 
-                              alignItems: 'center', 
-                              gap: 8,
-                              cursor: 'pointer',
-                              padding: '6px 8px',
-                              borderRadius: 6,
-                              background: custChecks[label] ? 'rgba(46,204,113,0.1)' : 'transparent',
-                              border: `1px solid ${custChecks[label] ? '#27ae60' : 'var(--border)'}`,
-                              transition: 'all 0.2s'
-                            }}
-                          >
-                            <input
-                              type="checkbox"
-                              checked={!!custChecks[label]}
-                              onChange={(e) => {
-                                const newVal = e.target.checked;
-                                setCustChecks(prev => ({ ...prev, [label]: newVal }));
-                              }}
-                              style={{ 
-                                width: 16, 
-                                height: 16,
-                                cursor: 'pointer'
-                              }}
-                            />
-                            <span style={{ fontSize: 12, fontWeight: 500 }}>{label}</span>
-                          </label>
-                        ))}
-                      </div>
-                      
-                      <div style={{ marginTop: 10 }}>
-                        <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--steel)', marginBottom: 6, display: 'block', textAlign: 'right' }}>اختبار</label>
-                        <input className="fc" placeholder="ادخل نص الاختب��ر" style={{ fontSize: 12, textAlign: 'right' }} />
-                      </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                      <input className="fc" type="number" defaultValue={23} style={{ fontSize: 12, textAlign: 'right' }} />
+                      <span style={{ color: 'var(--muted)', fontWeight: 700 }}>×</span>
+                      <input className="fc" type="number" defaultValue={25} style={{ fontSize: 12, textAlign: 'right' }} />
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <input className="fc" type="number" defaultValue={23} style={{ fontSize: 12, textAlign: 'right' }} />
+                      <span style={{ color: 'var(--muted)', fontWeight: 700 }}>×</span>
+                      <input className="fc" type="number" defaultValue={25} style={{ fontSize: 12, textAlign: 'right' }} />
                     </div>
                   </div>
-  
-            <SectionDiv label="سجل المشاكل الواردة من الزبون" />
-            <InlineTable
-              cols={PROBLEMS_COLS}
-              rows={isEdit ? problemsRows : pendingProblems}
-              onRowsChange={handleProblemsChange}
-              syncDraftRows={!isEdit}
-            />
-          </AccordionCard>
-  
+                  
+                  <div>
+                    <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--steel)', marginBottom: 4, display: 'block', textAlign: 'right' }}>تاريخ الانتهاء</label>
+                    <input className="fc" type="date" style={{ fontSize: 12, textAlign: 'right' }} />
+                  </div>
+                </div>
+                
+                {/* ✅ الـ checkboxes المُحدَّثة */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 8 }}>
+                  {CHK_CUST.map((label) => (
+                    <label 
+                      key={label}
+                      style={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: 8,
+                        cursor: 'pointer',
+                        padding: '6px 8px',
+                        borderRadius: 6,
+                        background: custChecks[label] ? 'rgba(46,204,113,0.1)' : 'transparent',
+                        border: `1px solid ${custChecks[label] ? '#27ae60' : 'var(--border)'}`,
+                        transition: 'all 0.2s'
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={!!custChecks[label]}
+                        onChange={(e) => {
+                          const newVal = e.target.checked;
+                          setCustChecks(prev => ({ ...prev, [label]: newVal }));
+                        }}
+                        style={{ 
+                          width: 16, 
+                          height: 16,
+                          cursor: 'pointer'
+                        }}
+                      />
+                      <span style={{ fontSize: 12, fontWeight: 500 }}>{label}</span>
+                    </label>
+                  ))}
+                </div>
+                
+                <div style={{ marginTop: 10 }}>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--steel)', marginBottom: 6, display: 'block', textAlign: 'right' }}>اختبار</label>
+                  <input className="fc" placeholder="ادخل نص الاختبار" style={{ fontSize: 12, textAlign: 'right' }} />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <SectionDiv label="سجل المشاكل الواردة من الزبون" />
+          <InlineTable
+            cols={PROBLEMS_COLS}
+            rows={isEdit ? problemsRows : pendingProblems}
+            onRowsChange={handleProblemsChange}
+            syncDraftRows={!isEdit}
+          />
+        </AccordionCard>
+
+
+        
           {/* ══ 5. التسليم والفوترة ══ */}
           <AccordionCard 
             title="🚚 التسليم والفوترة"
