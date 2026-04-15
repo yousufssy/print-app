@@ -29,7 +29,7 @@ export interface Order {
   Loading?: string;
   Code_M?: string;
   Free_clr?: string;
-  Free_text?: string;
+  Free_txt?: string;
   Price?: number;
   authorization?: string;
   Code?: string;
