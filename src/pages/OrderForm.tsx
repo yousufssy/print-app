@@ -83,7 +83,7 @@ function AccordionCard({
       </div>
     </div>
   );
-}
+
 
 // ── Inline editable table ──────────────────────────────────────────────────────
 const InlineTable = React.memo(function InlineTable({
