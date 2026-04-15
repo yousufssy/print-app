@@ -1233,7 +1233,7 @@ body{font-family:'Arial',sans-serif;background:#fff;direction:rtl;margin:0;paddi
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(8,1fr)', gap: 12 }}>
             <G label="الترخيص"><input className="fc" {...register('authorization')} style={{ textAlign: 'right' }} /></G>
             <G label="السعر"><input className="fc" {...register('Price')} style={{ textAlign: 'right' }} /></G>         
-            <G label="النموذج المجاني"><input className="fc" {...register('Free_text')} style={{ textAlign: 'right' }} /></G>
+            <G label="النموذج المجاني"><input className="fc" {...register('Free_txt')} style={{ textAlign: 'right' }} /></G>
             <G label="اللون"><input className="fc" {...register('Free_clr')} style={{ textAlign: 'right' }} /></G>
             <G label="الكود"><input className="fc" {...register('Code')} style={{ textAlign: 'right' }} /></G>
             <G label="رقم الطبخة"><input className="fc" {...register('Mix_num')} style={{ textAlign: 'right' }} /></G>
