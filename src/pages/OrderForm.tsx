@@ -739,20 +739,28 @@ useEffect(() => {
       ...orderData 
     } = duplicatedData;
     
-    // 🟢 تعيين البيانات مباشرة (بدون تصفية 0)
-    // نستخدم فقط لتجاهل undefined/null الحقيقية
-    const validOrderData = Object.fromEntries(
-      Object.entries(orderData).filter(([_, v]) => v !== undefined)
-    );
+    // 🚨 تشخيص مفصل: اعرف ما يتم استقباله
+    console.log('📥 بيانات منسوخة مستقبَلة:', {
+      orderData,
+      has_WedthU: 'WedthU' in orderData,
+      WedthU_value: orderData.WedthU,
+      WedthU_type: typeof orderData.WedthU,
+    });
     
-    if (Object.keys(validOrderData).length > 0) {
-      reset(validOrderData);
-    }
+    // 🟢 تعيين كل حقل على حدة باستخدام setValue (أكثر موثوقية من reset)
+    Object.entries(orderData).forEach(([key, value]) => {
+      // نتأكد أن القيمة ليست undefined فقط (نسمح بـ 0, '', false)
+      if (value !== undefined) {
+        setValue(key as any, value);
+      }
+    });
   
+    // 🟢 تعيين الـ Checkboxes
     setChecks(copiedChecks ?? {});
     setMfgChecks(copiedMfg ?? {});
     setCustChecks(copiedCust ?? {});
     
+    // 🟢 تفريغ الجداول
     if (!isEdit) {
       setMaterialsRows([]);
       setPendingMaterials([]);
@@ -760,7 +768,7 @@ useEffect(() => {
       setPendingProblems([]);
     }
   
-  }, [duplicatedData, reset, isEdit]);
+  }, [duplicatedData, setValue, isEdit]); // ⚠️ تأكد من وجود setValue في الاعتمادات
 
 
 
