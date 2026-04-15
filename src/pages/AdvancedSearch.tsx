@@ -157,8 +157,7 @@ export default function AdvancedSearchPage() {
       Object.entries(filters).forEach(([k, v]) => {
         if (v !== undefined && v !== '') params.set(k, String(v));
       });
-      navigate(`/orders/search?${params.toString()}`, { replace: true });
-      
+navigate(`/search?${params.toString()}`, { replace: true });      
       // ✅ تنفيذ البحث
       const result = await advancedSearchApi.search(filters);
       setSearchResults(result);
