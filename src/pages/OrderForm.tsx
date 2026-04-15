@@ -499,7 +499,8 @@ export default function OrderFormPage() {
   const { id, year } = useParams<{ id?: string; year?: string }>();
   const isEdit = !!(id && year && String(id).trim() && String(year).trim());
   const navigate = useNavigate();
-  
+  const location = useLocation();
+  const duplicatedData = location.state?.duplicatedData || null;
   
   const { data: existing, isLoading } = useOrder(id ?? '', year ?? '');
   const createOrder = useCreateOrder();
@@ -706,9 +707,9 @@ useEffect(() => {
     }, [isEdit, existing, duplicatedData]);
 
   
-  const location = useLocation();
   
-  const duplicatedData = location.state?.duplicatedData || null;
+  
+  
 
   
 
