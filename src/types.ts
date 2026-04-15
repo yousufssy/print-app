@@ -37,7 +37,7 @@ export interface Order {
   ProDate?: string;
   ExpDate?: string;
   Authr_co?: string;
-  Pat_num?: string;
+  Pat_Num?: string;
   modefyM?: string;
 
   // Production Dimensions
