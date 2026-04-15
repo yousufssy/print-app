@@ -4,6 +4,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useForm, useWatch } from 'react-hook-form';
 import { useQuery } from '@tanstack/react-query';
 import { advancedSearchApi } from '../api/searchService'; // تحديث المسار
+import { customersApi } from '../api/services';
 import type { 
   AdvancedSearchFilters, 
   AdvancedSearchResult, 
@@ -13,8 +14,10 @@ import type {
 import { Btn, FormGroup, SectionDiv, Card } from '../components/ui';
 
 // ── ثوابت المسارات والإعدادات ──────────────────────────────────────────────
-const SEARCH_PATH = '/orders/search';
-const DEFAULT_YEAR = new Date().getFullYear().toString();
+const SEARCH_PATH = '/search';
+// Note: Default to current or previous year depending on data availability
+// Database typically has data for current year and previous years
+const DEFAULT_YEAR = '2025'; // Change this if new data is added for current year
 
 // ── مكونات فرعية قابلة لإعادة الاستخدام ───────────────────────────────────
 
@@ -157,14 +160,9 @@ export default function AdvancedSearchPage() {
     isLoading: isLoadingCustomers 
   } = useQuery<Customer[]>({
     queryKey: ['customers'],
-    queryFn: async () => {
-      const res = await fetch('/api/customers');
-      if (!res.ok) throw new Error('فشل تحميل قائمة العملاء');
-      return res.json();
-    },
+    queryFn: () => customersApi.list() as Promise<Customer[]>,
     staleTime: 5 * 60 * 1000, // 5 دقائق
     retry: 1,
-    onError: (err) => console.error('Error loading customers:', err)
   });
   
   // 📋 ثوابت القوائم
@@ -558,7 +556,7 @@ export default function AdvancedSearchPage() {
                 />
                 <datalist id="search-customers">
                   {customers.map((c) => (
-                    <option key={c._ID} value={c.Customer} />
+                    <option key={c._ID ?? c.ID1 ?? c.Customer} value={c.Customer} />
                   ))}
                 </datalist>
               </FilterGroup>
@@ -775,10 +773,11 @@ export default function AdvancedSearchPage() {
         
         {/* ⚙️ لوحة التحكم الجانبية */}
         <aside style={{ position: 'sticky', top: 20, height: 'fit-content' }}>
-          <Card style={{ padding: 16 }}>
-            <h4 style={{ margin: '0 0 16px', fontSize: 15, fontWeight: 700 }}>⚙️ خيارات العرض</h4>
+          <Card noPad>
+            <div style={{ padding: 16 }}>
+              <h4 style={{ margin: '0 0 16px', fontSize: 15, fontWeight: 700 }}>⚙️ خيارات العرض</h4>
             
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <FilterGroup label="ترتيب النتائج حسب">
                 <select 
                   className="fc" 
@@ -846,9 +845,9 @@ export default function AdvancedSearchPage() {
                   <option value={200}>200 نتيجة</option>
                 </select>
               </FilterGroup>
-            </div>
+              </div>
             
-            <div style={{ margin: '20px 0', borderTop: '1px solid var(--border)', paddingTop: 16 }}>
+              <div style={{ margin: '20px 0', borderTop: '1px solid var(--border)', paddingTop: 16 }}>
               <Btn 
                 variant="primary" 
                 type="submit" 
@@ -867,32 +866,37 @@ export default function AdvancedSearchPage() {
               >
                 📂 حفظ/تحميل بحث
               </Btn>
-            </div>
+              </div>
             
-            <div style={{ fontSize: 11, color: 'var(--muted)', textAlign: 'center' }}>
-              💡 اضغط <kbd style={{ background: '#eee', padding: '2px 6px', borderRadius: 4 }}>Ctrl+Enter</kbd> للبحث السريع
+              <div style={{ fontSize: 11, color: 'var(--muted)', textAlign: 'center' }}>
+                💡 اضغط <kbd style={{ background: '#eee', padding: '2px 6px', borderRadius: 4 }}>Ctrl+Enter</kbd> للبحث السريع
+              </div>
             </div>
           </Card>
           
           {/* 📊 معاينة سريعة للنتائج */}
           {searchResults && (
-            <Card style={{ padding: 16, marginTop: 16 }}>
-              <h4 style={{ margin: '0 0 12px', fontSize: 15, fontWeight: 700 }}>📊 ملخص النتائج</h4>
-              <dl style={{ 
-                display: 'grid', 
-                gridTemplateColumns: '1fr 1fr', 
-                gap: 8, 
-                fontSize: 13,
-                margin: 0 
-              }}>
-                <dt>📦 إجمالي النتائج:</dt>
-                <dd style={{ fontWeight: 700, textAlign: 'left', margin: 0 }}>{searchResults.total}</dd>
-                <dt>📄 الصفحات:</dt>
-                <dd style={{ fontWeight: 700, textAlign: 'left', margin: 0 }}>{searchResults.totalPages}</dd>
-                <dt>⏱️ وقت الاستجابة:</dt>
-                <dd style={{ fontWeight: 700, textAlign: 'left', margin: 0 }}>-</dd>
-              </dl>
-            </Card>
+            <div style={{ marginTop: 16 }}>
+              <Card noPad>
+                <div style={{ padding: 16 }}>
+                  <h4 style={{ margin: '0 0 12px', fontSize: 15, fontWeight: 700 }}>📊 ملخص النتائج</h4>
+                  <dl style={{ 
+                    display: 'grid', 
+                    gridTemplateColumns: '1fr 1fr', 
+                    gap: 8, 
+                    fontSize: 13,
+                    margin: 0 
+                  }}>
+                    <dt>📦 إجمالي النتائج:</dt>
+                    <dd style={{ fontWeight: 700, textAlign: 'left', margin: 0 }}>{searchResults.total}</dd>
+                    <dt>📄 الصفحات:</dt>
+                    <dd style={{ fontWeight: 700, textAlign: 'left', margin: 0 }}>{searchResults.totalPages}</dd>
+                    <dt>⏱️ وقت الاستجابة:</dt>
+                    <dd style={{ fontWeight: 700, textAlign: 'left', margin: 0 }}>-</dd>
+                  </dl>
+                </div>
+              </Card>
+            </div>
           )}
         </aside>
       </form>
