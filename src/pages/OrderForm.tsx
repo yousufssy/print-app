@@ -642,22 +642,22 @@ export default function OrderFormPage() {
   }));
 
   const handleProblemsChange = async (newRows: Record<string, string>[]) => {
-    if (!isEdit) { 
-      setPendingProblems(newRows); 
-      return; 
-    }
-    
-    try {
-      await syncRows(
-        problemsRows, newRows,
-        (f) => createProblem.mutateAsync({ ...f, ID: watchId, Year: watchYear }),
-        (rowId, f) => updateProblem.mutateAsync({ rowId, data: f }),
-        (rowId) => deleteProblem.mutateAsync(rowId),
-      );
-    } catch (error) {
-      console.error('❌ handleProblemsChange error:', error);
-    }
-  };
+      if (!isEdit) { 
+        setPendingProblems(newRows); 
+        return; 
+      }
+      
+      try {
+        await syncRows(
+          problemsRows, newRows,
+          (f) => createProblem.mutateAsync({ ...f, ID: getValues('ID'), Year: getValues('Year') }),
+          (rowId, f) => updateProblem.mutateAsync({ rowId, data: f }),
+          (rowId) => deleteProblem.mutateAsync(rowId),
+        );
+      } catch (error) {
+        console.error('❌ handleProblemsChange error:', error);
+      }
+    };
 
   // ── العمليات ──────────────────────────────────────────────────────────────────
   const { data: operationsData = [] } = useOperations(isEdit ? (id ?? '') : '', isEdit ? (year ?? '') : '');
@@ -686,22 +686,22 @@ export default function OrderFormPage() {
   }));
 
   const handleOperationsChange = async (newRows: Record<string, string>[]) => {
-    if (!isEdit) { 
-      setPendingOps(newRows); 
-      return; 
-    }
-    
-    try {
-      await syncRows(
-        operationsRows, newRows,
-        (f) => createOperation.mutateAsync({ ...f, ID: watchId, Year: watchYear }),
-        (rowId, f) => updateOperation.mutateAsync({ rowId, data: f }),
-        (rowId) => deleteOperation.mutateAsync(rowId),
-      );
-    } catch (error) {
-      console.error('❌ handleOperationsChange error:', error);
-    }
-  };
+      if (!isEdit) { 
+        setPendingOps(newRows); 
+        return; 
+      }
+      
+      try {
+        await syncRows(
+          operationsRows, newRows,
+          (f) => createOperation.mutateAsync({ ...f, ID: getValues('ID'), Year: getValues('Year') }),
+          (rowId, f) => updateOperation.mutateAsync({ rowId, data: f }),
+          (rowId) => deleteOperation.mutateAsync(rowId),
+        );
+      } catch (error) {
+        console.error('❌ handleOperationsChange error:', error);
+      }
+    };
 
   // ── حالة الأقسام ──────────────────────────────────────────────────────────────
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
@@ -738,13 +738,20 @@ export default function OrderFormPage() {
 
   // ✅ watch محسّن باستخدام state
 // ✅ قراءة القيم مباشرة بدون watch مستمر
-  const watchYear = getValues('Year') || String(new Date().getFullYear());
-  const watchId = getValues('ID') || '';
-
-  const { data: ordersResponse } = useOrders({ year: watchYear });
+// ✅ قراءة السنة مرة واحدة فقط
+  const [currentYear] = useState(String(new Date().getFullYear()));
+  
+  const { data: ordersResponse } = useOrders({ year: currentYear });
   const orders = ordersResponse?.data || [];
-
-  const { data: vouchers = [] } = useVouchers(isEdit ? watchId : '', watchYear);
+  
+  // ✅ قراءة القيم للـ vouchers بطريقة آمنة
+  const formYear = getValues('Year') || currentYear;
+  const formId = getValues('ID') || '';
+  
+  const { data: vouchers = [] } = useVouchers(
+    isEdit ? (id ?? '') : '', 
+    isEdit ? (year ?? currentYear) : currentYear
+  );
   const deleteVoucher = useDeleteVoucher();
 
   // ✅ تهيئة شاملة - مرة واحدة فقط
@@ -811,19 +818,20 @@ export default function OrderFormPage() {
     }, [duplicatedData, hasLoadedDuplicate]);
     
     // ✅ 3️⃣ تهيئة طلب جديد - مرة واحدة
-    useEffect(() => {
-      if (isEdit || orders.length === 0 || idInitialized || duplicatedData) return;
+// ✅ 3️⃣ تهيئة طلب جديد - مرة واحدة
+  useEffect(() => {
+      if (isEdit || !orders || orders.length === 0 || idInitialized || duplicatedData) return;
     
       const latestOrder = orders[orders.length - 1];
       const lastSer = parseInt(latestOrder?.Ser || '0') || 0;
       const newId = String((Number(latestOrder?.ID) || 0) + 1);
     
-      setValue('Ser', String(lastSer + 1));
-      setValue('ID', newId);
-      setValue('Year', String(new Date().getFullYear()));
+      setValue('Ser', String(lastSer + 1), { shouldDirty: false });
+      setValue('ID', newId, { shouldDirty: false });
+      setValue('Year', currentYear, { shouldDirty: false });
     
       setIdInitialized(true);
-    }, [isEdit, orders, idInitialized, duplicatedData]);
+    }, [isEdit, orders, idInitialized, duplicatedData, currentYear]);
 
   // ✅ الحفظ - مع معالجة أخطاء شاملة
   const onSubmit = async (data: Order) => {
@@ -1573,7 +1581,7 @@ body{font-family:'Arial',sans-serif;background:#fff;direction:rtl;margin:0;paddi
 
         {/* ── Footer ── */}
         <div style={{ background: '#fff', borderRadius: 14, border: '1px solid var(--border)', padding: '12px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <span style={{ fontSize: 12, color: 'var(--muted)' }}>سنة العمل: <strong>{watchYear}</strong></span>
+          <span style={{ fontSize: 12, color: 'var(--muted)' }}>سنة العمل: <strong>{getValues('Year') || currentYear}</strong></span>
           <div style={{ display: 'flex', gap: 10 }}>
             <Btn variant="outline" type="button" onClick={() => navigate('/orders')}>إلغاء</Btn>
             <Btn variant="outline" type="button" onClick={printProductionCard}>🖨️ طباعة بطاقة الإنتاج</Btn>
@@ -1585,7 +1593,7 @@ body{font-family:'Arial',sans-serif;background:#fff;direction:rtl;margin:0;paddi
 
       </form>
 
-      <VoucherModal open={voucherOpen} onClose={() => setVoucherOpen(false)} orderId={watchId} orderYear={watchYear} />
+      <VoucherModal    open={voucherOpen}    onClose={() => setVoucherOpen(false)}    orderId={getValues('ID') || ''}    orderYear={getValues('Year') || currentYear}  />
     </div>
   );
 }
