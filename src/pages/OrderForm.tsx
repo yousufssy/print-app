@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { useForm, useWatch } from 'react-hook-form'; // إضافة useWatch
+import { useForm, useWatch } from 'react-hook-form';
 import { useOrder, useCreateOrder, useUpdateOrder, useCustomers, useVouchers, useCreateVoucher, useDeleteVoucher, useOrders, useOperations, useCreateOperation, useUpdateOperation, useDeleteOperation, useCartons, useCreateCarton, useUpdateCarton, useDeleteCarton, useProblems, useCreateProblem, useUpdateProblem, useDeleteProblem } from '../hooks/useApi';
 import { Card, FormGroup, SectionDiv, CheckItem, Loading, Btn } from '../components/ui';
 import type { Order } from '../types';
@@ -525,10 +525,10 @@ console.log('🔄 حالة الصفحة:', {
   locationState: location.state
 });
 
-const { data: existing, isLoading } = useOrder(id ?? '', year ?? '');
+const {  existing, isLoading } = useOrder(id ?? '', year ?? '');
 const createOrder = useCreateOrder();
 const updateOrder = useUpdateOrder(id ?? '', year ?? '');
-const { data: customers = [] } = useCustomers();
+const {  customers = [] } = useCustomers();
 
 const [checks, setChecks] = useState<Record<string, boolean>>({});
 const [mfgChecks, setMfgChecks] = useState<Record<string, boolean>>({});
@@ -599,7 +599,7 @@ try {
 }, []);
 
 // ── الكرتون ───────────────────────────────────────────────────────────────────
-const { data: cartonsData = [] } = useCartons(
+const {  cartonsData = [] } = useCartons(
 isEdit ? (id ?? '') : '',
 isEdit ? (year ?? '') : ''
 );
@@ -655,7 +655,7 @@ try {
 }, [isEdit, materialsRows, syncRows, createCarton, updateCarton, deleteCarton, id, year]);
 
 // ── سجل المشاكل ───────────────────────────────────────────────────────────────
-const { data: problemsData = [] } = useProblems(isEdit ? (id ?? '') : '', isEdit ? (year ?? '') : '');
+const {  problemsData = [] } = useProblems(isEdit ? (id ?? '') : '', isEdit ? (year ?? '') : '');
 const createProblem = useCreateProblem();
 const updateProblem = useUpdateProblem();
 const deleteProblem = useDeleteProblem();
@@ -700,7 +700,7 @@ try {
 }, [isEdit, problemsRows, syncRows, createProblem, updateProblem, deleteProblem, id, year]);
 
 // ── العمليات ──────────────────────────────────────────────────────────────────
-const { data: operationsData = [] } = useOperations(isEdit ? (id ?? '') : '', isEdit ? (year ?? '') : '');
+const {  operationsData = [] } = useOperations(isEdit ? (id ?? '') : '', isEdit ? (year ?? '') : '');
 const createOperation = useCreateOperation();
 const updateOperation = useUpdateOperation();
 const deleteOperation = useDeleteOperation();
@@ -763,12 +763,12 @@ useEffect(() => {
 localStorage.setItem('orderFormSections', JSON.stringify(openSections));
 }, [openSections]);
 
-const { data: ordersResponse } = useOrders({ year: currentYear });
+const {  ordersResponse } = useOrders({ year: currentYear });
 const orders = useMemo(() => ordersResponse?.data ?? [], [ordersResponse]);
 
 console.log('🔄 بيانات الطلبات:', ordersResponse);
 
-const { data: vouchers = [] } = useVouchers(
+const {  vouchers = [] } = useVouchers(
 isEdit ? (id ?? '') : '',
 isEdit ? (year ?? currentYear) : currentYear
 );
@@ -872,17 +872,23 @@ useEffect(() => {
   
   if (isEdit || duplicatedData) return;
   if (idInitializedRef.current) return;
-  if (!orders || orders.length === 0) return;
+  
+  // حساب أعلى قيمة لـ Ser
+  const lastSer = orders.length > 0 ? 
+    Math.max(...orders.map(o => parseInt(o.Ser) || 0)) : 0;
+  
+  // حساب أعلى قيمة لـ ID
+  const lastId = orders.length > 0 ? 
+    Math.max(...orders.map(o => parseInt(o.ID) || 0)) : 0;
+  
+  const newSer = lastSer + 1;
+  const newId = lastId + 1;
 
   idInitializedRef.current = true;
 
-  const latestOrder = orders[orders.length - 1];
-  const lastSer = parseInt(latestOrder?.Ser || '0') || 0;
-  const newId = String((Number(latestOrder?.ID) || 0) + 1);
-
   const initData = {
-    Ser: String(lastSer + 1),
-    ID: newId,
+    Ser: String(newSer),
+    ID: String(newId),
     Year: currentYear,
   };
 
@@ -1071,11 +1077,61 @@ return (
     onToggle={() => toggleSection('basic')}
   >
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 12 }}>
-      <G label="تسلسل"><input className="fc" {...register('Ser')} readOnly style={{ textAlign: 'right', background: '#f8f9fa' }} /></G>
-      <G label="اسم الزبون" req><input className="fc" {...register('Customer', { required: true })} list="cust-list" placeholder="ابحث عن الزبون..." style={{ textAlign: 'right' }} /></G>
-      <G label="رقمنا"><input className="fc" {...register('ID')} readOnly style={{ textAlign: 'right', background: '#f8f9fa' }} /></G>
-      <G label="المرجع" req><input className="fc" {...register('marji3', { required: true })} placeholder="65982" style={{ textAlign: 'right' }} /></G>
-      <G label="التفصيلات المرتبطة"><input className="fc" {...register('AttachmentsOrders')} style={{ textAlign: 'right' }} /></G>
+      {/* تسلسل - دائمًا مقروء فقط */}
+      <G label="تسلسل">
+        <input 
+          className="fc" 
+          {...register('Ser')} 
+          readOnly 
+          style={{ 
+            textAlign: 'right', 
+            background: '#f8f9fa' 
+          }} 
+        />
+      </G>
+      
+      {/* اسم الزبون */}
+      <G label="اسم الزبون" req>
+        <input 
+          className="fc" 
+          {...register('Customer', { required: true })} 
+          list="cust-list" 
+          placeholder="ابحث عن الزبون..." 
+          style={{ textAlign: 'right' }} 
+        />
+      </G>
+      
+      {/* رقمنا - مقروء فقط في حالة التعديل، قابل للتغيير في الطلب الجديد */}
+      <G label="رقمنا">
+        <input 
+          className="fc" 
+          {...register('ID')} 
+          readOnly={isEdit} 
+          style={{ 
+            textAlign: 'right', 
+            background: isEdit ? '#f8f9fa' : 'transparent' 
+          }} 
+        />
+      </G>
+      
+      {/* المرجع */}
+      <G label="المرجع" req>
+        <input 
+          className="fc" 
+          {...register('marji3', { required: true })} 
+          placeholder="65982" 
+          style={{ textAlign: 'right' }} 
+        />
+      </G>
+      
+      {/* التفاصيل المرتبطة */}
+      <G label="التفصيلات المرتبطة">
+        <input 
+          className="fc" 
+          {...register('AttachmentsOrders')} 
+          style={{ textAlign: 'right' }} 
+        />
+      </G>
     </div>
     <datalist id="cust-list">
       {customers.map(c => <option key={(c as any).ID1} value={c.Customer} />)}
