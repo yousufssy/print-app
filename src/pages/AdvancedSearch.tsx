@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useForm, useWatch } from 'react-hook-form';
 import { useQuery } from '@tanstack/react-query';
-import { advancedSearchApi } from '../api/services';
+import { advancedSearchApi } from '../api/searchService'; // تحديث المسار
 import type { 
   AdvancedSearchFilters, 
   AdvancedSearchResult, 
