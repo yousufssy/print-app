@@ -600,24 +600,22 @@ export default function OrderFormPage() {
   const [pendingOps,       setPendingOps]       = useState<Record<string, string>[]>([]);
 
   const handleMaterialsChange = async (newRows: Record<string, string>[]) => {
-    if (!isEdit) { 
-      setPendingMaterials(newRows); 
-      return; 
-    }
-    
-    try {
-      const currentId = getValues('ID');
-      const currentYear = getValues('Year');
-      await syncRows(
-        materialsRows, newRows,
-        (f) => createCarton.mutateAsync({ ...f, ID: currentId, year: currentYear }),
-        (rowId, f) => updateCarton.mutateAsync({ rowId, data: f }),
-        (rowId) => deleteCarton.mutateAsync(rowId),
-      );
-    } catch (error) {
-      console.error('❌ handleMaterialsChange error:', error);
-    }
-  };
+      if (!isEdit) { 
+        setPendingMaterials(newRows); 
+        return; 
+      }
+      
+      try {
+        await syncRows(
+          materialsRows, newRows,
+          (f) => createCarton.mutateAsync({ ...f, ID: id!, year: year! }),
+          (rowId, f) => updateCarton.mutateAsync({ rowId, data: f }),
+          (rowId) => deleteCarton.mutateAsync(rowId),
+        );
+      } catch (error) {
+        console.error('❌ handleMaterialsChange error:', error);
+      }
+    };
 
   // ── سجل المشاكل ───────────────────────────────────────────────────────────────
   const { data: problemsData = [] } = useProblems(isEdit ? (id ?? '') : '', isEdit ? (year ?? '') : '');
@@ -650,7 +648,7 @@ export default function OrderFormPage() {
       try {
         await syncRows(
           problemsRows, newRows,
-          (f) => createProblem.mutateAsync({ ...f, ID: getValues('ID'), Year: getValues('Year') }),
+          (f) => createProblem.mutateAsync({ ...f, ID: id!, Year: year! }),
           (rowId, f) => updateProblem.mutateAsync({ rowId, data: f }),
           (rowId) => deleteProblem.mutateAsync(rowId),
         );
@@ -694,7 +692,7 @@ export default function OrderFormPage() {
       try {
         await syncRows(
           operationsRows, newRows,
-          (f) => createOperation.mutateAsync({ ...f, ID: getValues('ID'), Year: getValues('Year') }),
+          (f) => createOperation.mutateAsync({ ...f, ID: id!, Year: year! }),
           (rowId, f) => updateOperation.mutateAsync({ rowId, data: f }),
           (rowId) => deleteOperation.mutateAsync(rowId),
         );
@@ -744,9 +742,7 @@ export default function OrderFormPage() {
   const { data: ordersResponse } = useOrders({ year: currentYear });
   const orders = ordersResponse?.data || [];
   
-  // ✅ قراءة القيم للـ vouchers بطريقة آمنة
-  const formYear = getValues('Year') || currentYear;
-  const formId = getValues('ID') || '';
+
   
   const { data: vouchers = [] } = useVouchers(
     isEdit ? (id ?? '') : '', 
@@ -868,7 +864,7 @@ export default function OrderFormPage() {
       } else {
         const created = await createOrder.mutateAsync(data);
         const newId   = String((created as any)?.ID ?? (data as any).ID);
-        const yr      = String((data as any).Year ?? watchYear);
+        const yr = String((data as any).Year ?? currentYear);
 
         await Promise.all([
           ...pendingMaterials.map(({ ID, _isNew, ...f }) =>
@@ -1581,7 +1577,7 @@ body{font-family:'Arial',sans-serif;background:#fff;direction:rtl;margin:0;paddi
 
         {/* ── Footer ── */}
         <div style={{ background: '#fff', borderRadius: 14, border: '1px solid var(--border)', padding: '12px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <span style={{ fontSize: 12, color: 'var(--muted)' }}>سنة العمل: <strong>{getValues('Year') || currentYear}</strong></span>
+          <span style={{ fontSize: 12, color: 'var(--muted)' }}>سنة العمل: <strong>{currentYear}</strong></span>
           <div style={{ display: 'flex', gap: 10 }}>
             <Btn variant="outline" type="button" onClick={() => navigate('/orders')}>إلغاء</Btn>
             <Btn variant="outline" type="button" onClick={printProductionCard}>🖨️ طباعة بطاقة الإنتاج</Btn>
@@ -1593,7 +1589,7 @@ body{font-family:'Arial',sans-serif;background:#fff;direction:rtl;margin:0;paddi
 
       </form>
 
-      <VoucherModal    open={voucherOpen}    onClose={() => setVoucherOpen(false)}    orderId={getValues('ID') || ''}    orderYear={getValues('Year') || currentYear}  />
+      <VoucherModal    open={voucherOpen}    onClose={() => setVoucherOpen(false)}    orderId={id || ''}    orderYear={year || currentYear}  />
     </div>
   );
 }
