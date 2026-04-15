@@ -674,7 +674,8 @@ useEffect(() => {
     localStorage.setItem('orderFormSections', JSON.stringify(openSections));
   }, [openSections]);
 
-  const { register, handleSubmit, reset, watch, setValue } = useForm<Order>();
+  // ✅ أضف getValues إلى الاستيراد:
+  const { register, handleSubmit, reset, watch, setValue, getValues } = useForm<Order>();
   const location = useLocation();
   const duplicatedData = location.state;
 
@@ -682,34 +683,7 @@ useEffect(() => {
 
 
 
-// ✅ الكود الجديد (انسخ هذا):
-useEffect(() => {
-  // إذا لم توجد بيانات منسوخة، اخرج
-    if (!duplicatedData) return;
-  
-    // 🟢 1. فصل الـ Checkboxes عن بقية البيانات
-    // نستخدم destructuring لاستخراجها والباقي يذهب لـ orderData
-    const { checks: copiedChecks, mfgChecks: copiedMfg, custChecks: copiedCust, ...orderData } = duplicatedData;
-    
-    // 🟢 2. تعيين بيانات النموذج (الباقي)
-    if (Object.keys(orderData).length > 0) {
-      reset(orderData);
-    }
-  
-    // 🟢 3. تعيين الـ Checkboxes (نستخدم القيم المنسوخة أو نتركها فارغة)
-    setChecks(copiedChecks || {});
-    setMfgChecks(copiedMfg || {});
-    setCustChecks(copiedCust || {});
-    
-    // 🟢 4. تفريغ الجداول لضمان عدم نسخها
-    if (!isEdit) {
-      setMaterialsRows([]);
-      setPendingMaterials([]);
-      setPendingOps([]);
-      setPendingProblems([]);
-    }
-  
-  }, [duplicatedData, reset, isEdit]);
+
 
 
 
@@ -718,47 +692,25 @@ useEffect(() => {
   
   // ✅ الكود الجديد (انسخ هذا):
 // ✅ انسخ هذا الكود وضعه مرة واحدة فقط في ملفك:
+// ✅ دالة نسخ بسيطة تعتمد على البيانات الأصلية من السيرفر:
 const handleDuplicate = () => {
-    // 1️⃣ المصدر الأول: بيانات النموذج الحالية (ما عدله المستخدم)
-    const formValues = { ...getValues() };
-    
-    // 2️⃣ المصدر الثاني: البيانات الأصلية من السيرفر (للتعويض عن القيم الفارغة)
+    // المصدر الموثوق: البيانات من السيرفر (إذا كنا في وضع تعديل)
     const sourceData = isEdit && existing ? { ...existing } : {};
     
-    // 3️⃣ دمج المصدرين: نفضل قيم النموذج، ونعوض الناقص من البيانات الأصلية
-    const mergedData = { ...sourceData, ...formValues };
+    // حذف الحقول التي لا نريد نسخها
+    const excludeFields = ['ID', 'Ser', 'Year', 'AttachmentsOrders', 'marji3', 'date_come', 'Perioud', 'ID1'];
+    const dataToCopy = { ...sourceData };
+    excludeFields.forEach(field => delete dataToCopy[field]);
     
-    // 4️⃣ حذف الحقول التي لا نريد نسخها أبداً
-    const fieldsToExclude = ['ID', 'Ser', 'Year', 'AttachmentsOrders', 'marji3', 'date_come', 'Perioud'];
-    fieldsToExclude.forEach(field => {
-      delete mergedData[field];
-      delete formValues[field];
-    });
-    
-    // 5️⃣ التأكد من معالجة القيم الرقمية (0 لا يُحذف بالخطأ)
-    const numericFields = [
-      'Demand', 'Med_smpl_Q', 'Price', 'SoftU', 'TafU', 'LongU', 'WedthU', 'HightU', 'Lesan',
-      'final_size_tall', 'final_size_tall2', 'final_size_width', 'final_size_width2',
-      'print_on', 'print_on2', 'sheet_unit_qunt', 'sheet_unit_qunt2',
-      'Qunt_of_print_on', 'Qunt_of_print_on2', 'Clr_qunt', 'Med_Sample', 'grnd_qunt', 'clr_Qnt_order'
-    ];
-    
-    numericFields.forEach(field => {
-      // إذا كانت القيمة undefined أو null، نستخدم 0 كقيمة افتراضية
-      if (mergedData[field] === undefined || mergedData[field] === null) {
-        mergedData[field] = 0;
-      }
-    });
-    
-    // 6️⃣ التنقل للصفحة الجديدة مع البيانات الموثوقة
+    // التنقل مع البيانات
     navigate('/orders/new', {
       state: {
         duplicatedData: {
-          ...mergedData,
+          ...dataToCopy,
           Ser: '',  // تفريغ التسلسل
-          Year: String(new Date().getFullYear()), // تحديث السنة
+          Year: String(new Date().getFullYear()), // سنة جديدة
           
-          // ✅ ضمان نسخ الـ Checkboxes (حتى لو كانت false)
+          // ✅ نسخ الـ Checkboxes كما هي
           checks: { ...checks },
           mfgChecks: { ...mfgChecks },
           custChecks: { ...custChecks },
@@ -777,6 +729,7 @@ const handleDuplicate = () => {
   const deleteVoucher = useDeleteVoucher();
 
   // ✅ تحميل البيانات عند التعديل — مع قراءة صحيحة للـ boolean
+// ✅ useEffect واحد فقط لاستقبال البيانات المنسوخة:
 useEffect(() => {
     if (!duplicatedData) return;
   
@@ -788,21 +741,21 @@ useEffect(() => {
       ...orderData 
     } = duplicatedData;
     
-    // 🟢 تعيين بيانات النموذج (نتجاهل القيم undefined تلقائياً)
+    // 🟢 تعيين بيانات النموذج (تجاهل undefined)
     const validOrderData = Object.fromEntries(
-      Object.entries(orderData).filter(([_, v]) => v !== undefined)
+      Object.entries(orderData).filter(([_, v]) => v !== undefined && v !== null)
     );
     
     if (Object.keys(validOrderData).length > 0) {
       reset(validOrderData);
     }
   
-    // 🟢 تعيين الـ Checkboxes (نستخدم القيم المنسوخة أو نتركها افتراضية)
+    // 🟢 تعيين الـ Checkboxes
     setChecks(copiedChecks ?? {});
     setMfgChecks(copiedMfg ?? {});
     setCustChecks(copiedCust ?? {});
     
-    // 🟢 تفريغ الجداول لضمان عدم نسخها
+    // 🟢 تفريغ الجداول (لا نريدها تُنسخ)
     if (!isEdit) {
       setMaterialsRows([]);
       setPendingMaterials([]);
@@ -811,6 +764,11 @@ useEffect(() => {
     }
   
   }, [duplicatedData, reset, isEdit]);
+
+
+
+
+  
 
   useEffect(() => {
     if (!isEdit && orders.length >= 0) {
