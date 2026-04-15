@@ -685,45 +685,47 @@ export default function OrderFormPage() {
 
   // ✅ تحميل البيانات عند التعديل — مع قراءة صحيحة للـ boolean ومزامنة mfgChecks
   useEffect(() => {
-        if (isEdit && existing && !duplicatedData) {
-          reset(existing);
-      
-          setMfgChecks({
-            'برنيش':      fromBit(existing.varnich),
-            'تلميع بقعي': fromBit(existing.uv_Spot),
-            'تلميع كامل': fromBit(existing.uv),
-            'سلفان لميع': fromBit(existing.seluvan_lum),
-            'سلفان مات':  fromBit(existing.seluvan_mat),
-            'طُبعت؟':     fromBit(existing.Printed),
-          });
-      
-          // ✅ CHK_CUST مرتبطة بالداتابيز
-          setCustChecks({
-            'مع طبخة':     fromBit(existing.cust_with_baking),
-            'مع تطوية':    fromBit(existing.cust_with_folding),
-            'تدعيم زكزاك': fromBit(existing.cust_tad3em_zkzk),
-            'حراري':       fromBit(existing.cust_harary),
-            'بلص':         fromBit(existing.cust_bp),
-          });
-      
-          setChecks({
-            varnich:     fromBit(existing.varnich),
-            uv:          fromBit(existing.uv),
-            uv_Spot:     fromBit(existing.uv_Spot),
-            seluvan_lum: fromBit(existing.seluvan_lum),
-            seluvan_mat: fromBit(existing.seluvan_mat),
-            Tad3em:      fromBit(existing.Tad3em),
-            Tay:         fromBit(existing.Tay),
-            harary:      fromBit(existing.harary),
-            rolling:     fromBit(existing.rolling),
-            Printed:     fromBit(existing.Printed),
-            Billed:      fromBit(existing.Billed),
-            Reseved:     fromBit(existing.Reseved),
-            CTB:         fromBit(existing.DubelM),
-            varn:        fromBit(existing.varnich),
-          });
-        }
-      }, [isEdit, existing, duplicatedData]);
+    if (isEdit && existing && !duplicatedData) {
+      reset(existing);
+
+      // ── ✅ ربط checkboxes التصنيع بقيم الداتابيز ──
+      setMfgChecks({
+        'برنيش':      fromBit(existing.varnich),
+        'تلميع بقعي': fromBit(existing.uv_Spot),
+        'تلميع كامل': fromBit(existing.uv),
+        'سلفان لميع': fromBit(existing.seluvan_lum),
+        'سلفان مات':  fromBit(existing.seluvan_mat),
+        'طُبعت؟':     fromBit(existing.Printed),
+      });
+
+      // ── ربط checks العامة ──
+      setChecks({
+        varnich:    fromBit(existing.varnich),
+        uv:         fromBit(existing.uv),
+        uv_Spot:    fromBit(existing.uv_Spot),
+        seluvan_lum:fromBit(existing.seluvan_lum),
+        seluvan_mat:fromBit(existing.seluvan_mat),
+        Tad3em:     fromBit(existing.Tad3em),
+        Tay:        fromBit(existing.Tay),
+        harary:     fromBit(existing.harary),
+        rolling:    fromBit(existing.rolling),
+        Printed:    fromBit(existing.Printed),
+        Billed:     fromBit(existing.Billed),
+        Reseved:    fromBit(existing.Reseved),
+        CTB:        fromBit(existing.DubelM),
+        varn:       fromBit(existing.varnich),
+      });
+
+      // ── ربط custChecks ──
+      setCustChecks({
+        'مع طبخة':     fromBit(existing.cust_with_baking),
+        'مع تطوية':    fromBit(existing.cust_with_folding),
+        'تدعيم زكزاك': fromBit(existing.cust_tad3em_zkzk),
+        'حراري':       fromBit(existing.cust_harary),
+        'بلص':         fromBit(existing.cust_bp),
+      });
+    }
+  }, [isEdit, existing, duplicatedData]);
 
   // ✅ تحميل البيانات المنسوخة
   useEffect(() => {
@@ -775,55 +777,51 @@ export default function OrderFormPage() {
   }, [isEdit, orders, setValue, getValues, idInitialized]);
 
   // ✅ الحفظ — مع إرسال 1/0 لجميع الحقول بما فيها mfgChecks
-   const onSubmit = async (data: Order) => {
-      // ── 1. BOOL_FIELDS العامة ──
-      BOOL_FIELDS.forEach(f => {
-        (data as any)[f] = toBit(checks[f]);
-      });
-    
-      // ── 2. ✅ checkboxes التصنيع (mfgChecks) ──
-      Object.entries(MFG_MAP).forEach(([label, field]) => {
-        (data as any)[field] = toBit(mfgChecks[label]);
-      });
-    
-      // ── 3. ✅ checkboxes الزبون (custChecks) ──
-      CUST_FIELDS.forEach((field, i) => {
-        (data as any)[field] = toBit(custChecks[CUST_LABELS[i]]);
-      });
-    
-      // ── 4. حقول إضافية ──
-      (data as any).DubelM = toBit(checks.CTB);
-      (data as any).tabkha = 0;
-      (data as any).bals   = 0;
-    
-      // ── 5. إنشاء طلب جديد ──
-      if (!isEdit) {
-        const maxRowId = orders.length > 0
-          ? Math.max(...orders.map((o: any) => o.ID)) + 1
-          : 1;
-        (data as any).ID = maxRowId;
-      }
-    
-      // ── 6. حفظ أو تعديل ──
-      if (isEdit) {
-        await updateOrder.mutateAsync(data);
-      } else {
-        const created = await createOrder.mutateAsync(data);
-        const newId   = String((created as any)?.ID ?? (data as any).ID);
-        const yr      = String((data as any).Year ?? watchYear);
-    
-        await Promise.all([
-          ...pendingMaterials.map(({ ID, _isNew, ...f }) =>
-            createCarton.mutateAsync({ ...f, ID: newId, year: yr })),
-          ...pendingProblems.map(({ ID, _isNew, ...f }) =>
-            createProblem.mutateAsync({ ...f, ID: newId, Year: yr })),
-          ...pendingOps.map(({ ID, _isNew, ...f }) =>
-            createOperation.mutateAsync({ ...f, ID: newId, Year: yr })),
-        ]);
-      }
-    
-      navigate('/orders');
-    };
+  const onSubmit = async (data: Order) => {
+    // ── تحويل BOOL_FIELDS العامة ──
+    BOOL_FIELDS.forEach(f => {
+      (data as any)[f] = toBit(checks[f]);
+    });
+
+    // ── ✅ حفظ checkboxes التصنيع بقيم 1/0 ──
+    Object.entries(MFG_MAP).forEach(([label, field]) => {
+      (data as any)[field] = toBit(mfgChecks[label]);
+    });
+
+    // ── حقول الزبون ──
+    CUST_FIELDS.forEach((field, i) => {
+      (data as any)[field] = toBit(custChecks[CUST_LABELS[i]]);
+    });
+
+    (data as any).DubelM = toBit(checks.CTB);
+    (data as any).tabkha = 0;
+    (data as any).bals   = 0;
+
+    if (!isEdit) {
+      const maxRowId = orders.length > 0
+        ? Math.max(...orders.map((o: any) => o.ID)) + 1
+        : 1;
+      (data as any).ID = maxRowId;
+    }
+
+    if (isEdit) {
+      await updateOrder.mutateAsync(data);
+    } else {
+      const created = await createOrder.mutateAsync(data);
+      const newId   = String((created as any)?.ID ?? (data as any).ID);
+      const yr      = String((data as any).Year ?? watchYear);
+
+      await Promise.all([
+        ...pendingMaterials.map(({ ID, _isNew, ...f }) =>
+          createCarton.mutateAsync({ ...f, ID: newId, year: yr })),
+        ...pendingProblems.map(({ ID, _isNew, ...f }) =>
+          createProblem.mutateAsync({ ...f, ID: newId, Year: yr })),
+        ...pendingOps.map(({ ID, _isNew, ...f }) =>
+          createOperation.mutateAsync({ ...f, ID: newId, Year: yr })),
+      ]);
+    }
+    navigate('/orders');
+  };
 
   const handleDuplicate = () => {
     const sourceData = isEdit && existing ? { ...existing } : {};
@@ -1342,89 +1340,56 @@ body{font-family:'Arial',sans-serif;background:#fff;direction:rtl;margin:0;paddi
             </div>
 
             {/* من الزبون */}
-              <div style={{ border: '1.5px solid var(--border)', borderRadius: 10, overflow: 'hidden' }}>
-                <div style={{ padding: '9px 13px', background: 'rgba(192,57,43,.08)', color: 'var(--red)', fontSize: 12, fontWeight: 700, borderBottom: '1px solid rgba(192,57,43,.15)', textAlign: 'right' }}>
-                  🚨 المشاكل الواردة من الزبون
+            <div style={{ border: '1.5px solid var(--border)', borderRadius: 10, overflow: 'hidden' }}>
+              <div style={{ padding: '9px 13px', background: 'rgba(192,57,43,.08)', color: 'var(--red)', fontSize: 12, fontWeight: 700, borderBottom: '1px solid rgba(192,57,43,.15)', textAlign: 'right' }}>
+                🚨 المشاكل الواردة من الزبون
+              </div>
+              <div style={{ padding: 12 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 10 }}>
+                  <div>
+                    <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--steel)', marginBottom: 4, display: 'block', textAlign: 'right' }}>رقم الطبع</label>
+                    <input className="fc" style={{ fontSize: 12, textAlign: 'right' }} />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--steel)', marginBottom: 4, display: 'block', textAlign: 'right' }}>عدد الطبع</label>
+                    <input className="fc" type="number" style={{ fontSize: 12, textAlign: 'right' }} />
+                  </div>
                 </div>
-                <div style={{ padding: 12 }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 10 }}>
-                    <div>
-                      <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--steel)', marginBottom: 4, display: 'block', textAlign: 'right' }}>رقم الطبع</label>
-                      <input className="fc" style={{ fontSize: 12, textAlign: 'right' }} />
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 10 }}>
+                  <div>
+                    <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--steel)', marginBottom: 4, display: 'block', textAlign: 'right' }}>الأبعاد</label>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <input className="fc" type="number" defaultValue={23} style={{ fontSize: 12, textAlign: 'right' }} />
+                      <span style={{ color: 'var(--muted)', fontWeight: 700 }}>×</span>
+                      <input className="fc" type="number" defaultValue={25} style={{ fontSize: 12, textAlign: 'right' }} />
                     </div>
-                    <div>
-                      <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--steel)', marginBottom: 4, display: 'block', textAlign: 'right' }}>عدد الطبع</label>
-                      <input className="fc" type="number" style={{ fontSize: 12, textAlign: 'right' }} />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <input className="fc" type="number" defaultValue={23} style={{ fontSize: 12, textAlign: 'right' }} />
+                      <span style={{ color: 'var(--muted)', fontWeight: 700 }}>×</span>
+                      <input className="fc" type="number" defaultValue={25} style={{ fontSize: 12, textAlign: 'right' }} />
                     </div>
-                  </div>
-                  
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 10 }}>
-                    <div>
-                      <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--steel)', marginBottom: 4, display: 'block', textAlign: 'right' }}>الأبعاد</label>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                        <input className="fc" type="number" defaultValue={23} style={{ fontSize: 12, textAlign: 'right' }} />
-                        <span style={{ color: 'var(--muted)', fontWeight: 700 }}>×</span>
-                        <input className="fc" type="number" defaultValue={25} style={{ fontSize: 12, textAlign: 'right' }} />
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                        <input className="fc" type="number" defaultValue={23} style={{ fontSize: 12, textAlign: 'right' }} />
-                        <span style={{ color: 'var(--muted)', fontWeight: 700 }}>×</span>
-                        <input className="fc" type="number" defaultValue={25} style={{ fontSize: 12, textAlign: 'right' }} />
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <input className="fc" type="number" defaultValue={23} style={{ fontSize: 12, textAlign: 'right' }} />
-                        <span style={{ color: 'var(--muted)', fontWeight: 700 }}>×</span>
-                        <input className="fc" type="number" defaultValue={25} style={{ fontSize: 12, textAlign: 'right' }} />
-                      </div>
-                    </div>
-                    
-                    <div>
-                      <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--steel)', marginBottom: 4, display: 'block', textAlign: 'right' }}>تاريخ الانتهاء</label>
-                      <input className="fc" type="date" style={{ fontSize: 12, textAlign: 'right' }} />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <input className="fc" type="number" defaultValue={23} style={{ fontSize: 12, textAlign: 'right' }} />
+                      <span style={{ color: 'var(--muted)', fontWeight: 700 }}>×</span>
+                      <input className="fc" type="number" defaultValue={25} style={{ fontSize: 12, textAlign: 'right' }} />
                     </div>
                   </div>
                   
-                  {/* ✅ الـ checkboxes المُحدَّثة */}
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 8 }}>
-                    {CHK_CUST.map((label) => (
-                      <label 
-                        key={label}
-                        style={{ 
-                          display: 'flex', 
-                          alignItems: 'center', 
-                          gap: 8,
-                          cursor: 'pointer',
-                          padding: '6px 8px',
-                          borderRadius: 6,
-                          background: custChecks[label] ? 'rgba(46,204,113,0.1)' : 'transparent',
-                          border: `1px solid ${custChecks[label] ? '#27ae60' : 'var(--border)'}`,
-                          transition: 'all 0.2s'
-                        }}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={!!custChecks[label]}
-                          onChange={(e) => {
-                            const newVal = e.target.checked;
-                            setCustChecks(prev => ({ ...prev, [label]: newVal }));
-                          }}
-                          style={{ 
-                            width: 16, 
-                            height: 16,
-                            cursor: 'pointer'
-                          }}
-                        />
-                        <span style={{ fontSize: 12, fontWeight: 500 }}>{label}</span>
-                      </label>
-                    ))}
+                  <div>
+                    <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--steel)', marginBottom: 4, display: 'block', textAlign: 'right' }}>تاريخ الانتهاء</label>
+                    <input className="fc" type="date" style={{ fontSize: 12, textAlign: 'right' }} />
                   </div>
-                  
-                  <div style={{ marginTop: 10 }}>
-                    <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--steel)', marginBottom: 6, display: 'block', textAlign: 'right' }}>اختبار</label>
-                    <input className="fc" placeholder="ادخل نص الاختب��ر" style={{ fontSize: 12, textAlign: 'right' }} />
-                  </div>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 8 }}>
+                  {CHK_CUST.map(l => <CheckItem key={l} label={l} checked={!!custChecks[l]} onChange={cchk(l)} />)}
+                </div>
+                <div style={{ marginTop: 10 }}>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--steel)', marginBottom: 6, display: 'block', textAlign: 'right' }}>اختبار</label>
+                  <input className="fc" placeholder="ادخل نص الاختبار" style={{ fontSize: 12, textAlign: 'right' }} />
                 </div>
               </div>
+            </div>
+          </div>
 
           <SectionDiv label="سجل المشاكل الواردة من الزبون" />
           <InlineTable
