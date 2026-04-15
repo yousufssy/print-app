@@ -479,7 +479,7 @@ const OPERATIONS_COLS = [
 ];
 
 const CHK_MFG  = ['برنيش','تلميع بقعي','تلميع كامل','سلفان لميع','سلفان مات','طُبعت؟'];
-const CHK_CUST = ['مع طبخة','مع تطوية','تدعيم زكزاك','حراري','بص'];
+const CHK_CUST = ['مع طبخة','مع تطوية','تدعيم زكزاك','حراري','بلص'];
 
 // ── Helper: تحويل أي قيمة boolean لـ 1 أو 0 ──────────────────────────────────
 const toBit = (val: any): number =>
@@ -1088,7 +1088,7 @@ body{font-family:'Arial',sans-serif;background:#fff;direction:rtl;margin:0;paddi
           <div class="option-item"><div class="checkbox">${chkd(mfgChecks['سلفان لميع'])}</div> سلفان لميع</div>
           <div class="option-item"><div class="checkbox">${chkd(mfgChecks['سلفان مات'])}</div> سلفان مت</div>
           <div class="option-item"><div class="checkbox">${chkd(custChecks['حراري'])}</div> حــــراري</div>
-          <div class="option-item"><div class="checkbox">${chkd(custChecks['بص'])}</div> بـــلص</div>
+          <div class="option-item"><div class="checkbox">${chkd(custChecks['بلص'])}</div> بـــلص</div>
         </div>
         <div class="notes-wrapper">
           <div style="font-weight:bold;margin-bottom:4px;text-align:center;font-size:12px">ملاحظات:</div>
