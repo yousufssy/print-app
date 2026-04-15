@@ -492,14 +492,8 @@ const BOOL_FIELDS = [
   'Tad3em','Tay','harary','rolling','Printed','Billed','Reseved'
 ];
 
-// ── ربط checkboxes الزبون بحقول الداتابيز ─────────────────────────────────────
-const CUST_MAP: Record<string, string> = {
-  'مع طبخة':     'cust_with_baking',
-  'مع تطوية':    'cust_with_folding',
-  'تدعيم زكزاك': 'cust_tad3em_zkzk',
-  'حراري':       'cust_harary',
-  'بلص':         'cust_bp',
-};
+const CUST_LABELS = ['مع طبخة','مع تطوية','تدعيم زكزاك','حراري','بلص'];
+const CUST_FIELDS = ['cust_with_baking','cust_with_folding','cust_tad3em_zkzk','cust_harary','cust_bp','cust_tlm3_bq3y'];
 
 // ══════════════════════════════════════════════════════
 //  🎯 MAIN COMPONENT - OrderFormPage
@@ -730,12 +724,16 @@ export default function OrderFormPage() {
         varn:       fromBit(existing.varnich ?? 0),
       });
   
-      // ── ✅ ربط custChecks عبر CUST_MAP ──
-      const custInit: Record<string, boolean> = {};
-      Object.entries(CUST_MAP).forEach(([label, field]) => {
-        custInit[label] = fromBit((existing as any)[field] ?? 0);
+      // ── ربط custChecks (مع معالجة الحقل الزائد) ──
+      setCustChecks({
+        'مع طبخة':     fromBit(existing.cust_with_baking ?? 0),
+        'مع تطوية':    fromBit(existing.cust_with_folding ?? 0),
+        'تدعيم زكزاك': fromBit(existing.cust_tad3em_zkzk ?? 0),
+        'حراري':       fromBit(existing.cust_harary ?? 0),
+        'بلص':         fromBit(existing.cust_bp ?? 0),
+        // ✅ إضافة الحقل الزائد إذا كان موجودًا في الداتابيز
+        'تلميع بقعي':  fromBit(existing.cust_tlm3_bq3y ?? 0)
       });
-      setCustChecks(custInit);
     }
   }, [isEdit, existing, duplicatedData]);
 
@@ -807,15 +805,26 @@ export default function OrderFormPage() {
         (data as any)[field] = toBit(value);
       });
     
-      // ── ✅ حفظ checkboxes الزبون عبر CUST_MAP ──
-      Object.entries(CUST_MAP).forEach(([label, field]) => {
+      // ── حقول الزبون (مع تصحيح) ──
+      // ❌ المشكلة: CUST_FIELDS لها 6 عناصر بينما CUST_LABELS لها 5 عناصر فقط
+      for (let i = 0; i < Math.min(CUST_FIELDS.length, CUST_LABELS.length); i++) {
+        const field = CUST_FIELDS[i];
+        const label = CUST_LABELS[i];
+        // ✅ التأكد من وجود القيمة في custChecks قبل الوصول إليها
         const value = custChecks[label] !== undefined ? custChecks[label] : false;
         (data as any)[field] = toBit(value);
-      });
-
-      (data as any).tabkha = toBit(custChecks['مع طبخة']);
-      (data as any).bals   = toBit(custChecks['بلص']);
+      }
+      
+      // ✅ معالجة الحقل الإضافي في CUST_FIELDS (cust_tlm3_bq3y)
+      if (CUST_FIELDS.length > CUST_LABELS.length) {
+        const extraField = CUST_FIELDS[CUST_FIELDS.length - 1];
+        // يمكنك تحديد قيمة افتراضية أو استخدام حقل آخر
+        (data as any)[extraField] = toBit(false); // أو أي قيمة منطقية مناسبة
+      }
+    
       (data as any).DubelM = toBit(checks.CTB);
+      (data as any).tabkha = 0;
+      (data as any).bals   = 0;
     
       if (!isEdit) {
         const maxRowId = orders.length > 0
