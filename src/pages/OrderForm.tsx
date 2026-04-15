@@ -24,7 +24,7 @@ function AccordionCard({
   const [internalOpen, setInternalOpen] = useState(defaultOpen);
   const isControlled = isOpen !== undefined;
   const open = isControlled ? isOpen : internalOpen;
-  const [idInitialized, setIdInitialized] = useState(false);
+
   const toggle = () => {
     if (isControlled) onToggle?.();
     else setInternalOpen(!open);
