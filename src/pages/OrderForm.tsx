@@ -717,16 +717,9 @@ useEffect(() => {
 
   
   // ✅ الكود الجديد (انسخ هذا):
+// ✅ انسخ هذا الكود وضعه مرة واحدة فقط في ملفك:
 const handleDuplicate = () => {
-    // 1️⃣ جمع بيانات النموذج الأساسية
-    const formData = watch();
-    
-    // 2️⃣ استبعاد حقول النظام (لا نريد نسخها)
-    const { ID, Ser, Year, AttachmentsOrders, ...basicData } = formData as any;
-    
-    // 3️⃣ تحضير البيانات للنسخ
-const handleDuplicate = () => {
-    // 1️⃣ جمع كل القيم من النموذج (بما فيها غير المسجلة قد تحتاج getValues)
+    // 1️⃣ جمع كل القيم من النموذج
     const formData = { ...watch() };
     
     // 2️⃣ حذف الحقول التي لا نريد نسخها أبداً
@@ -749,7 +742,7 @@ const handleDuplicate = () => {
         }
       }
     });
-  };
+  }; // ⚠️ تأكد من وجود هذا القوس والفاصلة المنقوطة في النهاية
   
   const watchYear = watch('Year') || String(new Date().getFullYear());
   const watchId   = watch('ID') || '';
