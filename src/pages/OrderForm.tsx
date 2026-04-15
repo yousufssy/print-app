@@ -677,7 +677,7 @@ useEffect(() => {
   // ✅ أضف getValues إلى الاستيراد:
   const { register, handleSubmit, reset, watch, setValue, getValues } = useForm<Order>();
   const location = useLocation();
-  const duplicatedData = location.state;
+  const duplicatedData = location.state?.duplicatedData;
 
   
 
