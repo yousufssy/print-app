@@ -729,10 +729,12 @@ export default function OrderFormPage() {
 
   // ✅ useForm مع إعدادات محسّنة
   const { register, handleSubmit, reset, watch, setValue, getValues } = useForm<Order>({
-    mode: 'onBlur',
-    shouldUnregister: false,
-    shouldFocusError: false,
-  });
+      defaultValues: {
+        Year: String(new Date().getFullYear()),
+        ID: '',
+        Ser: ''
+      }
+    });
 
   // ✅ watch محسّن باستخدام state
   const [watchYear, setWatchYear] = useState(String(new Date().getFullYear()));
