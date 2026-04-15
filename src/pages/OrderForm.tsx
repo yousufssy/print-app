@@ -282,9 +282,6 @@ function InlineTable({
                         if (isNumber) val = cleanNumber(val);
                         setCell(i, c.key, val);
                       }}
-                      onBlur={() => {
-                        if (ci === cols.length - 1) saveRow(i);
-                      }}
                       style={{
                         width: '100%',
                         border: 'none',
