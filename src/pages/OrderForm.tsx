@@ -480,7 +480,7 @@ const MFG_MAP: Record<string, string> = {
 
 // ✅ ربط checkboxes الزبون بحقول الداتابيز
 const CUST_MAP: Record<string, string> = {
-  'مع طبخة':     'cust_with_baking',
+  'مع طبخة':     'tabkha',
   'مع تطوية':    'cust_with_folding',
   'تدعيم زكزاك': 'cust_tad3em_zkzk',
   'حراري':       'cust_harary',
