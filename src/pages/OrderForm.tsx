@@ -6,28 +6,23 @@ import { Card, FormGroup, SectionDiv, CheckItem, Loading, Btn } from '../compone
 import type { Order } from '../types';
 
 // ══════════════════════════════════════════════════════
-//  🔽 Accordion Card Component
+//  🔽 Accordion Card Component - مصحح
 // ══════════════════════════════════════════════════════
 function AccordionCard({ 
-    title, 
-    children, 
-    defaultOpen = true,
-    isOpen,
-    onToggle 
-  }) {
-    const [internalOpen, setInternalOpen] = useState(defaultOpen);
-    
-    // ✅ هذا السطر المُصحح
-    const isControlled = isOpen !== undefined;
-    const open = isControlled ? isOpen : internalOpen;
-  
-    const toggle = () => {
-      if (isControlled) onToggle?.();
-      else setInternalOpen(!open);
-    };
-  
-    // باقي الكود...
-  }
+  title, 
+  children, 
+  defaultOpen = true,
+  isOpen,
+  onToggle 
+}) {
+  const [internalOpen, setInternalOpen] = useState(defaultOpen);
+  const isControlled = isOpen !== undefined;
+  const open = isControlled ? isOpen : internalOpen;
+
+  const toggle = () => {
+    if (isControlled) onToggle?.();
+    else setInternalOpen(!open);
+  };
 
   return (
     <div style={{ 
@@ -83,7 +78,7 @@ function AccordionCard({
       </div>
     </div>
   );
-
+}
 
 // ── Inline editable table ──────────────────────────────────────────────────────
 const InlineTable = React.memo(function InlineTable({
