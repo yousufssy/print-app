@@ -816,25 +816,31 @@ export default function OrderFormPage() {
   }, [duplicatedData, hasLoadedDuplicate, reset]);
 
   // ✅ 3️⃣ تهيئة طلب جديد - مرة واحدة
+// ✅ 3️⃣ تهيئة طلب جديد - مرة واحدة فقط عند أول تحميل
   useEffect(() => {
-    if (isEdit || !orders || orders.length === 0 || idInitialized || duplicatedData) return;
-
-    const latestOrder = orders[orders.length - 1];
-    const lastSer = parseInt(latestOrder?.Ser || '0') || 0;
-    const newId = String((Number(latestOrder?.ID) || 0) + 1);
-
-    setValue('Ser', String(lastSer + 1), { shouldDirty: false });
-    setValue('ID', newId, { shouldDirty: false });
-    setValue('Year', currentYear, { shouldDirty: false });
-
-    formDataRef.current = {
-      Ser: String(lastSer + 1),
-      ID: newId,
-      Year: currentYear
-    };
-
-    setIdInitialized(true);
-  }, [isEdit, orders, idInitialized, duplicatedData, currentYear, setValue]);
+      if (isEdit || idInitialized || duplicatedData) return;
+      if (!orders || orders.length === 0) return;
+    
+      const latestOrder = orders[orders.length - 1];
+      const lastSer = parseInt(latestOrder?.Ser || '0') || 0;
+      const newId = String((Number(latestOrder?.ID) || 0) + 1);
+    
+      // استخدام reset بدلاً من setValue المتكرر
+      reset({
+        Ser: String(lastSer + 1),
+        ID: newId,
+        Year: currentYear,
+      });
+    
+      formDataRef.current = {
+        Ser: String(lastSer + 1),
+        ID: newId,
+        Year: currentYear,
+      };
+    
+      setIdInitialized(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isEdit, orders, idInitialized, duplicatedData]);
 
   // ✅ الحفظ - مع معالجة أخطاء شاملة
   const onSubmit = useCallback(async (data: Order) => {
