@@ -9,26 +9,25 @@ import type { Order } from '../types';
 //  🔽 Accordion Card Component
 // ══════════════════════════════════════════════════════
 function AccordionCard({ 
-  title, 
-  children, 
-  defaultOpen = true,
-  isOpen,
-  onToggle 
-}: { 
-  title: string; 
-  children: React.ReactNode;
-  defaultOpen?: boolean;
-  isOpen?: boolean;
-  onToggle?: () => void;
-}) {
-  const [internalOpen, setInternalOpen] = useState(defaultOpen);
-  const isControlled = isOpen !== undefined;
-  const open = isControlled ? isOpen : internalOpen;
-
-  const toggle = () => {
-    if (isControlled) onToggle?.();
-    else setInternalOpen(!open);
-  };
+    title, 
+    children, 
+    defaultOpen = true,
+    isOpen,
+    onToggle 
+  }) {
+    const [internalOpen, setInternalOpen] = useState(defaultOpen);
+    
+    // ✅ هذا السطر المُصحح
+    const isControlled = isOpen !== undefined;
+    const open = isControlled ? isOpen : internalOpen;
+  
+    const toggle = () => {
+      if (isControlled) onToggle?.();
+      else setInternalOpen(!open);
+    };
+  
+    // باقي الكود...
+  }
 
   return (
     <div style={{ 
