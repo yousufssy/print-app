@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { useOrder, useCreateOrder, useUpdateOrder, useCustomers, useVouchers, useCreateVoucher, useDeleteVoucher, useOrders, useOperations, useCreateOperation, useUpdateOperation, useDeleteOperation, useCartons, useCreateCarton, useUpdateCarton, useDeleteCarton, useProblems, useCreateProblem, useUpdateProblem, useDeleteProblem } from '../hooks/useApi';
@@ -836,14 +836,6 @@ export default function OrderFormPage() {
     setIdInitialized(true);
   }, [isEdit, orders, idInitialized, duplicatedData, currentYear, setValue]);
 
-  // ✅ تحديث formDataRef عند تغيير الحقول
-  const handleFormChange = useCallback((field: string, value: any) => {
-    formDataRef.current = {
-      ...formDataRef.current,
-      [field]: value
-    };
-  }, []);
-
   // ✅ الحفظ - مع معالجة أخطاء شاملة
   const onSubmit = useCallback(async (data: Order) => {
     try {
@@ -1235,12 +1227,7 @@ body{font-family:'Arial',sans-serif;background:#fff;direction:rtl;margin:0;paddi
         </Btn>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} onChange={(e: any) => {
-        const target = e.target as HTMLInputElement;
-        if (target.name) {
-          handleFormChange(target.name, target.value);
-        }
-      }}>
+      <form onSubmit={handleSubmit(onSubmit)}>
 
         {/* ══ 1. بيانات الطلب الأساسية ══ */}
         <AccordionCard 
@@ -1265,11 +1252,11 @@ body{font-family:'Arial',sans-serif;background:#fff;direction:rtl;margin:0;paddi
             <G label="موافقة المونتاج"><input className="fc" type="date" {...register('Perioud')} style={{ textAlign: 'right' }} /></G>
             <G label="المطلوب"><input className="fc" type="number" {...register('Demand')} style={{ textAlign: 'right' }} /></G>
             <G label="نموذج طبي"><input className="fc" type="number" {...register('Med_smpl_Q')} style={{ textAlign: 'right' }} /></G>
-            <G label="سنة ا��عمل" req><input className="fc" {...register('Year', { required: true })} style={{ textAlign: 'right' }} /></G>
+            <G label="سنة العمل" req><input className="fc" {...register('Year', { required: true })} style={{ textAlign: 'right' }} /></G>
           </div>
         </AccordionCard>
 
-        {/* ══ 2. مواصفات المطبوعة ���═ */}
+        {/* ══ 2. مواصفات المطبوعة ══ */}
         <AccordionCard 
           title="🎨 مواصفات المطبوعة"
           isOpen={openSections.specs}
