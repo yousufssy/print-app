@@ -1343,7 +1343,7 @@ body{font-family:'Arial',sans-serif;background:#fff;direction:rtl;margin:0;paddi
             <G label="عدد الطبع"><input className="fc"  {...register('Qunt_of_print_on')} style={{ textAlign: 'right' }} /></G>
             <G label="عدد الطبع"><input className="fc"  {...register('Qunt_of_print_on2')} style={{ textAlign: 'right' }} /></G>
             <G label="عدد الألوان"><input className="fc" type="number" {...register('Clr_qunt')} style={{ textAlign: 'right' }} /></G>
-            <G label="منها نموذج طبي"><input className="fc"  {...register('Med_Sample')} style={{ textAlign: 'right' }} /></G>
+            <G label="منها نموذج طبي"><input className="fc"  {...register('Med_Sampel')} style={{ textAlign: 'right' }} /></G>
             <G label="العدد المنتج">
               <input className="fc" type="number" {...register('grnd_qunt')}
                 style={{ background: '#f0f9f0', borderColor: '#27ae60', textAlign: 'right' }} />
