@@ -719,30 +719,53 @@ useEffect(() => {
   // ✅ الكود الجديد (انسخ هذا):
 // ✅ انسخ هذا الكود وضعه مرة واحدة فقط في ملفك:
 const handleDuplicate = () => {
-    // 1️⃣ جمع كل القيم من النموذج
-    const formData = { ...watch() };
+    // 1️⃣ المصدر الأول: بيانات النموذج الحالية (ما عدله المستخدم)
+    const formValues = { ...getValues() };
     
-    // 2️⃣ حذف الحقول التي لا نريد نسخها أبداً
-    const fieldsToExclude = ['ID', 'Ser', 'Year', 'AttachmentsOrders', 'marji3'];
-    fieldsToExclude.forEach(field => delete formData[field]);
+    // 2️⃣ المصدر الثاني: البيانات الأصلية من السيرفر (للتعويض عن القيم الفارغة)
+    const sourceData = isEdit && existing ? { ...existing } : {};
     
-    // 3️⃣ التنقل للصفحة الجديدة مع إرسال كل شيء مسطحاً (Flat)
+    // 3️⃣ دمج المصدرين: نفضل قيم النموذج، ونعوض الناقص من البيانات الأصلية
+    const mergedData = { ...sourceData, ...formValues };
+    
+    // 4️⃣ حذف الحقول التي لا نريد نسخها أبداً
+    const fieldsToExclude = ['ID', 'Ser', 'Year', 'AttachmentsOrders', 'marji3', 'date_come', 'Perioud'];
+    fieldsToExclude.forEach(field => {
+      delete mergedData[field];
+      delete formValues[field];
+    });
+    
+    // 5️⃣ التأكد من معالجة القيم الرقمية (0 لا يُحذف بالخطأ)
+    const numericFields = [
+      'Demand', 'Med_smpl_Q', 'Price', 'SoftU', 'TafU', 'LongU', 'WedthU', 'HightU', 'Lesan',
+      'final_size_tall', 'final_size_tall2', 'final_size_width', 'final_size_width2',
+      'print_on', 'print_on2', 'sheet_unit_qunt', 'sheet_unit_qunt2',
+      'Qunt_of_print_on', 'Qunt_of_print_on2', 'Clr_qunt', 'Med_Sample', 'grnd_qunt', 'clr_Qnt_order'
+    ];
+    
+    numericFields.forEach(field => {
+      // إذا كانت القيمة undefined أو null، نستخدم 0 كقيمة افتراضية
+      if (mergedData[field] === undefined || mergedData[field] === null) {
+        mergedData[field] = 0;
+      }
+    });
+    
+    // 6️⃣ التنقل للصفحة الجديدة مع البيانات الموثوقة
     navigate('/orders/new', {
       state: {
         duplicatedData: {
-          // ✅ ندمج كل البيانات في مستوى واحد لسهولة الاستقبال
-          ...formData,
+          ...mergedData,
           Ser: '',  // تفريغ التسلسل
           Year: String(new Date().getFullYear()), // تحديث السنة
           
-          // ✅ نضمن إرسال الـ Checkboxes (حتى لو كانت فارغة)
+          // ✅ ضمان نسخ الـ Checkboxes (حتى لو كانت false)
           checks: { ...checks },
           mfgChecks: { ...mfgChecks },
           custChecks: { ...custChecks },
         }
       }
     });
-  }; // ⚠️ تأكد من وجود هذا القوس والفاصلة المنقوطة في النهاية
+  };
   
   const watchYear = watch('Year') || String(new Date().getFullYear());
   const watchId   = watch('ID') || '';
@@ -754,28 +777,40 @@ const handleDuplicate = () => {
   const deleteVoucher = useDeleteVoucher();
 
   // ✅ تحميل البيانات عند التعديل — مع قراءة صحيحة للـ boolean
-  useEffect(() => {
-    if (existing) {
-      reset(existing);
-
-      // قراءة boolean fields بأي صيغة ترجع من الداتابيز (True/False/1/0/true/false)
-      const c: Record<string, boolean> = {};
-      BOOL_FIELDS.forEach(f => {
-        c[f] = fromBit((existing as any)[f]);
-      });
-      c['CTB']  = fromBit((existing as any)['DubelM']);
-      c['varn'] = fromBit((existing as any)['varnich']);
-      setChecks(c);
-
-      const custC: Record<string, boolean> = {};
-      CUST_LABELS.forEach((label, i) => {
-        custC[label] = fromBit((existing as any)[CUST_FIELDS[i]]);
-      });
-      setCustChecks(custC);
-    } else {
-      reset({ Year: String(new Date().getFullYear()) });
+useEffect(() => {
+    if (!duplicatedData) return;
+  
+    // 🟢 فصل الـ Checkboxes عن بقية البيانات
+    const { 
+      checks: copiedChecks, 
+      mfgChecks: copiedMfg, 
+      custChecks: copiedCust, 
+      ...orderData 
+    } = duplicatedData;
+    
+    // 🟢 تعيين بيانات النموذج (نتجاهل القيم undefined تلقائياً)
+    const validOrderData = Object.fromEntries(
+      Object.entries(orderData).filter(([_, v]) => v !== undefined)
+    );
+    
+    if (Object.keys(validOrderData).length > 0) {
+      reset(validOrderData);
     }
-  }, [existing, reset]);
+  
+    // 🟢 تعيين الـ Checkboxes (نستخدم القيم المنسوخة أو نتركها افتراضية)
+    setChecks(copiedChecks ?? {});
+    setMfgChecks(copiedMfg ?? {});
+    setCustChecks(copiedCust ?? {});
+    
+    // 🟢 تفريغ الجداول لضمان عدم نسخها
+    if (!isEdit) {
+      setMaterialsRows([]);
+      setPendingMaterials([]);
+      setPendingOps([]);
+      setPendingProblems([]);
+    }
+  
+  }, [duplicatedData, reset, isEdit]);
 
   useEffect(() => {
     if (!isEdit && orders.length >= 0) {
