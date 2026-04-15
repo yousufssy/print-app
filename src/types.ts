@@ -53,14 +53,14 @@ export interface Order {
   final_size_tall2?: number;
   final_size_width?: number;
   final_size_width2?: number;
-  print_on?: number;
-  print_on2?: number;
-  sheet_unit_qunt?: number;
-  sheet_unit_qunt2?: number;
-  Qunt_of_print_on?: number;
-  Qunt_of_print_on2?: number;
+  print_on?: string;
+  print_on2?: string;
+  sheet_unit_qunt?: string;
+  sheet_unit_qunt2?: string;
+  Qunt_of_print_on?: string;
+  Qunt_of_print_on2?: string;
   Clr_qunt?: string;
-  Med_Sample?: number;
+  Med_Sampel?: string;
   grnd_qunt?: number;
   teq_inf?: string;
 
