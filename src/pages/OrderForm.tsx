@@ -826,38 +826,53 @@ useEffect(() => {
 }, [isEdit, existing, hasLoadedEdit, duplicatedData, reset]);
 
 // ✅ 2️⃣ تحميل بيانات النسخ - مرة واحدة
-useEffect(() => {
-  console.log('🔄 تحقق من تحميل بيانات النسخ', { 
-    duplicatedData: !!duplicatedData, 
-    hasLoadedDuplicate 
-  });
+// ✅ 2️⃣ تحميل بيانات النسخ - مرة واحدة
+  useEffect(() => {
+    console.log('🔄 تحقق من تحميل بيانات النسخ', { 
+      duplicatedData: !!duplicatedData, 
+      hasLoadedDuplicate 
+    });
+    
+    if (!duplicatedData || hasLoadedDuplicate) return;
+    // انتظر حتى يتم تحميل بيانات الطلبات
+    if (!ordersResponse) return;
   
-  if (!duplicatedData || hasLoadedDuplicate) return;
+    console.log('🔄 جاري تحميل بيانات النسخ:', duplicatedData);
+    
+    const {
+      checks: copiedChecks,
+      mfgChecks: copiedMfg,
+      custChecks: copiedCust,
+      idInitialized: copiedIdInitialized,
+      ...orderData
+    } = duplicatedData;
+  
+    // ✅ حساب أعلى قيمة لـ ID و Ser وإضافة 1
+    const lastSer = orders.length > 0
+      ? Math.max(...orders.map(o => parseInt(String(o.Ser)) || 0))
+      : 0;
+    const lastId = orders.length > 0
+      ? Math.max(...orders.map(o => parseInt(String(o.ID)) || 0))
+      : 0;
+  
+    const newId  = String(lastId  + 1);
+    const newSer = String(lastSer + 1);
+  
+    reset({ ...orderData, ID: newId, Ser: newSer, Year: String(new Date().getFullYear()) });
+    formDataRef.current = { ...orderData, ID: newId, Ser: newSer };
+    setChecks(copiedChecks ?? {});
+    setMfgChecks(copiedMfg ?? {});
+    setCustChecks(copiedCust ?? {});
+    setIdInitialized(true);
+    setMaterialsRows([]);
+    setPendingMaterials([]);
+    setPendingOps([]);
+    setPendingProblems([]);
+    setHasLoadedDuplicate(true);
+    
+    console.log('✅ تم تحميل بيانات النسخ بنجاح — ID:', newId, '| Ser:', newSer);
+  }, [duplicatedData, hasLoadedDuplicate, orders, ordersResponse, reset]);
 
-  console.log('🔄 جاري تحميل بيانات النسخ:', duplicatedData);
-  
-  const {
-    checks: copiedChecks,
-    mfgChecks: copiedMfg,
-    custChecks: copiedCust,
-    idInitialized: copiedIdInitialized,
-    ...orderData
-  } = duplicatedData;
-
-  reset(orderData);
-  formDataRef.current = { ...orderData };
-  setChecks(copiedChecks ?? {});
-  setMfgChecks(copiedMfg ?? {});
-  setCustChecks(copiedCust ?? {});
-  setIdInitialized(copiedIdInitialized ?? false);
-  setMaterialsRows([]);
-  setPendingMaterials([]);
-  setPendingOps([]);
-  setPendingProblems([]);
-  setHasLoadedDuplicate(true);
-  
-  console.log('✅ تم تحميل بيانات النسخ بنجاح');
-}, [duplicatedData, hasLoadedDuplicate, reset]);
 
 // ✅ 3️⃣ تهيئة طلب جديد - مرة واحدة فقط
 const idInitializedRef = useRef(false);
