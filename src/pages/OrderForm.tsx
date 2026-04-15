@@ -525,9 +525,6 @@ export default function OrderFormPage() {
   const [idInitialized, setIdInitialized] = useState(false);
   const [hasLoadedEdit, setHasLoadedEdit] = useState(false);
   const [hasLoadedDuplicate, setHasLoadedDuplicate] = useState(false);
-  
-  // ✅ useRef لمنع infinite loop
-  const isFirstRender = useRef(true);
 
   // ── helper مشترك لمزامنة أي InlineTable مع الداتابيز ────────────────────────
   const syncRows = async (
@@ -730,79 +727,24 @@ export default function OrderFormPage() {
     localStorage.setItem('orderFormSections', JSON.stringify(openSections));
   }, [openSections]);
 
-  const { register, handleSubmit, reset, watch, setValue, getValues } = useForm<Order>();
+  // ✅ useForm مع إعدادات محسّنة
+  const { register, handleSubmit, reset, watch, setValue, getValues } = useForm<Order>({
+    mode: 'onBlur',
+    shouldUnregister: false,
+    shouldFocusError: false,
+  });
 
-  // ✅ تحميل البيانات عند التعديل - مع flag لمنع re-execution
-// ✅ تحميل البيانات عند التعديل - مع flag لمنع re-execution
-    useEffect(() => {
-        if (!isEdit || !existing || duplicatedData || hasLoadedEdit) return;
-        
-        reset(existing);
-      
-        const loadedMfg: Record<string, boolean> = {};
-        Object.entries(MFG_MAP).forEach(([label, field]) => {
-          const value = (existing as Record<string, any>)[field];
-          loadedMfg[label] = fromBit(value);
-        });
-        setMfgChecks(loadedMfg);
-      
-        const loadedCust: Record<string, boolean> = {};
-        Object.entries(CUST_MAP).forEach(([label, field]) => {
-          const value = (existing as Record<string, any>)[field];
-          loadedCust[label] = fromBit(value);
-        });
-        setCustChecks(loadedCust);
-      
-        setChecks({
-          varnich:    fromBit(existing.varnich),
-          uv:         fromBit(existing.uv),
-          uv_Spot:    fromBit(existing.uv_Spot),
-          seluvan_lum:fromBit(existing.seluvan_lum),
-          seluvan_mat:fromBit(existing.seluvan_mat),
-          Tad3em:     fromBit(existing.Tad3em),
-          Tay:        fromBit(existing.Tay),
-          harary:     fromBit(existing.harary),
-          rolling:    fromBit(existing.rolling),
-          Printed:    fromBit(existing.Printed),
-          Billed:     fromBit(existing.Billed),
-          Reseved:    fromBit(existing.Reseved),
-          CTB:        fromBit(existing.DubelM),
-          varn:       fromBit(existing.varnich),
-        });
-        
-        setHasLoadedEdit(true);
-      }, [isEdit, existing, duplicatedData, hasLoadedEdit, reset]);
-  
-  // ✅ تحميل البيانات المنسوخة - مع flag
-// ✅ تحميل البيانات المنسوخة - مع flag
+  // ✅ watch محسّن باستخدام state
+  const [watchYear, setWatchYear] = useState(String(new Date().getFullYear()));
+  const [watchId, setWatchId] = useState('');
+
   useEffect(() => {
-      if (!duplicatedData || hasLoadedDuplicate) return;
-      
-      const { 
-        checks: copiedChecks, 
-        mfgChecks: copiedMfg, 
-        custChecks: copiedCust,
-        idInitialized: copiedIdInitialized,
-        ...orderData 
-      } = duplicatedData;
-      
-      reset(orderData);
-      
-      setChecks(copiedChecks ?? {});
-      setMfgChecks(copiedMfg ?? {});
-      setCustChecks(copiedCust ?? {});
-      setIdInitialized(copiedIdInitialized ?? false);
-      
-      setMaterialsRows([]);
-      setPendingMaterials([]);
-      setPendingOps([]);
-      setPendingProblems([]);
-      
-      setHasLoadedDuplicate(true);
-    }, [duplicatedData, hasLoadedDuplicate, reset]);
-
-  const watchYear = watch('Year') || String(new Date().getFullYear());
-  const watchId   = watch('ID') || '';
+    const subscription = watch((value, { name }) => {
+      if (name === 'Year') setWatchYear(value.Year || String(new Date().getFullYear()));
+      if (name === 'ID') setWatchId(value.ID || '');
+    });
+    return () => subscription.unsubscribe();
+  }, [watch]);
 
   const { data: ordersResponse } = useOrders({ year: watchYear });
   const orders = ordersResponse?.data || [];
@@ -810,23 +752,93 @@ export default function OrderFormPage() {
   const { data: vouchers = [] } = useVouchers(isEdit ? watchId : '', watchYear);
   const deleteVoucher = useDeleteVoucher();
 
-  // ✅ تهيئة ID و Ser - مع flag
-  // ✅ تهيئة ID و Ser - مع flag
-    useEffect(() => {
-        if (isEdit || orders.length === 0 || idInitialized) return;
-      
-        const latestOrder = orders[orders.length - 1];
-        const lastSer = parseInt(latestOrder?.Ser || '0') || 0;
-        setValue('Ser', String(lastSer + 1), { shouldDirty: false });
-        
-        const currentId = getValues('ID');
-        if (!currentId) {
-          const newId = String((Number(latestOrder?.ID) || 0) + 1);
-          setValue('ID', newId, { shouldDirty: false });
-        }
-        
-        setIdInitialized(true);
-      }, [isEdit, orders.length, idInitialized, setValue, getValues]);
+  // ✅ تهيئة شاملة - مرة واحدة فقط
+  useEffect(() => {
+    // 1️⃣ تحميل بيانات التعديل
+    if (isEdit && existing && !hasLoadedEdit && !duplicatedData) {
+      reset(existing);
+
+      const loadedMfg: Record<string, boolean> = {};
+      Object.entries(MFG_MAP).forEach(([label, field]) => {
+        loadedMfg[label] = fromBit((existing as any)[field]);
+      });
+      setMfgChecks(loadedMfg);
+
+      const loadedCust: Record<string, boolean> = {};
+      Object.entries(CUST_MAP).forEach(([label, field]) => {
+        loadedCust[label] = fromBit((existing as any)[field]);
+      });
+      setCustChecks(loadedCust);
+
+      setChecks({
+        varnich: fromBit(existing.varnich),
+        uv: fromBit(existing.uv),
+        uv_Spot: fromBit(existing.uv_Spot),
+        seluvan_lum: fromBit(existing.seluvan_lum),
+        seluvan_mat: fromBit(existing.seluvan_mat),
+        Tad3em: fromBit(existing.Tad3em),
+        Tay: fromBit(existing.Tay),
+        harary: fromBit(existing.harary),
+        rolling: fromBit(existing.rolling),
+        Printed: fromBit(existing.Printed),
+        Billed: fromBit(existing.Billed),
+        Reseved: fromBit(existing.Reseved),
+        CTB: fromBit(existing.DubelM),
+        varn: fromBit(existing.varnich),
+      });
+
+      setHasLoadedEdit(true);
+      return;
+    }
+
+    // 2️⃣ تحميل بيانات النسخ
+    if (duplicatedData && !hasLoadedDuplicate) {
+      const {
+        checks: copiedChecks,
+        mfgChecks: copiedMfg,
+        custChecks: copiedCust,
+        idInitialized: copiedIdInitialized,
+        ...orderData
+      } = duplicatedData;
+
+      reset(orderData);
+      setChecks(copiedChecks ?? {});
+      setMfgChecks(copiedMfg ?? {});
+      setCustChecks(copiedCust ?? {});
+      setIdInitialized(copiedIdInitialized ?? false);
+      setMaterialsRows([]);
+      setPendingMaterials([]);
+      setPendingOps([]);
+      setPendingProblems([]);
+      setHasLoadedDuplicate(true);
+      return;
+    }
+
+    // 3️⃣ تهيئة طلب جديد
+    if (!isEdit && orders.length > 0 && !idInitialized && !duplicatedData) {
+      const latestOrder = orders[orders.length - 1];
+      const lastSer = parseInt(latestOrder?.Ser || '0') || 0;
+      const newId = String((Number(latestOrder?.ID) || 0) + 1);
+
+      setValue('Ser', String(lastSer + 1), { shouldDirty: false, shouldTouch: false });
+      setValue('ID', newId, { shouldDirty: false, shouldTouch: false });
+      setValue('Year', watchYear, { shouldDirty: false, shouldTouch: false });
+
+      setWatchId(newId);
+      setIdInitialized(true);
+    }
+  }, [
+    isEdit,
+    existing,
+    hasLoadedEdit,
+    duplicatedData,
+    hasLoadedDuplicate,
+    orders.length,
+    idInitialized,
+    watchYear,
+    reset,
+    setValue
+  ]);
 
   // ✅ الحفظ - مع معالجة أخطاء شاملة
   const onSubmit = async (data: Order) => {
@@ -936,7 +948,7 @@ export default function OrderFormPage() {
   //  🖨️ طباعة بطاقة الإنتاج
   // ══════════════════════════════════════════════════════
   const printProductionCard = () => {
-    const d = watch();
+    const d = getValues();
     const chkd = (val: any) => (val ? '✔' : '');
     const fmt  = (v: any) => v ?? '';
 
