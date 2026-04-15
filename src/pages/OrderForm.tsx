@@ -1336,14 +1336,14 @@ body{font-family:'Arial',sans-serif;background:#fff;direction:rtl;margin:0;paddi
             <G label="الحجم النهائي - طري2"><input className="fc" type="number" step="0.01" {...register('final_size_tall2')} style={{ textAlign: 'right' }} /></G>
             <G label="الحجم النهائي - قاسي"><input className="fc" type="number" step="0.01" {...register('final_size_width')} style={{ textAlign: 'right' }} /></G>
             <G label="الحجم النهائي - قاسي2"><input className="fc" type="number" step="0.01" {...register('final_size_width2')} style={{ textAlign: 'right' }} /></G>
-            <G label="الطبع على"><input className="fc" type="number" {...register('print_on')} style={{ textAlign: 'right' }} /></G>
-            <G label="الطبع على"><input className="fc" type="number" {...register('print_on2')} style={{ textAlign: 'right' }} /></G>
-            <G label="فصل الطبق"><input className="fc" type="number" {...register('sheet_unit_qunt')} style={{ textAlign: 'right' }} /></G>
-            <G label="2فصل الطبق"><input className="fc" type="number" {...register('sheet_unit_qunt2')} style={{ textAlign: 'right' }} /></G>
-            <G label="عدد الطبع"><input className="fc" type="number" {...register('Qunt_of_print_on')} style={{ textAlign: 'right' }} /></G>
-            <G label="عدد الطبع"><input className="fc" type="number" {...register('Qunt_of_print_on2')} style={{ textAlign: 'right' }} /></G>
+            <G label="الطبع على"><input className="fc" {...register('print_on')} style={{ textAlign: 'right' }} /></G>
+            <G label="الطبع على"><input className="fc" {...register('print_on2')} style={{ textAlign: 'right' }} /></G>
+            <G label="فصل الطبق"><input className="fc" {...register('sheet_unit_qunt')} style={{ textAlign: 'right' }} /></G>
+            <G label="2فصل الطبق"><input className="fc" {...register('sheet_unit_qunt2')} style={{ textAlign: 'right' }} /></G>
+            <G label="عدد الطبع"><input className="fc"  {...register('Qunt_of_print_on')} style={{ textAlign: 'right' }} /></G>
+            <G label="عدد الطبع"><input className="fc"  {...register('Qunt_of_print_on2')} style={{ textAlign: 'right' }} /></G>
             <G label="عدد الألوان"><input className="fc" type="number" {...register('Clr_qunt')} style={{ textAlign: 'right' }} /></G>
-            <G label="منها نموذج طبي"><input className="fc" type="number" {...register('Med_Sample')} style={{ textAlign: 'right' }} /></G>
+            <G label="منها نموذج طبي"><input className="fc"  {...register('Med_Sample')} style={{ textAlign: 'right' }} /></G>
             <G label="العدد المنتج">
               <input className="fc" type="number" {...register('grnd_qunt')}
                 style={{ background: '#f0f9f0', borderColor: '#27ae60', textAlign: 'right' }} />
@@ -1386,7 +1386,7 @@ body{font-family:'Arial',sans-serif;background:#fff;direction:rtl;margin:0;paddi
                 </div>
                 <div style={{ marginBottom: 10 }}>
                   <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--steel)', marginBottom: 6, display: 'block', textAlign: 'right' }}>عدد الألوان</label>
-                  <input className="fc" type="number" {...register('clr_Qnt_order')} style={{ fontSize: 12, textAlign: 'right' }} />
+                  <input className="fc" {...register('clr_Qnt_order')} style={{ fontSize: 12, textAlign: 'right' }} />
                 </div>
                 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 8 }}>
