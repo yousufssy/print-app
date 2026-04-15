@@ -497,7 +497,7 @@ const CUST_FIELDS = ['cust_with_baking','cust_with_folding','cust_tad3em_zkzk','
 // ══════════════════════════════════════════════════════
 export default function OrderFormPage() {
   const { id, year } = useParams<{ id?: string; year?: string }>();
-  const isEdit = !!(id && year);
+  const isEdit = !!(id && year && String(id).trim() && String(year).trim());
   const navigate = useNavigate();
   
   
@@ -590,14 +590,16 @@ useEffect(() => {
   const [pendingOps,       setPendingOps]       = useState<Record<string, string>[]>([]);
 
   const handleMaterialsChange = async (newRows: Record<string, string>[]) => {
-    if (!isEdit) { setPendingMaterials(newRows); return; }
-    await syncRows(
-      materialsRows, newRows,
-      (f) => createCarton.mutateAsync({ ...f, ID: watchId, year: watchYear }),
-      (rowId, f) => updateCarton.mutateAsync({ rowId, data: f }),
-      (rowId) => deleteCarton.mutateAsync(rowId),
-    );
-  };
+      if (!isEdit) { setPendingMaterials(newRows); return; }
+      const currentId = getValues('ID');
+      const currentYear = getValues('Year');
+      await syncRows(
+        materialsRows, newRows,
+        (f) => createCarton.mutateAsync({ ...f, ID: currentId, year: currentYear }),
+        (rowId, f) => updateCarton.mutateAsync({ rowId, data: f }),
+        (rowId) => deleteCarton.mutateAsync(rowId),
+      );
+    };
 
   // ── سجل المشاكل — مرتبط بالداتابيز ──────────────────────────────────────────
   const { data: problemsData = [] } = useProblems(isEdit ? (id ?? '') : '', isEdit ? (year ?? '') : '');
@@ -605,13 +607,21 @@ useEffect(() => {
   const updateProblem = useUpdateProblem();
   const deleteProblem = useDeleteProblem();
 
-  const problemsRows: Record<string, string>[] = problemsData.map((p: any) => ({
-    ID:      String(p.ID1 ?? ''),
-    print_num:   p.print_num   ?? '',
-    prod_date:   p.prod_date   ?? '',
-    exp_date:    p.exp_date    ?? '',
-    print_count: String(p.print_count ?? ''),
-  }));
+  interface Problem {
+      ID1?: number;
+      print_num?: string;
+      prod_date?: string;
+      exp_date?: string;
+      print_count?: number;
+    }
+  
+  const problemsRows: Record<string, string>[] = problemsData.map((p: Problem) => ({
+      ID: String(p.ID1 ?? ''),
+      print_num: p.print_num ?? '',
+      prod_date: p.prod_date ?? '',
+      exp_date: p.exp_date ?? '',
+      print_count: String(p.print_count ?? ''),
+    }));
 
   const handleProblemsChange = async (newRows: Record<string, string>[]) => {
     if (!isEdit) { setPendingProblems(newRows); return; }
@@ -696,7 +706,8 @@ useEffect(() => {
 
   
   const location = useLocation();
-  const duplicatedData = location.state?.duplicatedData;
+  
+  const duplicatedData = location.state?.duplicatedData || null;
 
   
 
