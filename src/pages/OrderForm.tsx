@@ -1154,8 +1154,8 @@ body{font-family:'Arial',sans-serif;background:#fff;direction:rtl;margin:0;paddi
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 12 }}>
             <G label="تسلسل"><input className="fc" {...register('Ser')} readOnly={!isEdit} style={{ textAlign: 'right' }} /></G>
             <G label="اسم الزبون" req><input className="fc" {...register('Customer', { required: true })} list="cust-list" placeholder="ابحث عن الزبون..." style={{ textAlign: 'right' }} /></G>
-            <G label="رقمنا"><input className="fc" {...register('ID')}  readOnly={!isEdit} style={{ textAlign: 'right',backgroundColor: !isEdit ? '#f8f9fa' : 'white' }} /></G>
-            <G label="المرجع" req><input className="fc" {...register('marji3', { required: true })} placeholder="65982"style={{ textAlign: 'right' }}/></G>
+            <G label="رقمنا"><input className="fc" {...register('ID')} readOnly={!isEdit} style={{ textAlign: 'right', backgroundColor: !isEdit ? '#f8f9fa' : 'white' }} /></G>
+            <G label="المرجع" req><input className="fc" {...register('marji3', { required: true })} placeholder="65982" style={{ textAlign: 'right' }} /></G>
             <G label="التفصيلات المرتبطة"><input className="fc" {...register('AttachmentsOrders')} style={{ textAlign: 'right' }} /></G>
           </div>
           <datalist id="cust-list">
@@ -1168,7 +1168,6 @@ body{font-family:'Arial',sans-serif;background:#fff;direction:rtl;margin:0;paddi
             <G label="موافقة المونتاج"><input className="fc" type="date" {...register('Perioud')} style={{ textAlign: 'right' }} /></G>
             <G label="المطلوب"><input className="fc" type="number" {...register('Demand')} style={{ textAlign: 'right' }} /></G>
             <G label="نموذج طبي"><input className="fc" type="number" {...register('Med_smpl_Q')} style={{ textAlign: 'right' }} /></G>
-            <G label="رقم الأمر" req><input className="fc" {...register('ID', { required: true })} placeholder="65982" style={{ textAlign: 'right' }} /></G>
             <G label="سنة العمل" req><input className="fc" {...register('Year', { required: true })} style={{ textAlign: 'right' }} /></G>
           </div>
         </AccordionCard>
