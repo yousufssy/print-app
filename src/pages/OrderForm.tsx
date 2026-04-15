@@ -510,7 +510,8 @@ export default function OrderFormPage() {
   const [mfgChecks,  setMfgChecks]  = useState<Record<string, boolean>>({});
   const [custChecks, setCustChecks] = useState<Record<string, boolean>>({});
   const [voucherOpen, setVoucherOpen] = useState(false);
-
+  
+  const [idInitialized, setIdInitialized] = useState(false);
 
 
 
@@ -747,7 +748,7 @@ useEffect(() => {
             checks: { ...checks },
             mfgChecks: { ...mfgChecks },
             custChecks: { ...custChecks },
-            idInitialized: false, // إضافة هذه السطر
+            idInitialized: false, // أضف هذا السطر
             // 🚫 لا ننقل الجداول: cartons, operations, vouchers
           }
         }
@@ -772,7 +773,7 @@ useEffect(() => {
           checks: copiedChecks, 
           mfgChecks: copiedMfg, 
           custChecks: copiedCust,
-          idInitialized: copiedIdInitialized, // إضافة هذه السطر
+          idInitialized: copiedIdInitialized, // أضف هذا السطر
           ...orderData 
         } = duplicatedData;
         
@@ -795,20 +796,19 @@ useEffect(() => {
   
 
     useEffect(() => {
-      if (!isEdit && orders.length > 0 && !idInitialized) {
-        // تجنب إعادة الترتيب في كل مرة (تحسين الأداء)
-        const latestOrder = orders[orders.length - 1];
-        const lastSer = latestOrder ? parseInt(latestOrder.Ser || '0') || 0 : 0;
-        setValue('Ser', String(lastSer + 1));
-        
-        // تعيين ID تلقائي فقط إذا لم يتم تعيينه مسبقاً
-        if (!watch('ID')) {
-          const newId = String(Number(latestOrder.ID) + 1);
-          setValue('ID', newId);
-          setIdInitialized(true);
+        if (!isEdit && orders.length > 0 && !idInitialized) {
+          const latestOrder = orders[orders.length - 1]; // طريقة أكثر كفاءة من الترتيب
+          const lastSer = latestOrder ? parseInt(latestOrder.Ser || '0') || 0 : 0;
+          setValue('Ser', String(lastSer + 1));
+          
+          // تعيين ID تلقائي فقط إذا لم يتم تعيينه مسبقاً
+          if (!watch('ID')) {
+            const newId = String(Number(latestOrder.ID) + 1);
+            setValue('ID', newId);
+            setIdInitialized(true);
+          }
         }
-      }
-    }, [isEdit, orders, setValue, idInitialized]);
+      }, [isEdit, orders, setValue, idInitialized, watch]);
 
   // ✅ الحفظ — مع إرسال 1/0 بدل True/False
   const onSubmit = async (data: Order) => {
