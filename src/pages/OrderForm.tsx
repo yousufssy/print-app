@@ -160,15 +160,25 @@ const InlineTable = React.memo(function InlineTable({
     });
   }, [cols, pushDraftRows]);
 
+
+
+  
   const setCell = React.useCallback((i: number, key: string, value: string) => {
+    const finalValue = isNumericCol(key) ? cleanNumber(value) : value;
+  
     setLocalRows((prev) => {
       const nextRows = prev.map((r, idx) =>
-        idx === i ? { ...r, [key]: value } : r
+        idx === i ? { ...r, [key]: finalValue } : r
       );
-      // ✅ فقط نُحدث الحالة المحلية دون إعادة رسم المكون
+      // ✅ فقط نُحدث الحالة المحلية
+      // ❌ لا نُحدث الخارجي هنا
       return nextRows;
     });
-  }, []);
+  }, [isNumericCol, cleanNumber]);
+
+
+
+  
 
   const saveRow = React.useCallback(async (i: number) => {
     const row = localRows[i];
