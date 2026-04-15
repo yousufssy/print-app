@@ -694,23 +694,22 @@ useEffect(() => {
 // ✅ انسخ هذا الكود وضعه مرة واحدة فقط في ملفك:
 // ✅ دالة نسخ بسيطة تعتمد على البيانات الأصلية من السيرفر:
 const handleDuplicate = () => {
-    // المصدر الموثوق: البيانات من السيرفر (إذا كنا في وضع تعديل)
     const sourceData = isEdit && existing ? { ...existing } : {};
     
-    // حذف الحقول التي لا نريد نسخها
+    // 🚨 تشخيص: اعرض البيانات قبل النسخ
+    console.log('📦 مصدر النسخ (existing):', existing);
+    console.log('📦 البيانات بعد الاستبعاد:', sourceData);
+    
     const excludeFields = ['ID', 'Ser', 'Year', 'AttachmentsOrders', 'marji3', 'date_come', 'Perioud', 'ID1'];
     const dataToCopy = { ...sourceData };
     excludeFields.forEach(field => delete dataToCopy[field]);
     
-    // التنقل مع البيانات
     navigate('/orders/new', {
       state: {
         duplicatedData: {
           ...dataToCopy,
-          Ser: '',  // تفريغ التسلسل
-          Year: String(new Date().getFullYear()), // سنة جديدة
-          
-          // ✅ نسخ الـ Checkboxes كما هي
+          Ser: '',
+          Year: String(new Date().getFullYear()),
           checks: { ...checks },
           mfgChecks: { ...mfgChecks },
           custChecks: { ...custChecks },
@@ -733,7 +732,6 @@ const handleDuplicate = () => {
 useEffect(() => {
     if (!duplicatedData) return;
   
-    // 🟢 فصل الـ Checkboxes عن بقية البيانات
     const { 
       checks: copiedChecks, 
       mfgChecks: copiedMfg, 
@@ -741,21 +739,20 @@ useEffect(() => {
       ...orderData 
     } = duplicatedData;
     
-    // 🟢 تعيين بيانات النموذج (تجاهل undefined)
+    // 🟢 تعيين البيانات مباشرة (بدون تصفية 0)
+    // نستخدم فقط لتجاهل undefined/null الحقيقية
     const validOrderData = Object.fromEntries(
-      Object.entries(orderData).filter(([_, v]) => v !== undefined && v !== null)
+      Object.entries(orderData).filter(([_, v]) => v !== undefined)
     );
     
     if (Object.keys(validOrderData).length > 0) {
       reset(validOrderData);
     }
   
-    // 🟢 تعيين الـ Checkboxes
     setChecks(copiedChecks ?? {});
     setMfgChecks(copiedMfg ?? {});
     setCustChecks(copiedCust ?? {});
     
-    // 🟢 تفريغ الجداول (لا نريدها تُنسخ)
     if (!isEdit) {
       setMaterialsRows([]);
       setPendingMaterials([]);
@@ -764,7 +761,6 @@ useEffect(() => {
     }
   
   }, [duplicatedData, reset, isEdit]);
-
 
 
 
