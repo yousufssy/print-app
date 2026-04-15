@@ -778,13 +778,19 @@ useEffect(() => {
 
   
 
-  useEffect(() => {
-    if (!isEdit && orders.length >= 0) {
-      const latestOrder = orders.sort((a: any, b: any) => b.ID - a.ID)[0];
-      const lastSer = latestOrder ? parseInt(latestOrder.Ser || '0') || 0 : 0;
-      setValue('Ser', String(lastSer + 1));
-    }
-  }, [isEdit, orders, setValue]);
+    useEffect(() => {
+        if (!isEdit && orders.length >= 0) {
+          const latestOrder = orders.sort((a: any, b: any) => b.ID - a.ID)[0];
+          const lastSer = latestOrder ? parseInt(latestOrder.Ser || '0') || 0 : 0;
+          setValue('Ser', String(lastSer + 1));
+          
+          // تعيين ID تلقائي إذا لم يكن موجوداً
+          if (!watch('ID')) {
+            const newId = latestOrder ? String(Number(latestOrder.ID) + 1) : "1";
+            setValue('ID', newId);
+          }
+        }
+      }, [isEdit, orders, setValue, watch]);
 
   // ✅ الحفظ — مع إرسال 1/0 بدل True/False
   const onSubmit = async (data: Order) => {
