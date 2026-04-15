@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { useOrder, useCreateOrder, useUpdateOrder, useCustomers, useVouchers, useCreateVoucher, useDeleteVoucher, useOrders, useOperations, useCreateOperation, useUpdateOperation, useDeleteOperation, useCartons, useCreateCarton, useUpdateCarton, useDeleteCarton, useProblems, useCreateProblem, useUpdateProblem, useDeleteProblem } from '../hooks/useApi';
@@ -160,9 +160,6 @@ const InlineTable = React.memo(function InlineTable({
     });
   }, [cols, pushDraftRows]);
 
-
-
-  
   const setCell = React.useCallback((i: number, key: string, value: string) => {
     const finalValue = isNumericCol(key) ? cleanNumber(value) : value;
   
@@ -175,10 +172,6 @@ const InlineTable = React.memo(function InlineTable({
       return nextRows;
     });
   }, [isNumericCol, cleanNumber]);
-
-
-
-  
 
   const saveRow = React.useCallback(async (i: number) => {
     const row = localRows[i];
@@ -520,15 +513,6 @@ export default function OrderFormPage() {
   
   const [idInitialized, setIdInitialized] = useState(false);
 
-
-
-
-
-
-
-
-
-  
   // ── helper مشترك لمزامنة أي InlineTable مع الداتابيز ────────────────────────
   const syncRows = async (
     oldRows: Record<string, string>[],
@@ -556,49 +540,49 @@ export default function OrderFormPage() {
   };
 
   // ── الكرتون — مرتبط بالداتابيز ───────────────────────────────────────────────
-const { data: cartonsData = [] } = useCartons(
-  isEdit ? (id ?? '') : '',
-  isEdit ? (year ?? '') : ''
-);
-
-const createCarton = useCreateCarton();
-const updateCarton = useUpdateCarton();
-const deleteCarton = useDeleteCarton();
-
-const [materialsRows, setMaterialsRows] = useState<Record<string, string>[]>([]);
-
-useEffect(() => {
-  setMaterialsRows(
-    cartonsData.map((c: any) => ({
-      // ✅ أضف هذا السطر لضمان وجود المعرف الفريد
-      ID: String(c.ID1 ?? c.ID ?? ''), 
-      
-      Type1: c.Type1 ?? '',
-      Id_carton: c.Id_carton ?? '',
-      Source1: c.Source1 ?? '',
-      Supplier1: c.Supplier1 ?? '',
-      Long1: String(c.Long1 ?? ''),
-      Width1: String(c.Width1 ?? ''),
-      Gramage1: String(c.Gramage1 ?? ''),
-      Sheet_count1: String(c.Sheet_count1 ?? ''),
-      Price: String(c.Price ?? ''),
-      Out_Date: c.Out_Date ?? '',
-      Out_ord_num: c.Out_ord_num ?? '',
-      note_crt: c.note_crt ?? '',
-    }))
+  const { data: cartonsData = [] } = useCartons(
+    isEdit ? (id ?? '') : '',
+    isEdit ? (year ?? '') : ''
   );
-}, [cartonsData]);
-  
 
+  const createCarton = useCreateCarton();
+  const updateCarton = useUpdateCarton();
+  const deleteCarton = useDeleteCarton();
 
-  
+  const [materialsRows, setMaterialsRows] = useState<Record<string, string>[]>([]);
+
+  useEffect(() => {
+    setMaterialsRows(
+      cartonsData.map((c: any) => ({
+        // ✅ أضف هذا السطر لضمان وجود المعرف الفريد
+        ID: String(c.ID1 ?? c.ID ?? ''), 
+        
+        Type1: c.Type1 ?? '',
+        Id_carton: c.Id_carton ?? '',
+        Source1: c.Source1 ?? '',
+        Supplier1: c.Supplier1 ?? '',
+        Long1: String(c.Long1 ?? ''),
+        Width1: String(c.Width1 ?? ''),
+        Gramage1: String(c.Gramage1 ?? ''),
+        Sheet_count1: String(c.Sheet_count1 ?? ''),
+        Price: String(c.Price ?? ''),
+        Out_Date: c.Out_Date ?? '',
+        Out_ord_num: c.Out_ord_num ?? '',
+        note_crt: c.note_crt ?? '',
+      }))
+    );
+  }, [cartonsData]);
+
   // buffer للحفظ عند إنشاء طلب جديد
   const [pendingMaterials, setPendingMaterials] = useState<Record<string, string>[]>([]);
   const [pendingProblems,  setPendingProblems]  = useState<Record<string, string>[]>([]);
   const [pendingOps,       setPendingOps]       = useState<Record<string, string>[]>([]);
 
-  const handleMaterialsChange = async (newRows: Record<string, string>[]) => {
-      if (!isEdit) { setPendingMaterials(newRows); return; }
+  const handleMaterialsChange = useCallback(async (newRows: Record<string, string>[]) => {
+      if (!isEdit) { 
+        setPendingMaterials(newRows); 
+        return; 
+      }
       const currentId = getValues('ID');
       const currentYear = getValues('Year');
       await syncRows(
@@ -607,7 +591,7 @@ useEffect(() => {
         (rowId, f) => updateCarton.mutateAsync({ rowId, data: f }),
         (rowId) => deleteCarton.mutateAsync(rowId),
       );
-    };
+    }, [isEdit, materialsRows, createCarton, updateCarton, deleteCarton, getValues]);
 
   // ── سجل المشاكل — مرتبط بالداتابيز ──────────────────────────────────────────
   const { data: problemsData = [] } = useProblems(isEdit ? (id ?? '') : '', isEdit ? (year ?? '') : '');
@@ -631,15 +615,20 @@ useEffect(() => {
       print_count: String(p.print_count ?? ''),
     }));
 
-  const handleProblemsChange = async (newRows: Record<string, string>[]) => {
-    if (!isEdit) { setPendingProblems(newRows); return; }
+  const handleProblemsChange = useCallback(async (newRows: Record<string, string>[]) => {
+    if (!isEdit) { 
+      setPendingProblems(newRows); 
+      return; 
+    }
+    const currentId = getValues('ID');
+    const currentYear = getValues('Year');
     await syncRows(
       problemsRows, newRows,
-      (f) => createProblem.mutateAsync({ ...f, ID: watchId, Year: watchYear }),
+      (f) => createProblem.mutateAsync({ ...f, ID: currentId, Year: currentYear }),
       (rowId, f) => updateProblem.mutateAsync({ rowId, data: f }),
       (rowId) => deleteProblem.mutateAsync(rowId),
     );
-  };
+  }, [isEdit, problemsRows, createProblem, updateProblem, deleteProblem, getValues]);
 
   // ── العمليات — مرتبطة بالداتابيز ─────────────────────────────────────────────
   const { data: operationsData = [] } = useOperations(isEdit ? (id ?? '') : '', isEdit ? (year ?? '') : '');
@@ -667,15 +656,20 @@ useEffect(() => {
     Tabrer:      op.Tabrer      ?? '',
   }));
 
-  const handleOperationsChange = async (newRows: Record<string, string>[]) => {
-    if (!isEdit) { setPendingOps(newRows); return; }
+  const handleOperationsChange = useCallback(async (newRows: Record<string, string>[]) => {
+    if (!isEdit) { 
+      setPendingOps(newRows); 
+      return; 
+    }
+    const currentId = getValues('ID');
+    const currentYear = getValues('Year');
     await syncRows(
       operationsRows, newRows,
-      (f) => createOperation.mutateAsync({ ...f, ID: watchId, Year: watchYear }),
+      (f) => createOperation.mutateAsync({ ...f, ID: currentId, Year: currentYear }),
       (rowId, f) => updateOperation.mutateAsync({ rowId, data: f }),
       (rowId) => deleteOperation.mutateAsync(rowId),
     );
-  };
+  }, [isEdit, operationsRows, createOperation, updateOperation, deleteOperation, getValues]);
 
   // ➕ State لإدارة فتح/إغلاق أقسام الأكورديون
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({
@@ -712,25 +706,9 @@ useEffect(() => {
       }
     }, [isEdit, existing, duplicatedData]);
 
-  
-  
-  
-  
-
-  
-
-
-
-
-
-
-
-
-
-  
   // ✅ الكود الجديد (انسخ هذا):
-// ✅ انسخ هذا الكود وضعه مرة واحدة فقط في ملفك:
-// ✅ دالة نسخ بسيطة تعتمد على البيانات الأصلية من السيرفر:
+  // ✅ انسخ هذا الكود وضعه مرة واحدة فقط في ملفك:
+  // ✅ دالة نسخ بسيطة تعتمد على البيانات الأصلية من السيرفر:
   const handleDuplicate = () => {
       const sourceData = isEdit && existing ? { ...existing } : {};
       
@@ -772,7 +750,7 @@ useEffect(() => {
   const deleteVoucher = useDeleteVoucher();
 
   // ✅ تحميل البيانات عند التعديل — مع قراءة صحيحة للـ boolean
-// ✅ useEffect واحد فقط لاستقبال البيانات المنسوخة:
+  // ✅ useEffect واحد فقط لاستقبال البيانات المنسوخة:
     useEffect(() => {
         if (!duplicatedData) return;
         
@@ -800,9 +778,7 @@ useEffect(() => {
         
       }, [duplicatedData]);
 
-  
-
-// ✅ بعد - استخدم getValues بدل watch داخل useEffect
+  // ✅ بعد - استخدم getValues بدل watch داخل useEffect
       useEffect(() => {
           if (!isEdit && orders.length > 0 && !idInitialized) {
             const latestOrder = orders[orders.length - 1];
@@ -817,8 +793,6 @@ useEffect(() => {
           }
         }, [isEdit, orders, setValue, getValues, idInitialized]); // ✅ أزل watch
 
-
-  
   // ✅ الحفظ — مع إرسال 1/0 بدل True/False
   const onSubmit = async (data: Order) => {
     // تحويل boolean fields لـ 1/0
@@ -1126,6 +1100,19 @@ body{font-family:'Arial',sans-serif;background:#fff;direction:rtl;margin:0;paddi
   const G = ({ label, req, children }: { label: string; req?: boolean; children: React.ReactNode }) => (
     <FormGroup label={label} required={req}>{children}</FormGroup>
   );
+
+  // ✅ استخدام useMemo لتجنب إعادة إنشاء المصفوفات في كل render
+  const materialRowsForTable = useMemo(() => {
+    return isEdit ? materialsRows : pendingMaterials;
+  }, [isEdit, materialsRows, pendingMaterials]);
+
+  const operationsRowsForTable = useMemo(() => {
+    return isEdit ? operationsRows : pendingOps;
+  }, [isEdit, operationsRows, pendingOps]);
+
+  const problemsRowsForTable = useMemo(() => {
+    return isEdit ? problemsRows : pendingProblems;
+  }, [isEdit, problemsRows, pendingProblems]);
   
   return (
     <div style={{ direction: 'rtl' }}>
@@ -1250,7 +1237,7 @@ body{font-family:'Arial',sans-serif;background:#fff;direction:rtl;margin:0;paddi
           <SectionDiv label="المواد" />
           <InlineTable
             cols={MATERIALS_COLS}
-            rows={isEdit ? materialsRows : pendingMaterials}
+            rows={materialRowsForTable}
             onRowsChange={handleMaterialsChange}
             syncDraftRows={!isEdit}
           />
@@ -1308,7 +1295,7 @@ body{font-family:'Arial',sans-serif;background:#fff;direction:rtl;margin:0;paddi
           <SectionDiv label="العمليات" />
           <InlineTable
             cols={OPERATIONS_COLS}
-            rows={isEdit ? operationsRows : pendingOps}
+            rows={operationsRowsForTable}
             onRowsChange={handleOperationsChange}
             syncDraftRows={!isEdit}
           />
@@ -1400,7 +1387,7 @@ body{font-family:'Arial',sans-serif;background:#fff;direction:rtl;margin:0;paddi
           <SectionDiv label="سجل المشاكل الواردة من الزبون" />
           <InlineTable
             cols={PROBLEMS_COLS}
-            rows={isEdit ? problemsRows : pendingProblems}
+            rows={problemsRowsForTable}
             onRowsChange={handleProblemsChange}
             syncDraftRows={!isEdit}
           />
