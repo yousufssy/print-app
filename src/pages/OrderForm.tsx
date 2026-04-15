@@ -735,47 +735,27 @@ const handleDuplicate = () => {
   // ✅ تحميل البيانات عند التعديل — مع قراءة صحيحة للـ boolean
 // ✅ useEffect واحد فقط لاستقبال البيانات المنسوخة:
 useEffect(() => {
-    if (!duplicatedData) return;
-  
-    const { 
-      checks: copiedChecks, 
-      mfgChecks: copiedMfg, 
-      custChecks: copiedCust, 
-      ...orderData 
-    } = duplicatedData;
+      if (!duplicatedData) return;
     
-    // 🚨 تشخيص مفصل: اعرف ما يتم استقباله
-    console.log('📥 بيانات منسوخة مستقبَلة:', {
-      orderData,
-      has_WedthU: 'WedthU' in orderData,
-      WedthU_value: orderData.WedthU,
-      WedthU_type: typeof orderData.WedthU,
-    });
+      const { 
+        checks: copiedChecks, 
+        mfgChecks: copiedMfg, 
+        custChecks: copiedCust, 
+        ...orderData 
+      } = duplicatedData;
+      
+      reset(orderData);
     
-    // 🟢 تعيين كل حقل على حدة باستخدام setValue (أكثر موثوقية من reset)
-    Object.entries(orderData).forEach(([key, value]) => {
-      // نتأكد أن القيمة ليست undefined فقط (نسمح بـ 0, '', false)
-      if (value !== undefined) {
-        setValue(key as any, value);
-      }
-    });
-  
-    // 🟢 تعيين الـ Checkboxes
-    setChecks(copiedChecks ?? {});
-    setMfgChecks(copiedMfg ?? {});
-    setCustChecks(copiedCust ?? {});
-    
-    // 🟢 تفريغ الجداول
-    if (!isEdit) {
+      setChecks(copiedChecks ?? {});
+      setMfgChecks(copiedMfg ?? {});
+      setCustChecks(copiedCust ?? {});
+      
       setMaterialsRows([]);
       setPendingMaterials([]);
       setPendingOps([]);
       setPendingProblems([]);
-    }
-  
-  }, [duplicatedData, setValue, isEdit]); // ⚠️ تأكد من وجود setValue في الاعتمادات
-
-
+    
+    }, [duplicatedData]);
 
   
 
