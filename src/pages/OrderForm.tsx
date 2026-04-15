@@ -520,62 +520,6 @@ export default function OrderFormPage() {
 
 
 
-  useEffect(() => {
-        if (isEdit && existing) {
-          // تعبئة النموذج بالبيانات الأصلية
-          reset(existing);
-        }
-      }, [isEdit, existing, reset]);
-    
-
-
-
-
-
-  
-  // أضف هذا الـ useEffect بعد تعريف المتغيرات
-useEffect(() => {
-    if (isEdit && existing) {
-      // 1. تهيئة حالات المربعات الأساسية
-      const newChecks = { ...checks };
-      BOOL_FIELDS.forEach(field => {
-        // تحويل القيمة من 0/1 إلى boolean
-        newChecks[field] = fromBit(existing[field]);
-      });
-      // معالجة الحقول الخاصة مثل CTB
-      newChecks.CTB = fromBit(existing.DubelM);
-      setChecks(newChecks);
-  
-      // 2. تهيئة حالات مربعات الزبون
-      const newCustChecks = { ...custChecks };
-      CUST_FIELDS.forEach((field, i) => {
-        newCustChecks[CUST_LABELS[i]] = fromBit(existing[field]);
-      });
-      setCustChecks(newCustChecks);
-  
-      // 3. تهيئة حالات مربعات التصنيع
-      const newMfgChecks = { ...mfgChecks };
-      // تحويل الحقول المخزنة في البيانات إلى مربعات التصنيع
-      const mfgFieldMap = {
-        'برنيش': 'varnich',
-        'تلميع بقعي': 'uv_Spot',
-        'تلميع كامل': 'uv',
-        'سلفان لميع': 'seluvan_lum',
-        'سلفان مات': 'seluvan_mat',
-        'تدعيم زكزاك': 'Tad3em',
-        'بص': 'Tay',
-        'حراري': 'harary'
-      };
-      
-      Object.entries(mfgFieldMap).forEach(([label, field]) => {
-        newMfgChecks[label] = fromBit(existing[field]);
-      });
-      setMfgChecks(newMfgChecks);
-    }
-  }, [isEdit, existing]);
-
-
-
   
   // ── helper مشترك لمزامنة أي InlineTable مع الداتابيز ────────────────────────
   const syncRows = async (
