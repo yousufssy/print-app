@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { useOrder, useCreateOrder, useUpdateOrder, useCustomers, useVouchers, useCreateVoucher, useDeleteVoucher, useOrders, useOperations, useCreateOperation, useUpdateOperation, useDeleteOperation, useCartons, useCreateCarton, useUpdateCarton, useDeleteCarton, useProblems, useCreateProblem, useUpdateProblem, useDeleteProblem } from '../hooks/useApi';
 import { Card, FormGroup, SectionDiv, CheckItem, Loading, Btn } from '../components/ui';
@@ -89,12 +89,7 @@ function AccordionCard({
 }
 
 // ── Inline editable table ──────────────────────────────────────────────────────
-function InlineTable({
-  cols,
-  rows,
-  onRowsChange,
-  syncDraftRows = false,
-}: {
+function InlineTable({ cols, rows, onRowsChange, syncDraftRows = false }: {
   cols: { key: string; label: string; type?: string; width?: number }[];
   rows: Record<string, string>[];
   onRowsChange: (rows: Record<string, string>[]) => void | Promise<void>;
@@ -103,70 +98,31 @@ function InlineTable({
   const [localRows, setLocalRows] = React.useState<Record<string, string>[]>([]);
   const [saving, setSaving] = React.useState<Record<number, boolean>>({});
 
+  // ✅ ref لضمان أن saveRow دائماً يرى آخر قيمة لـ rows
   const rowsRef = React.useRef(rows);
-
-  React.useEffect(() => {
-    rowsRef.current = rows;
-  }, [rows]);
+  React.useEffect(() => { rowsRef.current = rows; }, [rows]);
 
   React.useEffect(() => {
     setLocalRows(rows);
   }, [rows]);
 
-  const isNumericCol = React.useCallback(
-    (key: string) => cols.some((c) => c.key === key && c.type === 'number'),
-    [cols]
-  );
-
-  const cleanNumber = (value: string) => {
-      if (value === '') return '';
-  
-      let v = value.replace(/[^0-9.\-]/g, '');
-  
-      const minusCount = (v.match(/-/g) || []).length;
-      if (minusCount > 1) {
-        v = v.replace(/-/g, '');
-      }
-      // ✅ إذا كانت الإشارة في غير البداية، احذفها
-      if (v.includes('-') && v.indexOf('-') !== 0) {
-        v = v.replace(/-/g, '');
-      }
-  
-      const parts = v.split('.');
-      if (parts.length > 2) {
-        v = parts[0] + '.' + parts.slice(1).join('');
-      }
-  
-      // 🛡️ السطر الحاسم: منع القيم غير المكتملة التي تكسر React
-      if (v === '-' || v === '.' || v === '-.' || v === '') return '';
-  
-      return v;
-  };
-
-  const pushDraftRows = React.useCallback(
-    (nextRows: Record<string, string>[]) => {
-      if (!syncDraftRows) return;
-      void onRowsChange(nextRows.map(({ _isNew, ID, ...row }) => row));
-    },
-    [onRowsChange, syncDraftRows]
-  );
+  const pushDraftRows = React.useCallback((nextRows: Record<string, string>[]) => {
+    if (!syncDraftRows) return;
+    void onRowsChange(nextRows.map(({ _isNew, _rowId, ...row }) => row));
+  }, [onRowsChange, syncDraftRows]);
 
   const addRow = () => {
-    const empty = Object.fromEntries(cols.map((c) => [c.key, '']));
-    setLocalRows((prev) => {
-      const nextRows = [...prev, { ...empty, ID: '', _isNew: 'true' }];
+    const empty = Object.fromEntries(cols.map(c => [c.key, '']));
+    setLocalRows(prev => {
+      const nextRows = [...prev, { ...empty, _rowId: '', _isNew: 'true' }];
       pushDraftRows(nextRows);
       return nextRows;
     });
   };
 
-  const setCell = (i: number, key: string, value: string) => {
-    const finalValue = isNumericCol(key) ? cleanNumber(value) : value;
-
-    setLocalRows((prev) => {
-      const nextRows = prev.map((r, idx) =>
-        idx === i ? { ...r, [key]: finalValue } : r
-      );
+  const setCell = (i: number, k: string, v: string) => {
+    setLocalRows(prev => {
+      const nextRows = prev.map((r, idx) => idx === i ? { ...r, [k]: v } : r);
       pushDraftRows(nextRows);
       return nextRows;
     });
@@ -176,24 +132,22 @@ function InlineTable({
     const row = localRows[i];
     if (!row) return;
 
-    const isEmpty = cols.every((c) => !row[c.key]);
+    const isEmpty = cols.every(c => !row[c.key]);
     if (isEmpty) return;
 
-    setSaving((s) => ({ ...s, [i]: true }));
+    setSaving(s => ({ ...s, [i]: true }));
+    const { _isNew, _rowId, ...fields } = row;  // ✅ استخرج _isNew و _rowId معاً
 
-    try {
-      const { _isNew, ID, ...fields } = row;
-
-      if (_isNew === 'true') {
-        const allRows = [...rowsRef.current, { ...fields }];
-        await onRowsChange(allRows);
-      } else if (ID) {
-        const updated = localRows.map((r) => (r.ID === ID ? row : r));
-        await onRowsChange(updated);
-      }
-    } finally {
-      setSaving((s) => ({ ...s, [i]: false }));
+    if (_isNew === 'true') {
+      // ✅ استخدم rowsRef.current بدل rows لتجنب مشكلة الـ closure
+      const allRows = [...rowsRef.current, { ...fields }];
+      await onRowsChange(allRows);
+    } else if (_rowId) {
+      const updated = localRows.map(r => r._rowId === _rowId ? row : r);
+      await onRowsChange(updated);
     }
+
+    setSaving(s => ({ ...s, [i]: false }));
   };
 
   const delRow = async (i: number) => {
@@ -201,14 +155,15 @@ function InlineTable({
     if (!row) return;
 
     if (row._isNew === 'true') {
-      setLocalRows((prev) => {
+      setLocalRows(prev => {
         const nextRows = prev.filter((_, idx) => idx !== i);
         pushDraftRows(nextRows);
         return nextRows;
       });
     } else {
-      setLocalRows((prev) => prev.filter((_, idx) => idx !== i));
-      const remaining = rowsRef.current.filter((r) => r.ID !== row.ID);
+      // ✅ أزل من localRows فوراً ثم أرسل للـ DB
+      setLocalRows(prev => prev.filter((_, idx) => idx !== i));
+      const remaining = rowsRef.current.filter(r => r._rowId !== row._rowId);
       await onRowsChange(remaining);
     }
   };
@@ -218,159 +173,68 @@ function InlineTable({
       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
         <thead>
           <tr style={{ background: 'var(--steel)', color: '#fff' }}>
-            {cols.map((c) => (
-              <th
-                key={c.key}
-                style={{
-                  padding: '8px 10px',
-                  textAlign: 'right',
-                  fontWeight: 600,
-                  whiteSpace: 'nowrap',
-                  width: c.width,
-                }}
-              >
+            {cols.map(c => (
+              <th key={c.key} style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 600, whiteSpace: 'nowrap', width: c.width }}>
                 {c.label}
               </th>
             ))}
             <th style={{ padding: '8px 10px', width: 36 }}></th>
           </tr>
         </thead>
-
         <tbody>
           {localRows.length === 0 && (
             <tr>
-              <td
-                colSpan={cols.length + 1}
-                style={{
-                  textAlign: 'center',
-                  color: 'var(--muted)',
-                  padding: 16,
-                }}
-              >
+              <td colSpan={cols.length + 1} style={{ textAlign: 'center', color: 'var(--muted)', padding: 16 }}>
                 ✦ لا توجد سجلات — اضغط ➕ لإضافة سطر
               </td>
             </tr>
           )}
-
           {localRows.map((row, i) => (
-            <tr
-              key={row.ID || `new-${i}`}
+            <tr key={row._rowId || `new-${i}`}
               style={{
                 borderBottom: '1px solid var(--border)',
-                background:
-                  row._isNew === 'true'
-                    ? '#fffbe6'
-                    : i % 2 === 0
-                      ? '#fff'
-                      : '#fdf8f0',
-              }}
-            >
-              {cols.map((c, ci) => {
-                const isNumber = c.type === 'number';
-                const value = isNumber
-                  ? cleanNumber(String(row[c.key] ?? ''))
-                  : (row[c.key] ?? '');
-
-                return (
-                  <td key={c.key} style={{ padding: '3px 5px' }}>
-                    <input
-                      value={value}
-                      type={c.type === 'date' ? 'date' : 'text'}
-                      inputMode={isNumber ? 'decimal' : undefined}
-                      onChange={(e) => {
-                        let val = e.target.value;
-                        if (isNumber) val = cleanNumber(val);
-                        setCell(i, c.key, val);
-                      }}
-                      onBlur={() => {
-                        if (ci === cols.length - 1) saveRow(i);
-                      }}
-                      style={{
-                        width: '100%',
-                        border: 'none',
-                        background: 'transparent',
-                        fontFamily: 'Cairo, sans-serif',
-                        fontSize: 12,
-                        outline: 'none',
-                        padding: '4px 3px',
-                        color: 'var(--ink)',
-                        textAlign: 'right',
-                      }}
-                      onFocus={(e) => {
-                        e.target.style.background = '#fff9f0';
-                      }}
-                    />
-                  </td>
-                );
-              })}
-
-              <td
-                style={{
-                  padding: '3px 6px',
-                  textAlign: 'center',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                {saving[i] ? (
-                  <span style={{ fontSize: 11, color: 'var(--muted)' }}>⏳</span>
-                ) : (
-                  <>
-                    {row._isNew === 'true' && (
-                      <button
-                        type="button"
-                        onClick={() => saveRow(i)}
-                        style={{
-                          background: 'none',
-                          border: 'none',
-                          cursor: 'pointer',
-                          color: '#27ae60',
-                          fontSize: 14,
-                          marginLeft: 4,
-                        }}
-                        title="حفظ"
-                      >
-                        💾
-                      </button>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => delRow(i)}
-                      style={{
-                        background: 'none',
-                        border: 'none',
-                        cursor: 'pointer',
-                        color: 'var(--red)',
-                        fontSize: 14,
-                      }}
-                      title="حذف"
-                    >
-                      🗑
-                    </button>
-                  </>
-                )}
+                background: row._isNew === 'true'
+                  ? '#fffbe6'
+                  : i % 2 === 0 ? '#fff' : '#fdf8f0'
+              }}>
+              {cols.map((c, ci) => (
+                <td key={c.key} style={{ padding: '3px 5px' }}>
+                  <input
+                    value={row[c.key] ?? ''}
+                    type={c.type ?? 'text'}
+                    onChange={e => setCell(i, c.key, e.target.value)}
+                    onBlur={() => {
+                      // حفظ عند الخروج من آخر عمود في الصف
+                      if (ci === cols.length - 1) saveRow(i);
+                    }}
+                    style={{ width: '100%', border: 'none', background: 'transparent', fontFamily: 'Cairo, sans-serif', fontSize: 12, outline: 'none', padding: '4px 3px', color: 'var(--ink)', textAlign: 'right' }}
+                    onFocus={e => (e.target.style.background = '#fff9f0')}
+                  />
+                </td>
+              ))}
+              <td style={{ padding: '3px 6px', textAlign: 'center', whiteSpace: 'nowrap' }}>
+                {saving[i]
+                  ? <span style={{ fontSize: 11, color: 'var(--muted)' }}>⏳</span>
+                  : <>
+                      {row._isNew === 'true' && (
+                        <button type="button" onClick={() => saveRow(i)}
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#27ae60', fontSize: 14, marginLeft: 4 }}
+                          title="حفظ">💾</button>
+                      )}
+                      <button type="button" onClick={() => delRow(i)}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--red)', fontSize: 14 }}
+                        title="حذف">🗑</button>
+                    </>
+                }
               </td>
             </tr>
           ))}
         </tbody>
-
         <tfoot>
           <tr>
             <td colSpan={cols.length + 1} style={{ padding: '8px 10px' }}>
-              <button
-                type="button"
-                onClick={addRow}
-                style={{
-                  background: 'none',
-                  border: '1.5px dashed var(--border)',
-                  borderRadius: 6,
-                  padding: '5px 14px',
-                  cursor: 'pointer',
-                  color: 'var(--muted)',
-                  fontFamily: 'Cairo, sans-serif',
-                  fontSize: 12,
-                  width: '100%',
-                }}
-              >
+              <button type="button" onClick={addRow}
+                style={{ background: 'none', border: '1.5px dashed var(--border)', borderRadius: 6, padding: '5px 14px', cursor: 'pointer', color: 'var(--muted)', fontFamily: 'Cairo, sans-serif', fontSize: 12, width: '100%' }}>
                 ➕ إضافة سطر
               </button>
             </td>
@@ -380,6 +244,7 @@ function InlineTable({
     </div>
   );
 }
+
 // ── Voucher Modal ──────────────────────────────────────────────────────────────
 function VoucherModal({ open, onClose, orderId, orderYear }: {
   open: boolean; onClose: () => void; orderId: string; orderYear: string;
@@ -390,13 +255,8 @@ function VoucherModal({ open, onClose, orderId, orderYear }: {
     Voucher_num: '', V_date: '', V_Qunt: '', Bill_Num: '',
     Contean: '', Paking_q: '', Box_tp: '', Box_L: '', Box_W: '', Box_H: '',
   });
-  const F = (k: string, numeric = false) => (e: React.ChangeEvent<HTMLInputElement>) => {
-      let val = e.target.value;
-      if (numeric) {
-        val = val.replace(/[^0-9]/g, ''); // للأرقام الصحيحة فقط (بدون فاصلة عشرية)
-      }
-      setForm(f => ({ ...f, [k]: val }));
-    };
+  const F = (k: string) => (e: React.ChangeEvent<HTMLInputElement>) => setForm(f => ({ ...f, [k]: e.target.value }));
+  
   if (!open) return null;
   
   return (
@@ -499,8 +359,7 @@ export default function OrderFormPage() {
   const { id, year } = useParams<{ id?: string; year?: string }>();
   const isEdit = !!(id && year);
   const navigate = useNavigate();
-  
-  
+
   const { data: existing, isLoading } = useOrder(id ?? '', year ?? '');
   const createOrder = useCreateOrder();
   const updateOrder = useUpdateOrder(id ?? '', year ?? '');
@@ -511,55 +370,6 @@ export default function OrderFormPage() {
   const [custChecks, setCustChecks] = useState<Record<string, boolean>>({});
   const [voucherOpen, setVoucherOpen] = useState(false);
 
-
-
-
-// ✅ التعديل المطلوب لإظهار البيانات عند فتح الطلب
- useEffect(() => {
-    if (isEdit && existing) {
-      // 1. تهيئة حالات المربعات الأساسية
-      const newChecks = { ...checks };
-      BOOL_FIELDS.forEach(field => {
-        // تحويل القيمة من 0/1 إلى boolean
-        newChecks[field] = fromBit(existing[field]);
-      });
-      // معالجة الحقول الخاصة مثل CTB
-      newChecks.CTB = fromBit(existing.DubelM);
-      setChecks(newChecks);
-  
-      // 2. تهيئة حالات مربعات الزبون
-      const newCustChecks = { ...custChecks };
-      CUST_FIELDS.forEach((field, i) => {
-        newCustChecks[CUST_LABELS[i]] = fromBit(existing[field]);
-      });
-      setCustChecks(newCustChecks);
-  
-      // 3. تهيئة حالات مربعات التصنيع
-      const newMfgChecks = { ...mfgChecks };
-      // تحويل الحقول المخزنة في البيانات إلى مربعات التصنيع
-      const mfgFieldMap = {
-        'برنيش': 'varnich',
-        'تلميع بقعي': 'uv_Spot',
-        'تلميع كامل': 'uv',
-        'سلفان لميع': 'seluvan_lum',
-        'سلفان مات': 'seluvan_mat',
-        'تدعيم زكزاك': 'Tad3em',
-        'بص': 'Tay',
-        'حراري': 'harary'
-      };
-      
-      Object.entries(mfgFieldMap).forEach(([label, field]) => {
-        newMfgChecks[label] = fromBit(existing[field]);
-      });
-      setMfgChecks(newMfgChecks);
-    }
-  }, [isEdit, existing]);
-
-
-
-
-
-  
   // ── helper مشترك لمزامنة أي InlineTable مع الداتابيز ────────────────────────
   const syncRows = async (
     oldRows: Record<string, string>[],
@@ -568,57 +378,45 @@ export default function OrderFormPage() {
     onUpdate: (rowId: number, fields: any) => Promise<any>,
     onDelete: (rowId: number) => Promise<any>,
   ) => {
-    const oldIds = new Set(oldRows.map(r => r.ID).filter(v => !!v));
-    const newIds = new Set(newRows.map(r => r.ID).filter(v => !!v));
+    const oldIds = new Set(oldRows.map(r => r._rowId).filter(v => !!v));
+    const newIds = new Set(newRows.map(r => r._rowId).filter(v => !!v));
 
     // حذف الصفوف المحذوفة
     for (const old of oldRows)
-      if (old.ID && !newIds.has(old.ID))
-        await onDelete(Number(old.ID));
+      if (old._rowId && !newIds.has(old._rowId))
+        await onDelete(Number(old._rowId));
 
-    // إضافة أو تحديث — ✅ استخرج _isNew و ID معاً
+    // إضافة أو تحديث — ✅ استخرج _isNew و _rowId معاً
     for (const row of newRows) {
-      const { ID, _isNew, ...fields } = row;
-      if (ID && oldIds.has(ID))
-        await onUpdate(Number(ID), fields);
-      else if (!ID)
+      const { _rowId, _isNew, ...fields } = row;
+      if (_rowId && oldIds.has(_rowId))
+        await onUpdate(Number(_rowId), fields);
+      else if (!_rowId)
         await onCreate(fields);
     }
   };
 
   // ── الكرتون — مرتبط بالداتابيز ───────────────────────────────────────────────
-const { data: cartonsData = [] } = useCartons(
-  isEdit ? (id ?? '') : '',
-  isEdit ? (year ?? '') : ''
-);
+  const { data: cartonsData = [] } = useCartons(isEdit ? (id ?? '') : '', isEdit ? (year ?? '') : '');
+  const createCarton = useCreateCarton();
+  const updateCarton = useUpdateCarton();
+  const deleteCarton = useDeleteCarton();
 
-const createCarton = useCreateCarton();
-const updateCarton = useUpdateCarton();
-const deleteCarton = useDeleteCarton();
-
-const [materialsRows, setMaterialsRows] = useState<Record<string, string>[]>([]);
-
-useEffect(() => {
-  setMaterialsRows(
-    cartonsData.map((c: any) => ({
-      // ✅ أضف هذا السطر لضمان وجود المعرف الفريد
-      ID: String(c.ID1 ?? c.ID ?? ''), 
-      
-      Type1: c.Type1 ?? '',
-      Id_carton: c.Id_carton ?? '',
-      Source1: c.Source1 ?? '',
-      Supplier1: c.Supplier1 ?? '',
-      Long1: String(c.Long1 ?? ''),
-      Width1: String(c.Width1 ?? ''),
-      Gramage1: String(c.Gramage1 ?? ''),
-      Sheet_count1: String(c.Sheet_count1 ?? ''),
-      Price: String(c.Price ?? ''),
-      Out_Date: c.Out_Date ?? '',
-      Out_ord_num: c.Out_ord_num ?? '',
-      note_crt: c.note_crt ?? '',
-    }))
-  );
-}, [cartonsData]);
+  const materialsRows: Record<string, string>[] = cartonsData.map((c: any) => ({
+   
+    Type1:         c.Type1         ?? '',
+    Id_carton:     c.Id_carton     ?? '',
+    Source1:       c.Source1       ?? '',
+    Supplier1:     c.Supplier1     ?? '',
+    Long1:         String(c.Long1         ?? ''),
+    Width1:        String(c.Width1        ?? ''),
+    Gramage1:      String(c.Gramage1      ?? ''),
+    Sheet_count1:  String(c.Sheet_count1  ?? ''),
+    Price:         String(c.Price         ?? ''),
+    Out_Date:      c.Out_Date      ?? '',
+    Out_ord_num:   c.Out_ord_num   ?? '',
+    note_crt:      c.note_crt      ?? '',
+  }));
   
 
 
@@ -645,7 +443,7 @@ useEffect(() => {
   const deleteProblem = useDeleteProblem();
 
   const problemsRows: Record<string, string>[] = problemsData.map((p: any) => ({
-    ID:      String(p.ID1 ?? ''),
+    _rowId:      String(p._ID ?? ''),
     print_num:   p.print_num   ?? '',
     prod_date:   p.prod_date   ?? '',
     exp_date:    p.exp_date    ?? '',
@@ -669,7 +467,7 @@ useEffect(() => {
   const deleteOperation = useDeleteOperation();
 
   const operationsRows: Record<string, string>[] = operationsData.map((op: any) => ({
-    ID:      String(op.ID1 ?? op.ID ?? ''),
+    _rowId:      String(op._ID ?? op.ID ?? ''),
     Action:      op.Action      ?? '',
     Color:       op.Color       ?? '',
     Qunt_Ac:     String(op.Qunt_Ac    ?? ''),
@@ -723,55 +521,7 @@ useEffect(() => {
     localStorage.setItem('orderFormSections', JSON.stringify(openSections));
   }, [openSections]);
 
-  // ✅ أضف getValues إلى الاستيراد:
-  const { register, handleSubmit, reset, watch, setValue, getValues } = useForm<Order>();
-  const location = useLocation();
-  const duplicatedData = location.state?.duplicatedData;
-
-  
-
-
-
-
-
-
-
-
-
-  
-  // ✅ الكود الجديد (انسخ هذا):
-// ✅ انسخ هذا الكود وضعه مرة واحدة فقط في ملفك:
-// ✅ دالة نسخ بسيطة تعتمد على البيانات الأصلية من السيرفر:
-const handleDuplicate = () => {
-    const sourceData = isEdit && existing ? { ...existing } : {};
-  
-    // الحقول المستبعدة: التسلسل، رقم الأمر، السنة، والتواريخ
-    const excludeFields = [
-      'ID', 'ID1', 'Ser',           // التسلسل ورقم الأمر
-      'Year',                        // سنة العمل
-      'date_come', 'Perioud',        // التواريخ
-      'marji3',
-      'AttachmentsOrders',
-    ];
-  
-    const dataToCopy = { ...sourceData };
-    excludeFields.forEach(field => delete dataToCopy[field]);
-  
-    navigate('/orders/new', {
-      state: {
-        duplicatedData: {
-          ...dataToCopy,
-          Ser: '',
-          Year: String(new Date().getFullYear()),
-          checks: { ...checks },
-          mfgChecks: { ...mfgChecks },
-          custChecks: { ...custChecks },
-          // 🚫 لا ننقل الجداول: cartons, operations, vouchers
-        }
-      }
-    });
-  };
-  
+  const { register, handleSubmit, reset, watch, setValue } = useForm<Order>();
   const watchYear = watch('Year') || String(new Date().getFullYear());
   const watchId   = watch('ID') || '';
 
@@ -782,31 +532,28 @@ const handleDuplicate = () => {
   const deleteVoucher = useDeleteVoucher();
 
   // ✅ تحميل البيانات عند التعديل — مع قراءة صحيحة للـ boolean
-// ✅ useEffect واحد فقط لاستقبال البيانات المنسوخة:
-useEffect(() => {
-      if (!duplicatedData) return;
-    
-      const { 
-        checks: copiedChecks, 
-        mfgChecks: copiedMfg, 
-        custChecks: copiedCust, 
-        ...orderData 
-      } = duplicatedData;
-      
-      reset(orderData);
-    
-      setChecks(copiedChecks ?? {});
-      setMfgChecks(copiedMfg ?? {});
-      setCustChecks(copiedCust ?? {});
-      
-      setMaterialsRows([]);
-      setPendingMaterials([]);
-      setPendingOps([]);
-      setPendingProblems([]);
-    
-    }, [duplicatedData]);
+  useEffect(() => {
+    if (existing) {
+      reset(existing as any);
 
-  
+      // قراءة boolean fields بأي صيغة ترجع من الداتابيز (True/False/1/0/true/false)
+      const c: Record<string, boolean> = {};
+      BOOL_FIELDS.forEach(f => {
+        c[f] = fromBit((existing as any)[f]);
+      });
+      c['CTB']  = fromBit((existing as any)['DubelM']);
+      c['varn'] = fromBit((existing as any)['varnich']);
+      setChecks(c);
+
+      const custC: Record<string, boolean> = {};
+      CUST_LABELS.forEach((label, i) => {
+        custC[label] = fromBit((existing as any)[CUST_FIELDS[i]]);
+      });
+      setCustChecks(custC);
+    } else {
+      reset({ Year: String(new Date().getFullYear()) });
+    }
+  }, [existing, reset]);
 
   useEffect(() => {
     if (!isEdit && orders.length >= 0) {
@@ -842,17 +589,17 @@ useEffect(() => {
     if (isEdit) {
       await updateOrder.mutateAsync(data);
     } else {
-      const created = await createOrder.mutateAsync(data);
+      const created = await createOrder.mutateAsync(data as any);
       const newId   = String((created as any)?.ID ?? (data as any).ID);
       const yr      = String((data as any).Year ?? watchYear);
 
       // حفظ الصفوف المؤجلة بعد معرفة الـ ID الجديد
       await Promise.all([
-        ...pendingMaterials.map(({ ID, _isNew, ...f }) =>
+        ...pendingMaterials.map(({ _rowId, _isNew, ...f }) =>
           createCarton.mutateAsync({ ...f, ID: newId, year: yr })),
-        ...pendingProblems.map(({ ID, _isNew, ...f }) =>
+        ...pendingProblems.map(({ _rowId, _isNew, ...f }) =>
           createProblem.mutateAsync({ ...f, ID: newId, Year: yr })),
-        ...pendingOps.map(({ ID, _isNew, ...f }) =>
+        ...pendingOps.map(({ _rowId, _isNew, ...f }) =>
           createOperation.mutateAsync({ ...f, ID: newId, Year: yr })),
       ]);
     }
@@ -1157,14 +904,6 @@ body{font-family:'Arial',sans-serif;background:#fff;direction:rtl;margin:0;paddi
         >
           📁 إغلاق الكل
         </button>
-        <Btn
-          variant="outline"
-          type="button"
-          onClick={handleDuplicate}
-          style={{ display: 'flex', alignItems: 'center', gap: 5 }}
-        >
-          📄 نسخ الطلب
-        </Btn>
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)}>
@@ -1183,7 +922,7 @@ body{font-family:'Arial',sans-serif;background:#fff;direction:rtl;margin:0;paddi
             <G label="التفصيلات المرتبطة"><input className="fc" {...register('AttachmentsOrders')} style={{ textAlign: 'right' }} /></G>
           </div>
           <datalist id="cust-list">
-            {customers.map(c => <option key={(c as any).ID1} value={c.Customer} />)}
+            {customers.map(c => <option key={(c as any)._ID} value={c.Customer} />)}
           </datalist>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(8,1fr)', gap: 12, marginTop: 12 }}>
             <G label="تاريخ الورود"><input className="fc" type="date" {...register('date_come')} style={{ textAlign: 'right' }} /></G>
@@ -1440,7 +1179,7 @@ body{font-family:'Arial',sans-serif;background:#fff;direction:rtl;margin:0;paddi
                   </td></tr>
                 )}
                 {vouchers.map((v, i) => (
-                  <tr key={(v as any).ID1} style={{ borderBottom: '1px solid var(--border)', background: i % 2 === 0 ? '#fff' : '#fdf8f0' }}>
+                  <tr key={(v as any)._ID} style={{ borderBottom: '1px solid var(--border)', background: i % 2 === 0 ? '#fff' : '#fdf8f0' }}>
                     <td style={{ padding: '8px', textAlign: 'right' }}><span style={{ fontWeight: 600 }}>{v.Voucher_num || '—'}</span></td>
                     <td style={{ padding: '8px', textAlign: 'right' }}>{v.V_date || '—'}</td>
                     <td style={{ padding: '8px', textAlign: 'right' }}>{v.V_Qunt || '0'}</td>
@@ -1452,7 +1191,7 @@ body{font-family:'Arial',sans-serif;background:#fff;direction:rtl;margin:0;paddi
                     <td style={{ padding: '8px', textAlign: 'right' }}>{v.Box_H || '0'}</td>
                     <td style={{ padding: '8px', textAlign: 'center' }}>
                       <button type="button"
-                        onClick={() => confirm('حذف الإيصال؟') && deleteVoucher.mutate((v as any).ID1)}
+                        onClick={() => confirm('حذف الإيصال؟') && deleteVoucher.mutate((v as any)._ID)}
                         style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16 }}>🗑</button>
                     </td>
                   </tr>
