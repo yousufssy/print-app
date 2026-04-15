@@ -1148,8 +1148,8 @@ body{font-family:'Arial',sans-serif;background:#fff;direction:rtl;margin:0;paddi
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 12 }}>
             <G label="تسلسل"><input className="fc" {...register('Ser')} readOnly={!isEdit} style={{ textAlign: 'right' }} /></G>
             <G label="اسم الزبون" req><input className="fc" {...register('Customer', { required: true })} list="cust-list" placeholder="ابحث عن الزبون..." style={{ textAlign: 'right' }} /></G>
-            <G label="رقمنا"><input className="fc" {...register('ID')} style={{ textAlign: 'right' }} /></G>
-            <G label="المرجع"><input className="fc" {...register('marji3')} style={{ textAlign: 'right' }} /></G>
+            <G label="رقمنا"><input className="fc" {...register('ID')}  readOnly={!isEdit} style={{ textAlign: 'right',backgroundColor: !isEdit ? '#f8f9fa' : 'white' }} /></G>
+            <G label="المرجع" req><input className="fc" {...register('marji3', { required: true })} placeholder="65982"style={{ textAlign: 'right' }}/></G>
             <G label="التفصيلات المرتبطة"><input className="fc" {...register('AttachmentsOrders')} style={{ textAlign: 'right' }} /></G>
           </div>
           <datalist id="cust-list">
