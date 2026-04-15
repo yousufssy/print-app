@@ -492,8 +492,14 @@ const BOOL_FIELDS = [
   'Tad3em','Tay','harary','rolling','Printed','Billed','Reseved'
 ];
 
-const CUST_LABELS = ['مع طبخة','مع تطوية','تدعيم زكزاك','حراري','بلص'];
-const CUST_FIELDS = ['cust_with_baking','cust_with_folding','cust_tad3em_zkzk','cust_harary','cust_bp','cust_tlm3_bq3y'];
+// ── ربط checkboxes الزبون بحقول الداتابيز ─────────────────────────────────────
+const CUST_MAP: Record<string, string> = {
+  'مع طبخة':     'cust_with_baking',
+  'مع تطوية':    'cust_with_folding',
+  'تدعيم زكزاك': 'cust_tad3em_zkzk',
+  'حراري':       'cust_harary',
+  'بلص':         'cust_bp',
+};
 
 // ══════════════════════════════════════════════════════
 //  🎯 MAIN COMPONENT - OrderFormPage
@@ -687,43 +693,49 @@ export default function OrderFormPage() {
   useEffect(() => {
     if (isEdit && existing && !duplicatedData) {
       reset(existing);
-
-      // ── ✅ ربط checkboxes التصنيع بقيم الداتابيز ──
+      
+      // ✅ إضافة تسجيل لفحص القيم الواردة من الداتابيز
+      console.log("القيم الواردة من الداتابيز:", {
+        varnich: existing.varnich,
+        uv_Spot: existing.uv_Spot,
+        cust_with_baking: existing.cust_with_baking,
+        cust_tlm3_bq3y: existing.cust_tlm3_bq3y
+      });
+  
+      // ── ✅ ربط checkboxes التصنيع بقيم الداتابيز (مع التأكد من وجود القيم) ──
       setMfgChecks({
-        'برنيش':      fromBit(existing.varnich),
-        'تلميع بقعي': fromBit(existing.uv_Spot),
-        'تلميع كامل': fromBit(existing.uv),
-        'سلفان لميع': fromBit(existing.seluvan_lum),
-        'سلفان مات':  fromBit(existing.seluvan_mat),
-        'طُبعت؟':     fromBit(existing.Printed),
+        'برنيش':      fromBit(existing.varnich ?? 0),
+        'تلميع بقعي': fromBit(existing.uv_Spot ?? 0),
+        'تلميع كامل': fromBit(existing.uv ?? 0),
+        'سلفان لميع': fromBit(existing.seluvan_lum ?? 0),
+        'سلفان مات':  fromBit(existing.seluvan_mat ?? 0),
+        'طُبعت؟':     fromBit(existing.Printed ?? 0),
       });
-
-      // ── ربط checks العامة ──
+  
+      // ── ربط checks العامة (مع التأكد من وجود القيم) ──
       setChecks({
-        varnich:    fromBit(existing.varnich),
-        uv:         fromBit(existing.uv),
-        uv_Spot:    fromBit(existing.uv_Spot),
-        seluvan_lum:fromBit(existing.seluvan_lum),
-        seluvan_mat:fromBit(existing.seluvan_mat),
-        Tad3em:     fromBit(existing.Tad3em),
-        Tay:        fromBit(existing.Tay),
-        harary:     fromBit(existing.harary),
-        rolling:    fromBit(existing.rolling),
-        Printed:    fromBit(existing.Printed),
-        Billed:     fromBit(existing.Billed),
-        Reseved:    fromBit(existing.Reseved),
-        CTB:        fromBit(existing.DubelM),
-        varn:       fromBit(existing.varnich),
+        varnich:    fromBit(existing.varnich ?? 0),
+        uv:         fromBit(existing.uv ?? 0),
+        uv_Spot:    fromBit(existing.uv_Spot ?? 0),
+        seluvan_lum:fromBit(existing.seluvan_lum ?? 0),
+        seluvan_mat:fromBit(existing.seluvan_mat ?? 0),
+        Tad3em:     fromBit(existing.Tad3em ?? 0),
+        Tay:        fromBit(existing.Tay ?? 0),
+        harary:     fromBit(existing.harary ?? 0),
+        rolling:    fromBit(existing.rolling ?? 0),
+        Printed:    fromBit(existing.Printed ?? 0),
+        Billed:     fromBit(existing.Billed ?? 0),
+        Reseved:    fromBit(existing.Reseved ?? 0),
+        CTB:        fromBit(existing.DubelM ?? 0),
+        varn:       fromBit(existing.varnich ?? 0),
       });
-
-      // ── ربط custChecks ──
-      setCustChecks({
-        'مع طبخة':     fromBit(existing.cust_with_baking),
-        'مع تطوية':    fromBit(existing.cust_with_folding),
-        'تدعيم زكزاك': fromBit(existing.cust_tad3em_zkzk),
-        'حراري':       fromBit(existing.cust_harary),
-        'بلص':         fromBit(existing.cust_bp),
+  
+      // ── ✅ ربط custChecks عبر CUST_MAP ──
+      const custInit: Record<string, boolean> = {};
+      Object.entries(CUST_MAP).forEach(([label, field]) => {
+        custInit[label] = fromBit((existing as any)[field] ?? 0);
       });
+      setCustChecks(custInit);
     }
   }, [isEdit, existing, duplicatedData]);
 
@@ -777,51 +789,59 @@ export default function OrderFormPage() {
   }, [isEdit, orders, setValue, getValues, idInitialized]);
 
   // ✅ الحفظ — مع إرسال 1/0 لجميع الحقول بما فيها mfgChecks
-  const onSubmit = async (data: Order) => {
-    // ── تحويل BOOL_FIELDS العامة ──
-    BOOL_FIELDS.forEach(f => {
-      (data as any)[f] = toBit(checks[f]);
-    });
+  const onSubmit = async ( Order) => {
+      // ✅ التأكد من تحميل جميع القيم بشكل صحيح
+      console.log("mfgChecks قبل الحفظ:", mfgChecks);
+      console.log("custChecks قبل الحفظ:", custChecks);
+      console.log("checks قبل الحفظ:", checks);
+    
+      // ── تحويل BOOL_FIELDS العامة ──
+      BOOL_FIELDS.forEach(f => {
+        (data as any)[f] = toBit(checks[f]);
+      });
+    
+      // ── ✅ حفظ checkboxes التصنيع بقيم 1/0 (مع تصحيح) ──
+      Object.entries(MFG_MAP).forEach(([label, field]) => {
+        // ✅ التأكد من وجود القيمة في mfgChecks قبل الوصول إليها
+        const value = mfgChecks[label] !== undefined ? mfgChecks[label] : false;
+        (data as any)[field] = toBit(value);
+      });
+    
+      // ── ✅ حفظ checkboxes الزبون عبر CUST_MAP ──
+      Object.entries(CUST_MAP).forEach(([label, field]) => {
+        const value = custChecks[label] !== undefined ? custChecks[label] : false;
+        (data as any)[field] = toBit(value);
+      });
 
-    // ── ✅ حفظ checkboxes التصنيع بقيم 1/0 ──
-    Object.entries(MFG_MAP).forEach(([label, field]) => {
-      (data as any)[field] = toBit(mfgChecks[label]);
-    });
-
-    // ── حقول الزبون ──
-    CUST_FIELDS.forEach((field, i) => {
-      (data as any)[field] = toBit(custChecks[CUST_LABELS[i]]);
-    });
-
-    (data as any).DubelM = toBit(checks.CTB);
-    (data as any).tabkha = 0;
-    (data as any).bals   = 0;
-
-    if (!isEdit) {
-      const maxRowId = orders.length > 0
-        ? Math.max(...orders.map((o: any) => o.ID)) + 1
-        : 1;
-      (data as any).ID = maxRowId;
-    }
-
-    if (isEdit) {
-      await updateOrder.mutateAsync(data);
-    } else {
-      const created = await createOrder.mutateAsync(data);
-      const newId   = String((created as any)?.ID ?? (data as any).ID);
-      const yr      = String((data as any).Year ?? watchYear);
-
-      await Promise.all([
-        ...pendingMaterials.map(({ ID, _isNew, ...f }) =>
-          createCarton.mutateAsync({ ...f, ID: newId, year: yr })),
-        ...pendingProblems.map(({ ID, _isNew, ...f }) =>
-          createProblem.mutateAsync({ ...f, ID: newId, Year: yr })),
-        ...pendingOps.map(({ ID, _isNew, ...f }) =>
-          createOperation.mutateAsync({ ...f, ID: newId, Year: yr })),
-      ]);
-    }
-    navigate('/orders');
-  };
+      (data as any).tabkha = toBit(custChecks['مع طبخة']);
+      (data as any).bals   = toBit(custChecks['بلص']);
+      (data as any).DubelM = toBit(checks.CTB);
+    
+      if (!isEdit) {
+        const maxRowId = orders.length > 0
+          ? Math.max(...orders.map((o: any) => o.ID)) + 1
+          : 1;
+        (data as any).ID = maxRowId;
+      }
+    
+      if (isEdit) {
+        await updateOrder.mutateAsync(data);
+      } else {
+        const created = await createOrder.mutateAsync(data);
+        const newId   = String((created as any)?.ID ?? (data as any).ID);
+        const yr      = String((data as any).Year ?? watchYear);
+    
+        await Promise.all([
+          ...pendingMaterials.map(({ ID, _isNew, ...f }) =>
+            createCarton.mutateAsync({ ...f, ID: newId, year: yr })),
+          ...pendingProblems.map(({ ID, _isNew, ...f }) =>
+            createProblem.mutateAsync({ ...f, ID: newId, Year: yr })),
+          ...pendingOps.map(({ ID, _isNew, ...f }) =>
+            createOperation.mutateAsync({ ...f, ID: newId, Year: yr })),
+        ]);
+      }
+      navigate('/orders');
+    };
 
   const handleDuplicate = () => {
     const sourceData = isEdit && existing ? { ...existing } : {};
