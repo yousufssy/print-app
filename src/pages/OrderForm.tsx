@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { useForm, useWatch } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { useOrder, useCreateOrder, useUpdateOrder, useCustomers, useVouchers, useCreateVoucher, useDeleteVoucher, useOrders, useOperations, useCreateOperation, useUpdateOperation, useDeleteOperation, useCartons, useCreateCarton, useUpdateCarton, useDeleteCarton, useProblems, useCreateProblem, useUpdateProblem, useDeleteProblem } from '../hooks/useApi';
 import { Card, FormGroup, SectionDiv, CheckItem, Loading, Btn } from '../components/ui';
 import type { Order } from '../types';
@@ -265,7 +265,7 @@ const InlineTable = React.memo(function InlineTable({
                       : '#fdf8f0',
               }}
             >
-              {cols.map((c, ci) => {
+              {cols.map((c) => {
                 const isNumber = c.type === 'number';
                 const value = isNumber
                   ? cleanNumber(String(row[c.key] ?? ''))
@@ -516,14 +516,6 @@ export default function OrderFormPage() {
   const location = useLocation();
   const duplicatedData = location.state?.duplicatedData || null;
 
-  console.log('🔄 حالة الصفحة:', {
-    id,
-    year,
-    isEdit,
-    duplicatedData,
-    locationState: location.state
-  });
-
   const { data: existing, isLoading } = useOrder(id ?? '', year ?? '');
   const createOrder = useCreateOrder();
   const updateOrder = useUpdateOrder(id ?? '', year ?? '');
@@ -534,14 +526,12 @@ export default function OrderFormPage() {
   const [custChecks, setCustChecks] = useState<Record<string, boolean>>({});
   const [voucherOpen, setVoucherOpen] = useState(false);
 
-  const [idInitialized, setIdInitialized] = useState(false);
   const [hasLoadedEdit, setHasLoadedEdit] = useState(false);
   const [hasLoadedDuplicate, setHasLoadedDuplicate] = useState(false);
 
   const [currentYear] = useState(String(new Date().getFullYear()));
-  const ordersYearRef = useRef<string>(String(new Date().getFullYear()));
 
-  // ✅ useForm بدون dependencies معقدة
+  // ✅ useForm
   const { register, handleSubmit, reset, setValue, watch } = useForm<Order>({
     defaultValues: {
       Year: currentYear,
@@ -555,7 +545,6 @@ export default function OrderFormPage() {
 
   const formValues = watch();
   useEffect(() => {
-    console.log('🔍 تغيير في قيم النموذج:', formValues);
     formDataRef.current = formValues;
   }, [formValues]);
 
@@ -609,7 +598,6 @@ export default function OrderFormPage() {
   const [materialsRows, setMaterialsRows] = useState<Record<string, string>[]>([]);
 
   useEffect(() => {
-    console.log('🔄 تحديث بيانات الكرتون:', cartonsData);
     setMaterialsRows(
       cartonsData.map((c: any) => ({
         ID: String(c.ID1 ?? c.ID ?? ''),
@@ -634,7 +622,6 @@ export default function OrderFormPage() {
   const [pendingOps, setPendingOps] = useState<Record<string, string>[]>([]);
 
   const handleMaterialsChange = useCallback(async (newRows: Record<string, string>[]) => {
-    console.log('🔄 تغيير في بيانات المواد:', newRows);
     if (!isEdit) {
       setPendingMaterials(newRows);
       return;
@@ -676,10 +663,7 @@ export default function OrderFormPage() {
     })), [problemsData]
   );
 
-  console.log('🔄 بيانات المشاكل:', problemsData);
-
   const handleProblemsChange = useCallback(async (newRows: Record<string, string>[]) => {
-    console.log('🔄 تغيير في سجل المشاكل:', newRows);
     if (!isEdit) {
       setPendingProblems(newRows);
       return;
@@ -725,10 +709,7 @@ export default function OrderFormPage() {
     })), [operationsData]
   );
 
-  console.log('🔄 بيانات العمليات:', operationsData);
-
   const handleOperationsChange = useCallback(async (newRows: Record<string, string>[]) => {
-    console.log('🔄 تغيير في العمليات:', newRows);
     if (!isEdit) {
       setPendingOps(newRows);
       return;
@@ -761,10 +742,37 @@ export default function OrderFormPage() {
     localStorage.setItem('orderFormSections', JSON.stringify(openSections));
   }, [openSections]);
 
-  const { data: ordersResponse } = useOrders({ year: currentYear });
-  const orders = useMemo(() => ordersResponse?.data ?? [], [ordersResponse]);
+  // ✅ جلب الطلبات
+  const { data: ordersResponse, isLoading: isLoadingOrders } = useOrders({ year: currentYear });
+  
+  // ✅ معالجة البيانات بشكل أفضل
+  const orders = useMemo(() => {
+    const rawData = ordersResponse?.data ?? ordersResponse ?? [];
+    
+    // إذا كانت البيانات داخل data.data
+    if (rawData?.data && Array.isArray(rawData.data)) {
+      return rawData.data;
+    }
+    
+    // إذا كانت مباشرة array
+    if (Array.isArray(rawData)) {
+      return rawData;
+    }
+    
+    return [];
+  }, [ordersResponse]);
 
-  console.log('🔄 بيانات الطلبات:', ordersResponse);
+  // ✅ مراقبة تحميل البيانات
+  useEffect(() => {
+    console.log('📦 حالة البيانات:', {
+      isLoadingOrders,
+      ordersResponse,
+      ordersResponseData: ordersResponse?.data,
+      orders,
+      ordersLength: orders?.length,
+      firstOrder: orders?.[0]
+    });
+  }, [orders, ordersResponse, isLoadingOrders]);
 
   const { data: vouchers = [] } = useVouchers(
     isEdit ? (id ?? '') : '',
@@ -774,22 +782,13 @@ export default function OrderFormPage() {
 
   // ✅ 1️⃣ تحميل بيانات التعديل - مرة واحدة
   useEffect(() => {
-    console.log('🔄 تحقق من تحميل بيانات التعديل', {
-      isEdit,
-      existing: !!existing,
-      hasLoadedEdit,
-      duplicatedData: !!duplicatedData
-    });
-
     if (!isEdit || !existing || hasLoadedEdit || duplicatedData) return;
 
     console.log('🔄 جاري تحميل بيانات التعديل:', existing);
 
-    // تحديث نموذج الفورم
     reset(existing);
     formDataRef.current = { ...existing };
 
-    // تحديث الـ checkboxes
     const loadedMfg: Record<string, boolean> = {};
     Object.entries(MFG_MAP).forEach(([label, field]) => {
       loadedMfg[label] = fromBit((existing as any)[field]);
@@ -825,11 +824,6 @@ export default function OrderFormPage() {
 
   // ✅ 2️⃣ تحميل بيانات النسخ - مرة واحدة
   useEffect(() => {
-    console.log('🔄 تحقق من تحميل بيانات النسخ', {
-      duplicatedData: !!duplicatedData,
-      hasLoadedDuplicate
-    });
-
     if (!duplicatedData || hasLoadedDuplicate) return;
 
     console.log('🔄 جاري تحميل بيانات النسخ:', duplicatedData);
@@ -838,7 +832,6 @@ export default function OrderFormPage() {
       checks: copiedChecks,
       mfgChecks: copiedMfg,
       custChecks: copiedCust,
-      idInitialized: copiedIdInitialized,
       ...orderData
     } = duplicatedData;
 
@@ -847,7 +840,6 @@ export default function OrderFormPage() {
     setChecks(copiedChecks ?? {});
     setMfgChecks(copiedMfg ?? {});
     setCustChecks(copiedCust ?? {});
-    setIdInitialized(copiedIdInitialized ?? false);
     setMaterialsRows([]);
     setPendingMaterials([]);
     setPendingOps([]);
@@ -866,12 +858,29 @@ export default function OrderFormPage() {
       duplicatedData: !!duplicatedData,
       ordersLength: orders?.length,
       idInitializedRef: idInitializedRef.current,
-      orders: orders
+      isLoadingOrders,
+      orders: orders?.slice(0, 3) // طباعة أول 3 طلبات فقط
     });
 
     // إذا كان تعديل، أو نسخ → توقف
-    if (isEdit || duplicatedData) return;
-    if (idInitializedRef.current) return;
+    if (isEdit || duplicatedData) {
+      console.log('⏸️ توقف: تعديل أو نسخ');
+      return;
+    }
+
+    if (idInitializedRef.current) {
+      console.log('⏸️ توقف: تمت التهيئة مسبقاً');
+      return;
+    }
+
+    // ✅ انتظار تحميل البيانات
+    if (isLoadingOrders) {
+      console.log('⏸️ انتظار تحميل البيانات...');
+      return;
+    }
+
+    // علامة لمنع إعادة التهيئة
+    idInitializedRef.current = true;
 
     // ✅ في حالة عدم وجود طلبات، ابدأ من 1
     if (!orders || orders.length === 0) {
@@ -881,36 +890,42 @@ export default function OrderFormPage() {
         Year: currentYear,
       };
 
-      console.log('🔄 تهيئة أول طلب:', initData);
+      console.log('🆕 تهيئة أول طلب:', initData);
       reset((prev) => ({ ...prev, ...initData }));
       formDataRef.current = { ...formDataRef.current, ...initData };
-      setIdInitialized(true);
-      idInitializedRef.current = true;
       return;
     }
 
-    // علامة لمنع إعادة التهيئة
-    idInitializedRef.current = true;
-
     // 🔍 طباعة جميع قيم Ser للمراجعة
-    console.log('📊 Orders before reduce:', orders.map(o => ({
+    console.log('📊 جميع الطلبات:', orders.map((o: any) => ({
+      ID: o.ID,
       Ser: o.Ser,
       SerType: typeof o.Ser,
-      SerParsed: parseInt(o.Ser || '0', 10)
+      SerValue: o.Ser,
+      SerParsed: parseInt(String(o.Ser || '0'), 10)
     })));
 
     // 🔍 إيجاد أعلى قيمة لـ Ser فعلياً من جميع الطلبات
-    const maxSer = orders.reduce((max, order) => {
-      const currentSer = parseInt(order?.Ser || '0', 10) || 0;
-      console.log('🔍 فحص Ser:', { orderSer: order?.Ser, currentSer, max });
+    const maxSer = orders.reduce((max: number, order: any) => {
+      const serValue = String(order?.Ser ?? '0').trim();
+      const currentSer = parseInt(serValue, 10) || 0;
+      console.log('🔍 فحص Ser:', {
+        orderID: order?.ID,
+        orderSer: order?.Ser,
+        serValue,
+        currentSer,
+        max,
+        isGreater: currentSer > max
+      });
       return currentSer > max ? currentSer : max;
     }, 0);
 
     const newSer = String(maxSer + 1);
 
-    // 🔍 إيجاد أعلى قيمة لـ ID أيضاً (لضمان عدم التكرار)
-    const maxId = orders.reduce((max, order) => {
-      const currentId = parseInt(order?.ID || '0', 10) || 0;
+    // 🔍 إيجاد أعلى قيمة لـ ID أيضاً
+    const maxId = orders.reduce((max: number, order: any) => {
+      const idValue = String(order?.ID ?? '0').trim();
+      const currentId = parseInt(idValue, 10) || 0;
       return currentId > max ? currentId : max;
     }, 0);
     const newId = String(maxId + 1);
@@ -921,22 +936,27 @@ export default function OrderFormPage() {
       Year: currentYear,
     };
 
-    console.log('🔄 جاري تهيئة طلب جديد:', {
+    console.log('✅ نتائج الحساب:', {
       maxSer,
       newSer,
       maxId,
       newId,
-      ordersCount: orders.length
+      ordersCount: orders.length,
+      initData
     });
 
     // تحديث الفورم والـ ref
-    reset((prev) => ({ ...prev, ...initData }));
+    reset((prev) => {
+      const updated = { ...prev, ...initData };
+      console.log('🔄 تحديث الفورم:', updated);
+      return updated;
+    });
+
     formDataRef.current = { ...formDataRef.current, ...initData };
-    setIdInitialized(true);
 
     console.log('✅ تم تهيئة طلب جديد بنجاح');
 
-  }, [orders, isEdit, duplicatedData, currentYear, reset]);
+  }, [orders, isEdit, duplicatedData, currentYear, reset, isLoadingOrders]);
 
   // ✅ الحفظ - مع معالجة أخطاء شاملة
   const onSubmit = useCallback(async (data: Order) => {
@@ -999,7 +1019,7 @@ export default function OrderFormPage() {
   }, [checks, mfgChecks, custChecks, isEdit, orders, updateOrder, createOrder, currentYear, pendingMaterials, pendingProblems, pendingOps, createCarton, createProblem, createOperation, navigate]);
 
   const handleDuplicate = useCallback(() => {
-    const sourceData = isEdit && existing ? { ...existing } : {};
+    const sourceData = isEdit && existing ? { ...existing } : formDataRef.current;
 
     console.log('🔄 جاري إنشاء نسخة من الطلب:', sourceData);
 
@@ -1023,7 +1043,6 @@ export default function OrderFormPage() {
           checks: { ...checks },
           mfgChecks: { ...mfgChecks },
           custChecks: { ...custChecks },
-          idInitialized: false,
         }
       }
     });
@@ -1055,9 +1074,11 @@ export default function OrderFormPage() {
   <meta charset="UTF-8">
   <title>بطاقة إنتاج</title>
   <style>
-    body { font-family: 'Cairo', sans-serif; direction: rtl; }
-    table { width: 100%; border-collapse: collapse; }
+    body { font-family: 'Cairo', sans-serif; direction: rtl; padding: 20px; }
+    table { width: 100%; border-collapse: collapse; margin: 20px 0; }
     th, td { border: 1px solid #000; padding: 8px; text-align: right; }
+    th { background: #f0f0f0; font-weight: bold; }
+    h1 { text-align: center; color: #333; }
   </style>
 </head>
 <body onload="window.print()">
@@ -1066,6 +1087,8 @@ export default function OrderFormPage() {
     <tr><th>الزبون</th><td>${fmt(d.Customer)}</td></tr>
     <tr><th>المرجع</th><td>${fmt(d.marji3)}</td></tr>
     <tr><th>المطلوب</th><td>${fmt(d.Demand)}</td></tr>
+    <tr><th>نوع المطبوعة</th><td>${fmt(d.unit)}</td></tr>
+    <tr><th>تاريخ الطلب</th><td>${fmt(d.delev_date)}</td></tr>
   </table>
 </body>
 </html>`;
@@ -1078,9 +1101,9 @@ export default function OrderFormPage() {
     a.rel = 'noopener';
     a.click();
     setTimeout(() => URL.revokeObjectURL(url), 10000);
-  }, [checks, custChecks, mfgChecks]);
+  }, []);
 
-  if (isLoading) return <Loading />;
+  if (isLoading || isLoadingOrders) return <Loading />;
 
   return (
     <div style={{ direction: 'rtl' }}>
@@ -1142,14 +1165,14 @@ export default function OrderFormPage() {
           <datalist id="cust-list">
             {customers.map(c => <option key={(c as any).ID1} value={c.Customer} />)}
           </datalist>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(8,1fr)', gap: 12, marginTop: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 12, marginTop: 12 }}>
             <G label="تاريخ الورود"><input className="fc" type="date" {...register('date_come')} style={{ textAlign: 'right' }} /></G>
             <G label="تاريخ الطلب"><input className="fc" {...register('delev_date')} style={{ textAlign: 'right' }} /></G>
             <G label="موعد التسليم"><input className="fc" {...register('Apoent_Delv_date')} style={{ textAlign: 'right' }} /></G>
             <G label="موافقة المونتاج"><input className="fc" type="date" {...register('Perioud')} style={{ textAlign: 'right' }} /></G>
             <G label="المطلوب"><input className="fc" type="number" {...register('Demand')} style={{ textAlign: 'right' }} /></G>
             <G label="نموذج طبي"><input className="fc" type="number" {...register('Med_smpl_Q')} style={{ textAlign: 'right' }} /></G>
-            <G label="سنة العمل" req><input className="fc" {...register('Year', { required: true })} style={{ textAlign: 'right' }} /></G>
+            <G label="سنة العمل" req><input className="fc" {...register('Year', { required: true })} readOnly style={{ textAlign: 'right', background: '#f8f9fa' }} /></G>
           </div>
         </AccordionCard>
 
@@ -1194,10 +1217,10 @@ export default function OrderFormPage() {
             <G label="تاريخ الإنتاج"><input className="fc" type="date" {...register('ProDate')} style={{ textAlign: 'right' }} /></G>
             <G label="تاريخ الانتهاء"><input className="fc" type="date" {...register('ExpDate')} style={{ textAlign: 'right' }} /></G>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 12, marginTop: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 12, marginTop: 12 }}>
             <G label="شركة الامتياز"><input className="fc" {...register('Authr_co')} style={{ textAlign: 'right' }} /></G>
             <G label="رقم النموذج"><input className="fc" {...register('Pat_Num')} style={{ textAlign: 'right' }} /></G>
-            <G label="ملاحظات الطلبية"><input className="fc" style={{ textAlign: 'right' }} /></G>
+            <G label="ملاحظات الطلبية"><input className="fc" {...register('note_ord')} style={{ textAlign: 'right' }} /></G>
             <G label="تعديل بالمونتاج"><input className="fc" {...register('modefyM')} style={{ textAlign: 'right' }} /></G>
           </div>
 
@@ -1239,20 +1262,24 @@ export default function OrderFormPage() {
             <G label="الحجم النهائي - قاسي"><input className="fc" type="number" step="0.01" {...register('final_size_width')} style={{ textAlign: 'right' }} /></G>
             <G label="الحجم النهائي - قاسي2"><input className="fc" type="number" step="0.01" {...register('final_size_width2')} style={{ textAlign: 'right' }} /></G>
             <G label="الطبع على"><input className="fc" {...register('print_on')} style={{ textAlign: 'right' }} /></G>
-            <G label="الطبع على"><input className="fc" {...register('print_on2')} style={{ textAlign: 'right' }} /></G>
+            <G label="الطبع على 2"><input className="fc" {...register('print_on2')} style={{ textAlign: 'right' }} /></G>
             <G label="فصل الطبق"><input className="fc" {...register('sheet_unit_qunt')} style={{ textAlign: 'right' }} /></G>
-            <G label="2فصل الطبق"><input className="fc" {...register('sheet_unit_qunt2')} style={{ textAlign: 'right' }} /></G>
+            <G label="فصل الطبق 2"><input className="fc" {...register('sheet_unit_qunt2')} style={{ textAlign: 'right' }} /></G>
+          </div>
+          
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(8,1fr)', gap: 12, marginTop: 12 }}>
             <G label="عدد الطبع"><input className="fc" {...register('Qunt_of_print_on')} style={{ textAlign: 'right' }} /></G>
-            <G label="عدد الطبع"><input className="fc" {...register('Qunt_of_print_on2')} style={{ textAlign: 'right' }} /></G>
+            <G label="عدد الطبع 2"><input className="fc" {...register('Qunt_of_print_on2')} style={{ textAlign: 'right' }} /></G>
             <G label="عدد الألوان"><input className="fc" type="number" {...register('Clr_qunt')} style={{ textAlign: 'right' }} /></G>
             <G label="منها نموذج طبي"><input className="fc" {...register('Med_Sampel')} style={{ textAlign: 'right' }} /></G>
             <G label="العدد المنتج">
               <input className="fc" type="number" {...register('grnd_qunt')}
                 style={{ background: '#f0f9f0', borderColor: '#27ae60', textAlign: 'right' }} />
             </G>
-            <G label="المعلومات الفنية"><input className="fc" {...register('note_ord')} style={{ textAlign: 'right' }} /></G>
-            <G label="برنيش"><CheckItem label="برنيش" checked={!!checks.varn} onChange={chk('varn')} /></G>
-            <G label="CTB"><CheckItem label="CTB" checked={!!checks.CTB} onChange={chk('CTB')} /></G>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <CheckItem label="برنيش" checked={!!checks.varn} onChange={chk('varn')} />
+              <CheckItem label="CTB" checked={!!checks.CTB} onChange={chk('CTB')} />
+            </div>
           </div>
 
           <SectionDiv label="العمليات" />
@@ -1328,43 +1355,6 @@ export default function OrderFormPage() {
                 🚨 المشاكل الواردة من الزبون
               </div>
               <div style={{ padding: 12 }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 10 }}>
-                  <div>
-                    <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--steel)', marginBottom: 4, display: 'block', textAlign: 'right' }}>رقم الطبع</label>
-                    <input className="fc" style={{ fontSize: 12, textAlign: 'right' }} />
-                  </div>
-                  <div>
-                    <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--steel)', marginBottom: 4, display: 'block', textAlign: 'right' }}>عدد الطبع</label>
-                    <input className="fc" type="number" style={{ fontSize: 12, textAlign: 'right' }} />
-                  </div>
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 10 }}>
-                  <div>
-                    <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--steel)', marginBottom: 4, display: 'block', textAlign: 'right' }}>الأبعاد</label>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                      <input className="fc" type="number" defaultValue={23} style={{ fontSize: 12, textAlign: 'right' }} />
-                      <span style={{ color: 'var(--muted)', fontWeight: 700 }}>×</span>
-                      <input className="fc" type="number" defaultValue={25} style={{ fontSize: 12, textAlign: 'right' }} />
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                      <input className="fc" type="number" defaultValue={23} style={{ fontSize: 12, textAlign: 'right' }} />
-                      <span style={{ color: 'var(--muted)', fontWeight: 700 }}>×</span>
-                      <input className="fc" type="number" defaultValue={25} style={{ fontSize: 12, textAlign: 'right' }} />
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <input className="fc" type="number" defaultValue={23} style={{ fontSize: 12, textAlign: 'right' }} />
-                      <span style={{ color: 'var(--muted)', fontWeight: 700 }}>×</span>
-                      <input className="fc" type="number" defaultValue={25} style={{ fontSize: 12, textAlign: 'right' }} />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--steel)', marginBottom: 4, display: 'block', textAlign: 'right' }}>تاريخ الانتهاء</label>
-                    <input className="fc" type="date" style={{ fontSize: 12, textAlign: 'right' }} />
-                  </div>
-                </div>
-
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 8 }}>
                   {CHK_CUST.map((label) => (
                     <label
@@ -1392,11 +1382,6 @@ export default function OrderFormPage() {
                       <span style={{ fontSize: 12, fontWeight: 500 }}>{label}</span>
                     </label>
                   ))}
-                </div>
-
-                <div style={{ marginTop: 10 }}>
-                  <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--steel)', marginBottom: 6, display: 'block', textAlign: 'right' }}>اختبار</label>
-                  <input className="fc" placeholder="ادخل نص الاختبار" style={{ fontSize: 12, textAlign: 'right' }} />
                 </div>
               </div>
             </div>
