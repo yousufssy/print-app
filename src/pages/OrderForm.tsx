@@ -105,7 +105,6 @@ syncDraftRows?: boolean;
 }) {
 const [localRows, setLocalRows] = React.useState<Record<string, string>[]>([]);
 const [saving, setSaving] = React.useState<Record<number, boolean>>({});
-const [dirtyRows, setDirtyRows] = React.useState<Set<number>>(new Set());
 
 const rowsRef = React.useRef(rows);
 
@@ -115,7 +114,6 @@ rowsRef.current = rows;
 
 React.useEffect(() => {
 setLocalRows(rows);
-setDirtyRows(new Set());
 }, [rows]);
 
 const isNumericCol = React.useCallback(
@@ -172,11 +170,6 @@ setLocalRows((prev) => {
   );
   return nextRows;
 });
-setDirtyRows((prev) => {
-  const next = new Set(prev);
-  next.add(i);
-  return next;
-});
 }, [isNumericCol, cleanNumber]);
 
 const saveRow = React.useCallback(async (i: number) => {
@@ -195,15 +188,9 @@ try {
     const allRows = [...rowsRef.current, { ...fields }];
     await onRowsChange(allRows);
   } else if (ID) {
-    // Build updated list from rowsRef (not stale localRows closure)
-    const updated = rowsRef.current.map((r) => (r.ID === ID ? row : r));
+    const updated = localRows.map((r) => (r.ID === ID ? row : r));
     await onRowsChange(updated);
   }
-  setDirtyRows((prev) => {
-    const next = new Set(prev);
-    next.delete(i);
-    return next;
-  });
 } finally {
   setSaving((s) => ({ ...s, [i]: false }));
 }
@@ -325,7 +312,7 @@ width: c.width,
           <span style={{ fontSize: 11, color: 'var(--muted)' }}>⏳</span>
         ) : (
           <>
-            {(row._isNew === 'true' || dirtyRows.has(i)) && (
+            {row._isNew === 'true' && (
               <button
                 type="button"
                 onClick={() => saveRow(i)}
@@ -631,6 +618,8 @@ const [pendingMaterials, setPendingMaterials] = useState<Record<string, string>[
 const [pendingProblems, setPendingProblems] = useState<Record<string, string>[]>([]);
 const [pendingOps, setPendingOps] = useState<Record<string, string>[]>([]);
 
+
+
 const handleMaterialsChange = useCallback(async (newRows: Record<string, string>[]) => {
 if (!isEdit) {
 setPendingMaterials(newRows);
@@ -648,6 +637,7 @@ try {
   console.error('❌ handleMaterialsChange error:', error);
 }
 }, [isEdit, materialsRows, syncRows, createCarton, updateCarton, deleteCarton, id, year]);
+
 
 // ── سجل المشاكل ───────────────────────────────────────────────────────────────
 const { data: problemsData = [] } = useProblems(isEdit ? (id ?? '') : '', isEdit ? (year ?? '') : '');
