@@ -618,23 +618,7 @@ const [pendingMaterials, setPendingMaterials] = useState<Record<string, string>[
 const [pendingProblems, setPendingProblems] = useState<Record<string, string>[]>([]);
 const [pendingOps, setPendingOps] = useState<Record<string, string>[]>([]);
 
-const handleMaterialsChange = useCallback(async (newRows: Record<string, string>[]) => {
-if (!isEdit) {
-setPendingMaterials(newRows);
-return;
-}
 
-try {
-  await syncRows(
-    materialsRows, newRows,
-    (f) => createCarton.mutateAsync({ ...f, ID: id!, year: year! }),
-    (rowId, f) => updateCarton.mutateAsync({ rowId, data: f }),
-    (rowId) => deleteCarton.mutateAsync(rowId),
-  );
-} catch (error) {
-  console.error('❌ handleMaterialsChange error:', error);
-}
-}, [isEdit, materialsRows, syncRows, createCarton, updateCarton, deleteCarton, id, year]);
 
 // ── سجل المشاكل ───────────────────────────────────────────────────────────────
 const { data: problemsData = [] } = useProblems(isEdit ? (id ?? '') : '', isEdit ? (year ?? '') : '');
