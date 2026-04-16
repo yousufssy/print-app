@@ -655,19 +655,23 @@ const createProblem = useCreateProblem();
 const updateProblem = useUpdateProblem();
 const deleteProblem = useDeleteProblem();
 
-const [problemsRows, setProblemsRows] = useState<Record<string, string>[]>([]);
+interface Problem {
+ID1?: number;
+print_num?: string;
+prod_date?: string;
+exp_date?: string;
+print_count?: number;
+}
 
-useEffect(() => {
-  setProblemsRows(
-    problemsData.map((p: any) => ({
-      ID: String(p.ID1 ?? ''),
-      print_num: p.print_num ?? '',
-      prod_date: p.prod_date ?? '',
-      exp_date: p.exp_date ?? '',
-      print_count: String(p.print_count ?? ''),
-    }))
-  );
-}, [problemsData]);
+const problemsRows: Record<string, string>[] = useMemo(() =>
+problemsData.map((p: Problem) => ({
+ID: String(p.ID1 ?? ''),
+print_num: p.print_num ?? '',
+prod_date: p.prod_date ?? '',
+exp_date: p.exp_date ?? '',
+print_count: String(p.print_count ?? ''),
+})), [problemsData]
+);
 
 const handleProblemsChange = useCallback(async (newRows: Record<string, string>[]) => {
 if (!isEdit) {
@@ -693,37 +697,27 @@ const createOperation = useCreateOperation();
 const updateOperation = useUpdateOperation();
 const deleteOperation = useDeleteOperation();
 
-const [operationsRows, setOperationsRows] = useState<Record<string, string>[]>([]);
-
-
-useEffect(() => {
-  console.log('🔍 operationsData:', operationsData);
-}, [operationsData]);
-
-  
-useEffect(() => {
-  setOperationsRows(
-    operationsData.map((op: any) => ({
-      ID: String(op.ID1 ?? ''),
-      Action: op.Action ?? '',
-      Color: op.Color ?? '',
-      Qunt_Ac: String(op.Qunt_Ac ?? ''),
-      On: String(op.On ?? ''),
-      Machin: op.Machin ?? '',
-      Hours: String(op.Hours ?? ''),
-      Kelo: String(op.Kelo ?? ''),
-      Actual: String(op.Actual ?? ''),
-      Tarkeb: String(op.Tarkeb ?? ''),
-      Wash: String(op.Wash ?? ''),
-      Electricity: String(op.Electricity ?? ''),
-      Taghez: String(op.Taghez ?? ''),
-      StopVar: String(op.StopVar ?? ''),
-      Date: op.Date ?? '',
-      NotesA: op.NotesA ?? '',
-      Tabrer: op.Tabrer ?? '',
-    }))
-  );
-}, [operationsData]);
+const operationsRows: Record<string, string>[] = useMemo(() =>
+operationsData.map((op: any) => ({
+ID: String(op.ID1 ?? op.ID ?? ''),
+Action: op.Action ?? '',
+Color: op.Color ?? '',
+Qunt_Ac: String(op.Qunt_Ac ?? ''),
+On: String(op.On ?? ''),
+Machin: op.Machin ?? '',
+Hours: String(op.Hours ?? ''),
+Kelo: String(op.Kelo ?? ''),
+Actual: String(op.Actual ?? ''),
+Tarkeb: String(op.Tarkeb ?? ''),
+Wash: String(op.Wash ?? ''),
+Electricity: String(op.Electricity ?? ''),
+Taghez: String(op.Taghez ?? ''),
+StopVar: String(op.StopVar ?? ''),
+Date: op.Date ?? '',
+NotesA: op.NotesA ?? '',
+Tabrer: op.Tabrer ?? '',
+})), [operationsData]
+);
 
 const handleOperationsChange = useCallback(async (newRows: Record<string, string>[]) => {
 if (!isEdit) {
