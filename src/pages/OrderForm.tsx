@@ -14,81 +14,81 @@ function G({ label, req, children }: { label: string; req?: boolean; children: R
 // 🔽 Accordion Card Component
 // ══════════════════════════════════════════════════════
 function AccordionCard({
-title,
-children,
-defaultOpen = true,
-isOpen,
-onToggle
+  title,
+  children,
+  defaultOpen = true,
+  isOpen,
+  onToggle
 }: {
-title: string;
-children: React.ReactNode;
-defaultOpen?: boolean;
-isOpen?: boolean;
-onToggle?: () => void;
+  title: string;
+  children: React.ReactNode;
+  defaultOpen?: boolean;
+  isOpen?: boolean;
+  onToggle?: () => void;
 }) {
-const [internalOpen, setInternalOpen] = useState(defaultOpen);
-const isControlled = isOpen !== undefined;
-const open = isControlled ? isOpen : internalOpen;
+  const [internalOpen, setInternalOpen] = useState(defaultOpen);
+  const isControlled = isOpen !== undefined;
+  const open = isControlled ? isOpen : internalOpen;
 
-const toggle = () => {
-if (isControlled) onToggle?.();
-else setInternalOpen(!open);
-};
+  const toggle = () => {
+    if (isControlled) onToggle?.();
+    else setInternalOpen(!open);
+  };
 
-return (
-<div style={{
-border: '1px solid var(--border)',
-borderRadius: 12,
-marginBottom: 16,
-background: '#fff',
-overflow: 'hidden',
-boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
-}}>
-<button
-type="button"
-onClick={toggle}
-style={{
-width: '100%',
-padding: '14px 20px',
-background: open ? 'var(--steel)' : 'var(--bg)',
-color: open ? '#fff' : 'var(--ink)',
-border: 'none',
-display: 'flex',
-alignItems: 'center',
-justifyContent: 'space-between',
-cursor: 'pointer',
-fontSize: 14,
-fontWeight: 700,
-fontFamily: 'Cairo, sans-serif',
-transition: 'background 0.2s',
-textAlign: 'right',
-direction: 'rtl'
-}}
->
-<span>{title}</span>
-<span style={{
-fontSize: 14,
-transition: 'transform 0.25s ease',
-transform: open ? 'rotate(180deg)' : 'rotate(0)',
-display: 'inline-flex',
-alignItems: 'center'
-}}>
-▼
-</span>
-</button>
+  return (
+    <div style={{
+      border: '1px solid var(--border)',
+      borderRadius: 12,
+      marginBottom: 16,
+      background: '#fff',
+      overflow: 'hidden',
+      boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
+    }}>
+      <button
+        type="button"
+        onClick={toggle}
+        style={{
+          width: '100%',
+          padding: '14px 20px',
+          background: open ? 'var(--steel)' : 'var(--bg)',
+          color: open ? '#fff' : 'var(--ink)',
+          border: 'none',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          cursor: 'pointer',
+          fontSize: 14,
+          fontWeight: 700,
+          fontFamily: 'Cairo, sans-serif',
+          transition: 'background 0.2s',
+          textAlign: 'right',
+          direction: 'rtl'
+        }}
+      >
+        <span>{title}</span>
+        <span style={{
+          fontSize: 14,
+          transition: 'transform 0.25s ease',
+          transform: open ? 'rotate(180deg)' : 'rotate(0)',
+          display: 'inline-flex',
+          alignItems: 'center'
+        }}>
+          ▼
+        </span>
+      </button>
 
-<div style={{
-  maxHeight: open ? '3000px' : '0',
-  overflow: 'hidden',
-  transition: 'max-height 0.35s ease-in-out, opacity 0.25s ease',
-  opacity: open ? 1 : 0
-}}>
-  <div style={{ padding: '16px 20px 20px' }}>
-    {children}
-  </div>
-</div>
-</div>
-);
+      <div style={{
+        maxHeight: open ? '3000px' : '0',
+        overflow: 'hidden',
+        transition: 'max-height 0.35s ease-in-out, opacity 0.25s ease',
+        opacity: open ? 1 : 0
+      }}>
+        <div style={{ padding: '16px 20px 20px' }}>
+          {children}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 // ── Inline editable table ──────────────────────────────────────────────────────
@@ -105,22 +105,17 @@ const InlineTable = React.memo(function InlineTable({
 }) {
   const [localRows, setLocalRows] = React.useState<Record<string, string>[]>([]);
   const [saving, setSaving] = React.useState<Record<number, boolean>>({});
-  const [edited, setEdited] = React.useState<Record<number, boolean>>({}); // ✅ تتبع الصفوف المعدلة
+  const [edited, setEdited] = React.useState<Record<number, boolean>>({});
 
-  const rowsRef = React.useRef(rows);
-
-  React.useEffect(() => {
-    rowsRef.current = rows;
-  }, [rows]);
-
+  // ✅ تحديث localRows عند تغيير rows من الخارج
   React.useEffect(() => {
     setLocalRows(
       rows.map((r) => ({
         ...r,
-        _rowId: r._rowId || crypto.randomUUID(),
+        _rowId: r._rowId || r.ID || crypto.randomUUID(),
       }))
     );
-    setEdited({}); // ✅ إعادة تعيين حالة التعديل عند تحميل بيانات جديدة
+    setEdited({});
   }, [rows]);
 
   const isNumericCol = React.useCallback(
@@ -130,38 +125,26 @@ const InlineTable = React.memo(function InlineTable({
 
   const cleanNumber = React.useCallback((value: string) => {
     if (value === '') return '';
-
     let v = value.replace(/[^0-9.\-]/g, '');
-
     const minusCount = (v.match(/-/g) || []).length;
-    if (minusCount > 1) {
-      v = v.replace(/-/g, '');
-    }
-    if (v.includes('-') && v.indexOf('-') !== 0) {
-      v = v.replace(/-/g, '');
-    }
-
+    if (minusCount > 1) v = v.replace(/-/g, '');
+    if (v.includes('-') && v.indexOf('-') !== 0) v = v.replace(/-/g, '');
     const parts = v.split('.');
-    if (parts.length > 2) {
-      v = parts[0] + '.' + parts.slice(1).join('');
-    }
-
+    if (parts.length > 2) v = parts[0] + '.' + parts.slice(1).join('');
     if (v === '-' || v === '.' || v === '-.' || v === '') return '';
-
     return v;
   }, []);
 
   const pushDraftRows = React.useCallback(
     (nextRows: Record<string, string>[]) => {
       if (!syncDraftRows) return;
-      void onRowsChange(nextRows.map(({ _isNew, ID, ...row }) => row));
+      void onRowsChange(nextRows.map(({ _isNew, ID, _rowId, ...row }) => row));
     },
     [onRowsChange, syncDraftRows]
   );
 
   const addRow = React.useCallback(() => {
     const empty = Object.fromEntries(cols.map((c) => [c.key, '']));
-
     setLocalRows((prev) => {
       const nextRows = [
         ...prev,
@@ -172,7 +155,6 @@ const InlineTable = React.memo(function InlineTable({
           _rowId: crypto.randomUUID(),
         },
       ];
-
       pushDraftRows(nextRows);
       return nextRows;
     });
@@ -180,15 +162,12 @@ const InlineTable = React.memo(function InlineTable({
 
   const setCell = React.useCallback((i: number, key: string, value: string) => {
     const finalValue = isNumericCol(key) ? cleanNumber(value) : value;
-
     setLocalRows((prev) => {
       const nextRows = prev.map((r, idx) =>
         idx === i ? { ...r, [key]: finalValue } : r
       );
       return nextRows;
     });
-
-    // ✅ تحديد الصف كمعدل
     setEdited((prev) => ({ ...prev, [i]: true }));
   }, [isNumericCol, cleanNumber]);
 
@@ -204,16 +183,23 @@ const InlineTable = React.memo(function InlineTable({
     try {
       const { _isNew, _rowId, ID, ...fields } = row;
 
-      if (_isNew === 'true') {
-        const allRows = [...rowsRef.current, { ...fields }];
-        await onRowsChange(allRows);
-      } else if (ID) {
-        const updated = localRows.map((r) => (r._rowId === row._rowId ? row : r));
-        await onRowsChange(updated);
-      }
+      // ✅ إرسال البيانات المحدثة للخارج
+      const updatedRows = localRows.map((r, idx) => {
+        if (idx === i) {
+          const { _isNew, _rowId, ...rest } = r;
+          return rest;
+        }
+        const { _isNew, _rowId, ...rest } = r;
+        return rest;
+      }).filter(r => {
+        // إزالة الصفوف الفارغة
+        return Object.values(r).some(v => v !== '' && v !== undefined);
+      });
 
-      // ✅ إزالة علامة التعديل بعد الحفظ
+      await onRowsChange(updatedRows);
       setEdited((prev) => ({ ...prev, [i]: false }));
+    } catch (error) {
+      console.error('❌ Save row error:', error);
     } finally {
       setSaving((s) => ({ ...s, [i]: false }));
     }
@@ -230,10 +216,9 @@ const InlineTable = React.memo(function InlineTable({
         return nextRows;
       });
     } else {
-      setLocalRows((prev) => prev.filter((r) => r._rowId !== row._rowId));
-
-      const remaining = rowsRef.current.filter((r) => r.ID !== row.ID);
-
+      const remaining = localRows
+        .filter((r) => r._rowId !== row._rowId)
+        .map(({ _isNew, _rowId, ...rest }) => rest);
       await onRowsChange(remaining);
     }
   }, [localRows, pushDraftRows, onRowsChange]);
@@ -257,7 +242,7 @@ const InlineTable = React.memo(function InlineTable({
                 {c.label}
               </th>
             ))}
-            <th style={{ padding: '8px 10px', width: 80 }}></th>
+            <th style={{ padding: '8px 10px', width: 120 }}></th>
           </tr>
         </thead>
 
@@ -279,13 +264,13 @@ const InlineTable = React.memo(function InlineTable({
 
           {localRows.map((row, i) => (
             <tr
-              key={row.ID || row._rowId}
+              key={row._rowId}
               style={{
                 borderBottom: '1px solid var(--border)',
                 background:
                   row._isNew === 'true'
                     ? '#fffbe6'
-                    : edited[i] // ✅ لون مختلف للصفوف المعدلة
+                    : edited[i]
                     ? '#fff3cd'
                     : i % 2 === 0
                     ? '#fff'
@@ -323,6 +308,9 @@ const InlineTable = React.memo(function InlineTable({
                       onFocus={(e) => {
                         e.target.style.background = '#fff9f0';
                       }}
+                      onBlur={(e) => {
+                        e.target.style.background = 'transparent';
+                      }}
                     />
                   </td>
                 );
@@ -339,7 +327,6 @@ const InlineTable = React.memo(function InlineTable({
                   <span style={{ fontSize: 11, color: 'var(--muted)' }}>⏳</span>
                 ) : (
                   <>
-                    {/* ✅ زر الحفظ يظهر للصفوف الجديدة أو المعدلة */}
                     {(row._isNew === 'true' || edited[i]) && (
                       <button
                         type="button"
@@ -357,7 +344,7 @@ const InlineTable = React.memo(function InlineTable({
                         }}
                         title="حفظ"
                       >
-                        💾 حفظ
+                        💾
                       </button>
                     )}
                     <button
@@ -411,262 +398,189 @@ const InlineTable = React.memo(function InlineTable({
 
 // ── Voucher Modal ──────────────────────────────────────────────────────────────
 function VoucherModal({ open, onClose, orderId, orderYear }: {
-open: boolean; onClose: () => void; orderId: string; orderYear: string;
+  open: boolean; onClose: () => void; orderId: string; orderYear: string;
 }) {
-const create = useCreateVoucher();
-const [form, setForm] = useState({
-ID: orderId, Year: orderYear,
-Voucher_num: '', V_date: '', V_Qunt: '', Bill_Num: '',
-Contean: '', Paking_q: '', Box_tp: '', Box_L: '', Box_W: '', Box_H: '',
-});
-const F = (k: string, numeric = false) => (e: React.ChangeEvent<HTMLInputElement>) => {
-let val = e.target.value;
-if (numeric) {
-val = val.replace(/[^0-9]/g, '');
-}
-setForm(f => ({ ...f, [k]: val }));
-};
-if (!open) return null;
+  const create = useCreateVoucher();
+  const [form, setForm] = useState({
+    ID: orderId, Year: orderYear,
+    Voucher_num: '', V_date: '', V_Qunt: '', Bill_Num: '',
+    Contean: '', Paking_q: '', Box_tp: '', Box_L: '', Box_W: '', Box_H: '',
+  });
+  const F = (k: string, numeric = false) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    let val = e.target.value;
+    if (numeric) val = val.replace(/[^0-9]/g, '');
+    setForm(f => ({ ...f, [k]: val }));
+  };
+  if (!open) return null;
 
-return (
-<div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)', zIndex: 500, display: 'flex', alignItems: 'center', justifyContent: 'center', direction: 'rtl' }}>
-<div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 16, padding: 24, width: 540, maxWidth: '95vw', boxShadow: '0 20px 60px rgba(0,0,0,.3)' }}>
-<h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16, paddingBottom: 12, borderBottom: '1px solid var(--border)', textAlign: 'right' }}>➕ إضافة إيصال</h3>
-<div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 12 }}>
-<FormGroup label="رقم الإيصال"><input className="fc" value={form.Voucher_num} onChange={F('Voucher_num')} style={{ textAlign: 'right' }} /></FormGroup>
-<FormGroup label="تاريخ الإيصال"><input className="fc" type="date" value={form.V_date} onChange={F('V_date')} style={{ textAlign: 'right' }} /></FormGroup>
-<FormGroup label="الحد (الكمية)"><input className="fc" type="number" value={form.V_Qunt} onChange={F('V_Qunt')} style={{ textAlign: 'right' }} /></FormGroup>
-<FormGroup label="رقم الفاتورة"><input className="fc" value={form.Bill_Num} onChange={F('Bill_Num')} style={{ textAlign: 'right' }} /></FormGroup>
-<FormGroup label="النوع"><input className="fc" value={form.Contean} onChange={F('Contean')} style={{ textAlign: 'right' }} /></FormGroup>
-<FormGroup label="عدد العلب"><input className="fc" type="number" value={form.Paking_q} onChange={F('Paking_q')} style={{ textAlign: 'right' }} /></FormGroup>
-</div>
-<SectionDiv label="أبعاد الكرتون (ط × ع × ا)" />
-<div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 12, marginTop: 12 }}>
-<FormGroup label="النوع"><input className="fc" value={form.Box_tp} onChange={F('Box_tp')} style={{ textAlign: 'right' }} /></FormGroup>
-<FormGroup label="ط"><input className="fc" type="number" value={form.Box_L} onChange={F('Box_L')} style={{ textAlign: 'right' }} /></FormGroup>
-<FormGroup label="ع"><input className="fc" type="number" value={form.Box_W} onChange={F('Box_W')} style={{ textAlign: 'right' }} /></FormGroup>
-<FormGroup label="ا"><input className="fc" type="number" value={form.Box_H} onChange={F('Box_H')} style={{ textAlign: 'right' }} /></FormGroup>
-</div>
-<div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 20 }}>
-<Btn variant="outline" type="button" onClick={onClose}>إلغاء</Btn>
-<Btn variant="primary" type="button" disabled={create.isPending}
-onClick={async () => { await create.mutateAsync({ ...form, ID: orderId, Year: orderYear }); onClose(); }}>
-{create.isPending ? '⏳...' : '✅ حفظ الإيصال'}
-</Btn>
-</div>
-</div>
-</div>
-);
+  return (
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)', zIndex: 500, display: 'flex', alignItems: 'center', justifyContent: 'center', direction: 'rtl' }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 16, padding: 24, width: 540, maxWidth: '95vw', boxShadow: '0 20px 60px rgba(0,0,0,.3)' }}>
+        <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16, paddingBottom: 12, borderBottom: '1px solid var(--border)', textAlign: 'right' }}>➕ إضافة إيصال</h3>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 12 }}>
+          <FormGroup label="رقم الإيصال"><input className="fc" value={form.Voucher_num} onChange={F('Voucher_num')} style={{ textAlign: 'right' }} /></FormGroup>
+          <FormGroup label="تاريخ الإيصال"><input className="fc" type="date" value={form.V_date} onChange={F('V_date')} style={{ textAlign: 'right' }} /></FormGroup>
+          <FormGroup label="الحد (الكمية)"><input className="fc" type="number" value={form.V_Qunt} onChange={F('V_Qunt')} style={{ textAlign: 'right' }} /></FormGroup>
+          <FormGroup label="رقم الفاتورة"><input className="fc" value={form.Bill_Num} onChange={F('Bill_Num')} style={{ textAlign: 'right' }} /></FormGroup>
+          <FormGroup label="النوع"><input className="fc" value={form.Contean} onChange={F('Contean')} style={{ textAlign: 'right' }} /></FormGroup>
+          <FormGroup label="عدد العلب"><input className="fc" type="number" value={form.Paking_q} onChange={F('Paking_q')} style={{ textAlign: 'right' }} /></FormGroup>
+        </div>
+        <SectionDiv label="أبعاد الكرتون (ط × ع × ا)" />
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 12, marginTop: 12 }}>
+          <FormGroup label="النوع"><input className="fc" value={form.Box_tp} onChange={F('Box_tp')} style={{ textAlign: 'right' }} /></FormGroup>
+          <FormGroup label="ط"><input className="fc" type="number" value={form.Box_L} onChange={F('Box_L')} style={{ textAlign: 'right' }} /></FormGroup>
+          <FormGroup label="ع"><input className="fc" type="number" value={form.Box_W} onChange={F('Box_W')} style={{ textAlign: 'right' }} /></FormGroup>
+          <FormGroup label="ا"><input className="fc" type="number" value={form.Box_H} onChange={F('Box_H')} style={{ textAlign: 'right' }} /></FormGroup>
+        </div>
+        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 20 }}>
+          <Btn variant="outline" type="button" onClick={onClose}>إلغاء</Btn>
+          <Btn variant="primary" type="button" disabled={create.isPending}
+            onClick={async () => { await create.mutateAsync({ ...form, ID: orderId, Year: orderYear }); onClose(); }}>
+            {create.isPending ? '⏳...' : '✅ حفظ الإيصال'}
+          </Btn>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 // ── Table column definitions ───────────────────────────────────────────────────
 const MATERIALS_COLS = [
-{ key: 'Type1', label: 'النوع' },
-{ key: 'Id_carton', label: 'رقم الكرتون' },
-{ key: 'Source1', label: 'المصدر' },
-{ key: 'Supplier1', label: 'المورد' },
-{ key: 'Long1', label: 'الطول', type: 'number' },
-{ key: 'Width1', label: 'العرض', type: 'number' },
-{ key: 'Gramage1', label: 'غراماج', type: 'number' },
-{ key: 'Sheet_count1', label: 'عدد الأطباق', type: 'number' },
-{ key: 'Price', label: 'السعر' },
-{ key: 'Out_Date', label: 'تاريخ الإخراج', type: 'date' },
-{ key: 'Out_ord_num', label: 'رقم أمر الإخراج' },
-{ key: 'note_crt', label: 'ملاحظات' },
+  { key: 'Type1', label: 'النوع' },
+  { key: 'Id_carton', label: 'رقم الكرتون' },
+  { key: 'Source1', label: 'المصدر' },
+  { key: 'Supplier1', label: 'المورد' },
+  { key: 'Long1', label: 'الطول', type: 'number' },
+  { key: 'Width1', label: 'العرض', type: 'number' },
+  { key: 'Gramage1', label: 'غراماج', type: 'number' },
+  { key: 'Sheet_count1', label: 'عدد الأطباق', type: 'number' },
+  { key: 'Price', label: 'السعر' },
+  { key: 'Out_Date', label: 'تاريخ الإخراج', type: 'date' },
+  { key: 'Out_ord_num', label: 'رقم أمر الإخراج' },
+  { key: 'note_crt', label: 'ملاحظات' },
 ];
 
 const PROBLEMS_COLS = [
-{ key: 'print_num', label: 'رقم الطبع' },
-{ key: 'prod_date', label: 'تاريخ الإنتاج', type: 'date' },
-{ key: 'exp_date', label: 'تاريخ الانتهاء', type: 'date' },
-{ key: 'print_count', label: 'عدد الطبع', type: 'number' },
+  { key: 'print_num', label: 'رقم الطبع' },
+  { key: 'prod_date', label: 'تاريخ الإنتاج', type: 'date' },
+  { key: 'exp_date', label: 'تاريخ الانتهاء', type: 'date' },
+  { key: 'print_count', label: 'عدد الطبع', type: 'number' },
 ];
 
 const OPERATIONS_COLS = [
-{ key: 'Action', label: 'العملية' },
-{ key: 'Color', label: 'اللون' },
-{ key: 'Qunt_Ac', label: 'الكمية', type: 'number' },
-{ key: 'On', label: 'على', type: 'number' },
-{ key: 'Machin', label: 'الآلة' },
-{ key: 'Hours', label: 'الساعات', type: 'number' },
-{ key: 'Kelo', label: 'كيلو', type: 'number' },
-{ key: 'Actual', label: 'الفعلي', type: 'number' },
-{ key: 'Tarkeb', label: 'تركيب', type: 'number' },
-{ key: 'Wash', label: 'غسيل', type: 'number' },
-{ key: 'Electricity',label: 'كهرباء', type: 'number' },
-{ key: 'Taghez', label: 'تجهيز', type: 'number' },
-{ key: 'StopVar', label: 'توقف', type: 'number' },
-{ key: 'Date', label: 'التاريخ', type: 'date' },
-{ key: 'NotesA', label: 'ملاحظات' },
-{ key: 'Tabrer', label: 'تبرير' },
+  { key: 'Action', label: 'العملية' },
+  { key: 'Color', label: 'اللون' },
+  { key: 'Qunt_Ac', label: 'الكمية', type: 'number' },
+  { key: 'On', label: 'على', type: 'number' },
+  { key: 'Machin', label: 'الآلة' },
+  { key: 'Hours', label: 'الساعات', type: 'number' },
+  { key: 'Kelo', label: 'كيلو', type: 'number' },
+  { key: 'Actual', label: 'الفعلي', type: 'number' },
+  { key: 'Tarkeb', label: 'تركيب', type: 'number' },
+  { key: 'Wash', label: 'غسيل', type: 'number' },
+  { key: 'Electricity', label: 'كهرباء', type: 'number' },
+  { key: 'Taghez', label: 'تجهيز', type: 'number' },
+  { key: 'StopVar', label: 'توقف', type: 'number' },
+  { key: 'Date', label: 'التاريخ', type: 'date' },
+  { key: 'NotesA', label: 'ملاحظات' },
+  { key: 'Tabrer', label: 'تبرير' },
 ];
 
-const CHK_MFG = ['برنيش','تلميع بقعي','تلميع كامل','سلفان لميع','سلفان مات','طُبعت؟'];
-const CHK_CUST = ['مع طبخة','مع تطوية','تدعيم زكزاك','حراري','بلص'];
+const CHK_MFG = ['برنيش', 'تلميع بقعي', 'تلميع كامل', 'سلفان لميع', 'سلفان مات', 'طُبعت؟'];
+const CHK_CUST = ['مع طبخة', 'مع تطوية', 'تدعيم زكزاك', 'حراري', 'بلص'];
 
-// ── ربط checkboxes التصنيع بحقول الداتابيز ────────────────────────────────────
 const MFG_MAP: Record<string, string> = {
-'برنيش': 'varnich',
-'تلميع بقعي': 'uv_Spot',
-'تلميع كامل': 'uv',
-'سلفان لميع': 'seluvan_lum',
-'سلفان مات': 'seluvan_mat',
-'طُبعت؟': 'Printed',
+  'برنيش': 'varnich',
+  'تلميع بقعي': 'uv_Spot',
+  'تلميع كامل': 'uv',
+  'سلفان لميع': 'seluvan_lum',
+  'سلفان مات': 'seluvan_mat',
+  'طُبعت؟': 'Printed',
 };
 
-// ✅ ربط checkboxes الزبون بحقول الداتابيز
 const CUST_MAP: Record<string, string> = {
-'مع طبخة': 'tabkha',
-'مع تطوية': 'Tay',
-'تدعيم زكزاك': 'Tad3em',
-'حراري': 'harary',
-'بلص': 'bals',
+  'مع طبخة': 'tabkha',
+  'مع تطوية': 'Tay',
+  'تدعيم زكزاك': 'Tad3em',
+  'حراري': 'harary',
+  'بلص': 'bals',
 };
 
-// ── Helper: تحويل أي قيمة boolean لـ 1 أو 0 ──────────────────────────────────
 const toBit = (val: any): number =>
-val === true || val === 1 || val === '1' || String(val).toLowerCase() === 'true' ? 1 : 0;
+  val === true || val === 1 || val === '1' || String(val).toLowerCase() === 'true' ? 1 : 0;
 
-// ── Helper: قراءة boolean من الداتابيز بأي صيغة ──────────────────────────────
 const fromBit = (val: any): boolean =>
-val === true || val === 1 || val === '1' || String(val).toLowerCase() === 'true';
+  val === true || val === 1 || val === '1' || String(val).toLowerCase() === 'true';
 
-// ── قائمة حقول الـ boolean ────────────────────────────────────────────────────
 const BOOL_FIELDS = [
-'varnich','uv','uv_Spot','seluvan_lum','seluvan_mat',
-'Tad3em','Tay','harary','rolling','Printed','Billed','Reseved'
+  'varnich', 'uv', 'uv_Spot', 'seluvan_lum', 'seluvan_mat',
+  'Tad3em', 'Tay', 'harary', 'rolling', 'Printed', 'Billed', 'Reseved'
 ];
 
 // ══════════════════════════════════════════════════════
 // 🎯 MAIN COMPONENT - OrderFormPage
 // ══════════════════════════════════════════════════════
 export default function OrderFormPage() {
-const { id, year } = useParams<{ id?: string; year?: string }>();
-const isEdit = !!(id && year && String(id).trim() && String(year).trim());
-const navigate = useNavigate();
-const location = useLocation();
-const duplicatedData = location.state?.duplicatedData || null;
+  const { id, year } = useParams<{ id?: string; year?: string }>();
+  const isEdit = !!(id && year && String(id).trim() && String(year).trim());
+  const navigate = useNavigate();
+  const location = useLocation();
+  const duplicatedData = location.state?.duplicatedData || null;
 
-const { data: existing, isLoading } = useOrder(id ?? '', year ?? '');
-const createOrder = useCreateOrder();
-const updateOrder = useUpdateOrder(id ?? '', year ?? '');
-const { data: customers = [] } = useCustomers();
+  const { data: existing, isLoading } = useOrder(id ?? '', year ?? '');
+  const createOrder = useCreateOrder();
+  const updateOrder = useUpdateOrder(id ?? '', year ?? '');
+  const { data: customers = [] } = useCustomers();
 
-const [checks, setChecks] = useState<Record<string, boolean>>({});
-const [mfgChecks, setMfgChecks] = useState<Record<string, boolean>>({});
-const [custChecks, setCustChecks] = useState<Record<string, boolean>>({});
-const [voucherOpen, setVoucherOpen] = useState(false);
+  const [checks, setChecks] = useState<Record<string, boolean>>({});
+  const [mfgChecks, setMfgChecks] = useState<Record<string, boolean>>({});
+  const [custChecks, setCustChecks] = useState<Record<string, boolean>>({});
+  const [voucherOpen, setVoucherOpen] = useState(false);
 
-const [idInitialized, setIdInitialized] = useState(false);
-const [hasLoadedEdit, setHasLoadedEdit] = useState(false);
-const [hasLoadedDuplicate, setHasLoadedDuplicate] = useState(false);
+  const [hasLoadedEdit, setHasLoadedEdit] = useState(false);
+  const [hasLoadedDuplicate, setHasLoadedDuplicate] = useState(false);
 
-const [currentYear] = useState(String(new Date().getFullYear()));
-const ordersYearRef = useRef<string>(String(new Date().getFullYear()));
+  const [currentYear] = useState(String(new Date().getFullYear()));
 
-// ✅ useForm بدون dependencies معقدة
-const { register, handleSubmit, reset, setValue } = useForm<Order>({
-defaultValues: {
-Year: currentYear,
-ID: '',
-Ser: ''
-}
-});
-
-// ✅ استخدام useRef لحفظ بيانات الفورم
-const formDataRef = useRef<Partial<Order>>({});
-
-// ── helper مشترك لمزامنة أي InlineTable مع الداتابيز ────────────────────────
-const syncRows = useCallback(async (
-  oldRows: Record<string, string>[],
-  newRows: Record<string, string>[],
-  onCreate: (fields: any) => Promise<any>,
-  onUpdate: (rowId: number, fields: any) => Promise<any>,
-  onDelete: (rowId: number) => Promise<any>,
-) => {
-  const oldMap = new Map(oldRows.map(r => [r.ID, r]));
-  const newIds = new Set(newRows.map(r => r.ID).filter(Boolean));
-
-  // حذف الصفوف المحذوفة
-  for (const old of oldRows) {
-    if (old.ID && !newIds.has(old.ID)) {
-      await onDelete(Number(old.ID)).catch(err =>
-        console.error('❌ Delete error:', err)
-      );
+  const { register, handleSubmit, reset, setValue } = useForm<Order>({
+    defaultValues: {
+      Year: currentYear,
+      ID: '',
+      Ser: ''
     }
-  }
+  });
 
-  for (const row of newRows) {
-    const { ID, _isNew, _rowId, ...fields } = row;
+  const formDataRef = useRef<Partial<Order>>({});
 
-    if (!ID) {
-      // صف جديد — أنشئه
-      await onCreate(fields).catch(err =>
-        console.error('❌ Create error:', err)
-      );
-    } else if (oldMap.has(ID)) {
-      // صف موجود — حدّثه فقط إذا تغيّر
-      const oldRow = oldMap.get(ID)!;
-      const hasChanged = Object.keys(fields).some(
-        k => String(fields[k] ?? '') !== String(oldRow[k] ?? '')
-      );
+  // ✅ جلب البيانات من API
+  const { data: cartonsData = [], refetch: refetchCartons } = useCartons(
+    isEdit ? (id ?? '') : '',
+    isEdit ? (year ?? '') : ''
+  );
+  const { data: problemsData = [], refetch: refetchProblems } = useProblems(
+    isEdit ? (id ?? '') : '',
+    isEdit ? (year ?? '') : ''
+  );
+  const { data: operationsData = [], refetch: refetchOperations } = useOperations(
+    isEdit ? (id ?? '') : '',
+    isEdit ? (year ?? '') : ''
+  );
 
-      if (hasChanged) { // ✅ لا ترسل PUT إذا ما في تغيير
-        await onUpdate(Number(ID), fields).catch(err =>
-          console.error('❌ Update error:', err)
-        );
-      }
-    }
-  }
-}, []);
+  const createCarton = useCreateCarton();
+  const updateCarton = useUpdateCarton();
+  const deleteCarton = useDeleteCarton();
 
-// ── الكرتون ───────────────────────────────────────────────────────────────────
-const { data: cartonsData = [] } = useCartons(
-isEdit ? (id ?? '') : '',
-isEdit ? (year ?? '') : ''
-);
+  const createProblem = useCreateProblem();
+  const updateProblem = useUpdateProblem();
+  const deleteProblem = useDeleteProblem();
 
-const createCarton = useCreateCarton();
-const updateCarton = useUpdateCarton();
-const deleteCarton = useDeleteCarton();
+  const createOperation = useCreateOperation();
+  const updateOperation = useUpdateOperation();
+  const deleteOperation = useDeleteOperation();
 
-const [materialsRows, setMaterialsRows] = useState<Record<string, string>[]>([]);
-
-useEffect(() => {
-setMaterialsRows(
-cartonsData.map((c: any) => ({
-ID: String(c.ID1 ?? ''),
-Type1: c.Type1 ?? '',
-Id_carton: c.Id_carton ?? '',
-Source1: c.Source1 ?? '',
-Supplier1: c.Supplier1 ?? '',
-Long1: String(c.Long1 ?? ''),
-Width1: String(c.Width1 ?? ''),
-Gramage1: String(c.Gramage1 ?? ''),
-Sheet_count1: String(c.Sheet_count1 ?? ''),
-Price: String(c.Price ?? ''),
-Out_Date: c.Out_Date ?? '',
-Out_ord_num: c.Out_ord_num ?? '',
-note_crt: c.note_crt ?? '',
-}))
-);
-}, [cartonsData]);
-
-const [pendingMaterials, setPendingMaterials] = useState<Record<string, string>[]>([]);
-const [pendingProblems, setPendingProblems] = useState<Record<string, string>[]>([]);
-const [pendingOps, setPendingOps] = useState<Record<string, string>[]>([]);
-
-
-
-const handleMaterialsChange = useCallback(async (newRows: Record<string, string>[]) => {
-  if (!isEdit) {
-    setPendingMaterials(newRows);
-    return;
-  }
-
-  try {
-    // ✅ نبني oldRows مباشرة من cartonsData بدل الاعتماد على materialsRows
-    const oldRows = cartonsData.map((c: any) => ({
+  // ✅ تحويل البيانات من API إلى صيغة الجدول
+  const materialsRows = useMemo(() =>
+    cartonsData.map((c: any) => ({
       ID: String(c.ID1 ?? ''),
       Type1: c.Type1 ?? '',
       Id_carton: c.Id_carton ?? '',
@@ -680,112 +594,21 @@ const handleMaterialsChange = useCallback(async (newRows: Record<string, string>
       Out_Date: c.Out_Date ?? '',
       Out_ord_num: c.Out_ord_num ?? '',
       note_crt: c.note_crt ?? '',
-    }));
+    })), [cartonsData]
+  );
 
-    await syncRows(
-      oldRows, // ✅ استخدم oldRows المبنية حديثًا
-      newRows,
-      (f) => createCarton.mutateAsync({ ...f, ID: id!, year: year! }),
-      (rowId, f) => updateCarton.mutateAsync({ rowId, data: f }),
-      (rowId) => deleteCarton.mutateAsync(rowId),
-    );
-  } catch (error) {
-    console.error('❌ handleMaterialsChange error:', error);
-  }
-}, [isEdit, cartonsData, syncRows, createCarton, updateCarton, deleteCarton, id, year]); 
-// ✅ غيّر materialsRows إلى cartonsData في dependencies
-
-
-// ── سجل المشاكل ───────────────────────────────────────────────────────────────
-const { data: problemsData = [] } = useProblems(isEdit ? (id ?? '') : '', isEdit ? (year ?? '') : '');
-const createProblem = useCreateProblem();
-const updateProblem = useUpdateProblem();
-const deleteProblem = useDeleteProblem();
-
-interface Problem {
-ID1?: number;
-print_num?: string;
-prod_date?: string;
-exp_date?: string;
-print_count?: number;
-}
-
-const problemsRows: Record<string, string>[] = useMemo(() =>
-problemsData.map((p: Problem) => ({
-ID: String(p.ID1 ?? ''),
-print_num: p.print_num ?? '',
-prod_date: p.prod_date ?? '',
-exp_date: p.exp_date ?? '',
-print_count: String(p.print_count ?? ''),
-})), [problemsData]
-);
-
-const handleProblemsChange = useCallback(async (newRows: Record<string, string>[]) => {
-  if (!isEdit) {
-    setPendingProblems(newRows);
-    return;
-  }
-
-  try {
-    // ✅ بناء oldRows مباشرة من problemsData
-    const oldRows = problemsData.map((p: any) => ({
+  const problemsRows = useMemo(() =>
+    problemsData.map((p: any) => ({
       ID: String(p.ID1 ?? ''),
       print_num: p.print_num ?? '',
       prod_date: p.prod_date ?? '',
       exp_date: p.exp_date ?? '',
       print_count: String(p.print_count ?? ''),
-    }));
+    })), [problemsData]
+  );
 
-    await syncRows(
-      oldRows, // ✅ استخدم البيانات الطازجة
-      newRows,
-      (f) => createProblem.mutateAsync({ ...f, ID: id!, Year: year! }),
-      (rowId, f) => updateProblem.mutateAsync({ rowId, data: f }),
-      (rowId) => deleteProblem.mutateAsync(rowId),
-    );
-  } catch (error) {
-    console.error('❌ handleProblemsChange error:', error);
-  }
-}, [isEdit, problemsData, syncRows, createProblem, updateProblem, deleteProblem, id, year]);
-// ✅ غيّر problemsRows إلى problemsData
-
-// ── العمليات ──────────────────────────────────────────────────────────────────
-const { data: operationsData = [] } = useOperations(isEdit ? (id ?? '') : '', isEdit ? (year ?? '') : '');
-const createOperation = useCreateOperation();
-const updateOperation = useUpdateOperation();
-const deleteOperation = useDeleteOperation();
-
-const operationsRows: Record<string, string>[] = useMemo(() =>
-operationsData.map((op: any) => ({
-ID: String(op.ID1 ?? op.ID ?? ''),
-Action: op.Action ?? '',
-Color: op.Color ?? '',
-Qunt_Ac: String(op.Qunt_Ac ?? ''),
-On: String(op.On ?? ''),
-Machin: op.Machin ?? '',
-Hours: String(op.Hours ?? ''),
-Kelo: String(op.Kelo ?? ''),
-Actual: String(op.Actual ?? ''),
-Tarkeb: String(op.Tarkeb ?? ''),
-Wash: String(op.Wash ?? ''),
-Electricity: String(op.Electricity ?? ''),
-Taghez: String(op.Taghez ?? ''),
-StopVar: String(op.StopVar ?? ''),
-Date: op.Date ?? '',
-NotesA: op.NotesA ?? '',
-Tabrer: op.Tabrer ?? '',
-})), [operationsData]
-);
-
-const handleOperationsChange = useCallback(async (newRows: Record<string, string>[]) => {
-  if (!isEdit) {
-    setPendingOps(newRows);
-    return;
-  }
-
-  try {
-    // ✅ بناء oldRows مباشرة من operationsData
-    const oldRows = operationsData.map((op: any) => ({
+  const operationsRows = useMemo(() =>
+    operationsData.map((op: any) => ({
       ID: String(op.ID1 ?? op.ID ?? ''),
       Action: op.Action ?? '',
       Color: op.Color ?? '',
@@ -803,245 +626,354 @@ const handleOperationsChange = useCallback(async (newRows: Record<string, string
       Date: op.Date ?? '',
       NotesA: op.NotesA ?? '',
       Tabrer: op.Tabrer ?? '',
-    }));
+    })), [operationsData]
+  );
 
-    await syncRows(
-      oldRows, // ✅ استخدم البيانات الطازجة
-      newRows,
-      (f) => createOperation.mutateAsync({ ...f, ID: id!, Year: year! }),
-      (rowId, f) => updateOperation.mutateAsync({ rowId, data: f }),
-      (rowId) => deleteOperation.mutateAsync(rowId),
-    );
-  } catch (error) {
-    console.error('❌ handleOperationsChange error:', error);
-  }
-}, [isEdit, operationsData, syncRows, createOperation, updateOperation, deleteOperation, id, year]);
-// ✅ غيّر operationsRows إلى operationsData
+  // ✅ حالة مؤقتة للطلبات الجديدة
+  const [pendingMaterials, setPendingMaterials] = useState<Record<string, string>[]>([]);
+  const [pendingProblems, setPendingProblems] = useState<Record<string, string>[]>([]);
+  const [pendingOps, setPendingOps] = useState<Record<string, string>[]>([]);
 
-// ── حالة الأقسام ──────────────────────────────────────────────────────────────
-const getInitialSections = () => {
-try {
-const saved = localStorage.getItem('orderFormSections');
-if (saved) return JSON.parse(saved);
-} catch {}
-return { basic: true, specs: true, printing: true, quality: true, delivery: true };
-};
+  // ✅ معالج تغيير المواد
+  const handleMaterialsChange = useCallback(async (newRows: Record<string, string>[]) => {
+    if (!isEdit) {
+      setPendingMaterials(newRows);
+      return;
+    }
 
-const [openSections, setOpenSections] = useState<Record<string, boolean>>(getInitialSections);
+    try {
+      // حذف الصفوف المحذوفة
+      const newIds = new Set(newRows.filter(r => r.ID).map(r => r.ID));
+      const deletedRows = cartonsData.filter((c: any) => !newIds.has(String(c.ID1)));
 
-useEffect(() => {
-localStorage.setItem('orderFormSections', JSON.stringify(openSections));
-}, [openSections]);
+      for (const row of deletedRows) {
+        await deleteCarton.mutateAsync(row.ID1);
+      }
 
-const { data: ordersResponse } = useOrders({ year: currentYear });
-const orders = useMemo(() => ordersResponse?.data ?? [], [ordersResponse]);
+      // تحديث أو إنشاء الصفوف
+      for (const row of newRows) {
+        const { ID, _isNew, _rowId, ...fields } = row;
 
-const { data: vouchers = [] } = useVouchers(
-isEdit ? (id ?? '') : '',
-isEdit ? (year ?? currentYear) : currentYear
-);
-const deleteVoucher = useDeleteVoucher();
+        if (!ID || _isNew === 'true') {
+          // صف جديد
+          await createCarton.mutateAsync({ ...fields, ID: id!, year: year! });
+        } else {
+          // صف موجود - تحديث
+          const existingRow = cartonsData.find((c: any) => String(c.ID1) === ID);
+          if (existingRow) {
+            const hasChanged = Object.keys(fields).some(
+              k => String(fields[k] ?? '') !== String((existingRow as any)[k] ?? '')
+            );
+            if (hasChanged) {
+              await updateCarton.mutateAsync({ rowId: Number(ID), data: fields });
+            }
+          }
+        }
+      }
 
-// ✅ 1️⃣ تحميل بيانات التعديل - مرة واحدة
-useEffect(() => {
-if (!isEdit || !existing || hasLoadedEdit || duplicatedData) return;
+      // ✅ إعادة جلب البيانات بعد الحفظ
+      await refetchCartons();
+    } catch (error) {
+      console.error('❌ handleMaterialsChange error:', error);
+    }
+  }, [isEdit, cartonsData, id, year, createCarton, updateCarton, deleteCarton, refetchCartons]);
 
-reset(existing);
-formDataRef.current = { ...existing };
+  // ✅ معالج تغيير المشاكل
+  const handleProblemsChange = useCallback(async (newRows: Record<string, string>[]) => {
+    if (!isEdit) {
+      setPendingProblems(newRows);
+      return;
+    }
 
-const loadedMfg: Record<string, boolean> = {};
-Object.entries(MFG_MAP).forEach(([label, field]) => {
-  loadedMfg[label] = fromBit((existing as any)[field]);
-});
-setMfgChecks(loadedMfg);
+    try {
+      const newIds = new Set(newRows.filter(r => r.ID).map(r => r.ID));
+      const deletedRows = problemsData.filter((p: any) => !newIds.has(String(p.ID1)));
 
-const loadedCust: Record<string, boolean> = {};
-Object.entries(CUST_MAP).forEach(([label, field]) => {
-  loadedCust[label] = fromBit((existing as any)[field]);
-});
-setCustChecks(loadedCust);
+      for (const row of deletedRows) {
+        await deleteProblem.mutateAsync(row.ID1);
+      }
 
-setChecks({
-  varnich: fromBit(existing.varnich),
-  uv: fromBit(existing.uv),
-  uv_Spot: fromBit(existing.uv_Spot),
-  seluvan_lum: fromBit(existing.seluvan_lum),
-  seluvan_mat: fromBit(existing.seluvan_mat),
-  Tad3em: fromBit(existing.Tad3em),
-  Tay: fromBit(existing.Tay),
-  harary: fromBit(existing.harary),
-  rolling: fromBit(existing.rolling),
-  Printed: fromBit(existing.Printed),
-  Billed: fromBit(existing.Billed),
-  Reseved: fromBit(existing.Reseved),
-  CTB: fromBit(existing.DubelM),
-  varn: fromBit(existing.varnich),
-});
+      for (const row of newRows) {
+        const { ID, _isNew, _rowId, ...fields } = row;
 
-setHasLoadedEdit(true);
-}, [isEdit, existing, hasLoadedEdit, duplicatedData, reset]);
+        if (!ID || _isNew === 'true') {
+          await createProblem.mutateAsync({ ...fields, ID: id!, Year: year! });
+        } else {
+          const existingRow = problemsData.find((p: any) => String(p.ID1) === ID);
+          if (existingRow) {
+            const hasChanged = Object.keys(fields).some(
+              k => String(fields[k] ?? '') !== String((existingRow as any)[k] ?? '')
+            );
+            if (hasChanged) {
+              await updateProblem.mutateAsync({ rowId: Number(ID), data: fields });
+            }
+          }
+        }
+      }
 
-// ✅ 2️⃣ تحميل بيانات النسخ - مرة واحدة
-useEffect(() => {
-if (!duplicatedData || hasLoadedDuplicate) return;
+      await refetchProblems();
+    } catch (error) {
+      console.error('❌ handleProblemsChange error:', error);
+    }
+  }, [isEdit, problemsData, id, year, createProblem, updateProblem, deleteProblem, refetchProblems]);
 
-const {
-  checks: copiedChecks,
-  mfgChecks: copiedMfg,
-  custChecks: copiedCust,
-  idInitialized: copiedIdInitialized,
-  ...orderData
-} = duplicatedData;
+  // ✅ معالج تغيير العمليات
+  const handleOperationsChange = useCallback(async (newRows: Record<string, string>[]) => {
+    if (!isEdit) {
+      setPendingOps(newRows);
+      return;
+    }
 
-reset(orderData);
-formDataRef.current = { ...orderData };
-setChecks(copiedChecks ?? {});
-setMfgChecks(copiedMfg ?? {});
-setCustChecks(copiedCust ?? {});
-setIdInitialized(copiedIdInitialized ?? false);
-setMaterialsRows([]);
-setPendingMaterials([]);
-setPendingOps([]);
-setPendingProblems([]);
-setHasLoadedDuplicate(true);
-}, [duplicatedData, hasLoadedDuplicate, reset]);
+    try {
+      const newIds = new Set(newRows.filter(r => r.ID).map(r => r.ID));
+      const deletedRows = operationsData.filter((op: any) => !newIds.has(String(op.ID1 ?? op.ID)));
 
-// ✅ 3️⃣ تهيئة طلب جديد - مرة واحدة فقط
-const idInitializedRef = useRef(false);
+      for (const row of deletedRows) {
+        await deleteOperation.mutateAsync(row.ID1 ?? row.ID);
+      }
 
-useEffect(() => {
-  if (isEdit || duplicatedData) return;
-  if (idInitializedRef.current) return;
-  if (!orders || orders.length === 0) return;
+      for (const row of newRows) {
+        const { ID, _isNew, _rowId, ...fields } = row;
 
-  idInitializedRef.current = true;
+        if (!ID || _isNew === 'true') {
+          await createOperation.mutateAsync({ ...fields, ID: id!, Year: year! });
+        } else {
+          const existingRow = operationsData.find((op: any) => String(op.ID1 ?? op.ID) === ID);
+          if (existingRow) {
+            const hasChanged = Object.keys(fields).some(
+              k => String(fields[k] ?? '') !== String((existingRow as any)[k] ?? '')
+            );
+            if (hasChanged) {
+              await updateOperation.mutateAsync({ rowId: Number(ID), data: fields });
+            }
+          }
+        }
+      }
 
-  const latestOrder = orders[orders.length - 1];
-  const lastSer = parseInt(latestOrder?.Ser || '0') || 0;
-  const newId = String((Number(latestOrder?.ID) || 0) + 1);
+      await refetchOperations();
+    } catch (error) {
+      console.error('❌ handleOperationsChange error:', error);
+    }
+  }, [isEdit, operationsData, id, year, createOperation, updateOperation, deleteOperation, refetchOperations]);
 
-  const initData = {
-    Ser: String(lastSer + 1),
-    ID: newId,
-    Year: currentYear,
+  // حالة الأقسام
+  const getInitialSections = () => {
+    try {
+      const saved = localStorage.getItem('orderFormSections');
+      if (saved) return JSON.parse(saved);
+    } catch { }
+    return { basic: true, specs: true, printing: true, quality: true, delivery: true };
   };
 
-  reset((prev) => ({ ...prev, ...initData }));
-  formDataRef.current = initData;
-  setIdInitialized(true);
-// eslint-disable-next-line react-hooks/exhaustive-deps
-}, [orders]);
-// ✅ الحفظ - مع معالجة أخطاء شاملة
-const onSubmit = useCallback(async (data: Order) => {
-try {
-BOOL_FIELDS.forEach(f => {
-(data as any)[f] = toBit(checks[f]);
-});
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>(getInitialSections);
 
-Object.entries(MFG_MAP).forEach(([label, field]) => {
-  (data as any)[field] = toBit(mfgChecks[label]);
-});
+  useEffect(() => {
+    localStorage.setItem('orderFormSections', JSON.stringify(openSections));
+  }, [openSections]);
 
-Object.entries(CUST_MAP).forEach(([label, field]) => {
-  (data as any)[field] = toBit(custChecks[label]);
-});
+  const { data: ordersResponse } = useOrders({ year: currentYear });
+  const orders = useMemo(() => ordersResponse?.data ?? [], [ordersResponse]);
 
-(data as any).DubelM = toBit(checks.CTB);
+  const { data: vouchers = [] } = useVouchers(
+    isEdit ? (id ?? '') : '',
+    isEdit ? (year ?? currentYear) : currentYear
+  );
+  const deleteVoucher = useDeleteVoucher();
 
-if (!isEdit) {
-  const maxRowId = orders.length > 0
-    ? Math.max(...orders.map((o: any) => o.ID)) + 1
-    : 1;
-  (data as any).ID = maxRowId;
-}
+  // ✅ تحميل بيانات التعديل
+  useEffect(() => {
+    if (!isEdit || !existing || hasLoadedEdit || duplicatedData) return;
 
-if (isEdit) {
-  await updateOrder.mutateAsync(data);
-} else {
-  const created = await createOrder.mutateAsync(data);
-  const newId = String((created as any)?.ID ?? (data as any).ID);
-  const yr = String((data as any).Year ?? currentYear);
+    reset(existing);
+    formDataRef.current = { ...existing };
 
-  await Promise.all([
-    ...pendingMaterials.map(({ ID, _isNew, ...f }) =>
-      createCarton.mutateAsync({ ...f, ID: newId, year: yr }).catch(err => {
-        console.error('❌ Create carton error:', err);
-        return null;
-      })),
-    ...pendingProblems.map(({ ID, _isNew, ...f }) =>
-      createProblem.mutateAsync({ ...f, ID: newId, Year: yr }).catch(err => {
-        console.error('❌ Create problem error:', err);
-        return null;
-      })),
-    ...pendingOps.map(({ ID, _isNew, ...f }) =>
-      createOperation.mutateAsync({ ...f, ID: newId, Year: yr }).catch(err => {
-        console.error('❌ Create operation error:', err);
-        return null;
-      })),
-  ]);
-}
+    const loadedMfg: Record<string, boolean> = {};
+    Object.entries(MFG_MAP).forEach(([label, field]) => {
+      loadedMfg[label] = fromBit((existing as any)[field]);
+    });
+    setMfgChecks(loadedMfg);
 
-await new Promise(resolve => setTimeout(resolve, 100));
-navigate('/orders');
-} catch (error) {
-console.error('❌ Submit error:', error);
-alert('حدث خطأ أثناء الحفظ. الرجاء المحاولة مرة أخرى.');
-}
-}, [checks, mfgChecks, custChecks, isEdit, orders, updateOrder, createOrder, currentYear, pendingMaterials, pendingProblems, pendingOps, createCarton, createProblem, createOperation, navigate]);
+    const loadedCust: Record<string, boolean> = {};
+    Object.entries(CUST_MAP).forEach(([label, field]) => {
+      loadedCust[label] = fromBit((existing as any)[field]);
+    });
+    setCustChecks(loadedCust);
 
-const handleDuplicate = useCallback(() => {
-const sourceData = isEdit && existing ? { ...existing } : {};
+    setChecks({
+      varnich: fromBit(existing.varnich),
+      uv: fromBit(existing.uv),
+      uv_Spot: fromBit(existing.uv_Spot),
+      seluvan_lum: fromBit(existing.seluvan_lum),
+      seluvan_mat: fromBit(existing.seluvan_mat),
+      Tad3em: fromBit(existing.Tad3em),
+      Tay: fromBit(existing.Tay),
+      harary: fromBit(existing.harary),
+      rolling: fromBit(existing.rolling),
+      Printed: fromBit(existing.Printed),
+      Billed: fromBit(existing.Billed),
+      Reseved: fromBit(existing.Reseved),
+      CTB: fromBit(existing.DubelM),
+      varn: fromBit(existing.varnich),
+    });
 
-const excludeFields = [
-  'ID', 'ID1', 'Ser',
-  'Year',
-  'date_come', 'Perioud',
-  'marji3',
-  'AttachmentsOrders',
-];
+    setHasLoadedEdit(true);
+  }, [isEdit, existing, hasLoadedEdit, duplicatedData, reset]);
 
-const dataToCopy = { ...sourceData };
-excludeFields.forEach(field => delete dataToCopy[field]);
+  // ✅ تحميل بيانات النسخ
+  useEffect(() => {
+    if (!duplicatedData || hasLoadedDuplicate) return;
 
-navigate('/orders/new', {
-  state: {
-    duplicatedData: {
-      ...dataToCopy,
-      Ser: '',
-      Year: String(new Date().getFullYear()),
-      checks: { ...checks },
-      mfgChecks: { ...mfgChecks },
-      custChecks: { ...custChecks },
-      idInitialized: false,
+    const {
+      checks: copiedChecks,
+      mfgChecks: copiedMfg,
+      custChecks: copiedCust,
+      ...orderData
+    } = duplicatedData;
+
+    reset(orderData);
+    formDataRef.current = { ...orderData };
+    setChecks(copiedChecks ?? {});
+    setMfgChecks(copiedMfg ?? {});
+    setCustChecks(copiedCust ?? {});
+    setPendingMaterials([]);
+    setPendingOps([]);
+    setPendingProblems([]);
+    setHasLoadedDuplicate(true);
+  }, [duplicatedData, hasLoadedDuplicate, reset]);
+
+  // ✅ تهيئة طلب جديد
+  const idInitializedRef = useRef(false);
+
+  useEffect(() => {
+    if (isEdit || duplicatedData) return;
+    if (idInitializedRef.current) return;
+    if (!orders || orders.length === 0) return;
+
+    idInitializedRef.current = true;
+
+    const latestOrder = orders[orders.length - 1];
+    const lastSer = parseInt(latestOrder?.Ser || '0') || 0;
+    const newId = String((Number(latestOrder?.ID) || 0) + 1);
+
+    const initData = {
+      Ser: String(lastSer + 1),
+      ID: newId,
+      Year: currentYear,
+    };
+
+    reset((prev) => ({ ...prev, ...initData }));
+    formDataRef.current = initData;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orders]);
+
+  // ✅ الحفظ
+  const onSubmit = useCallback(async (data: Order) => {
+    try {
+      BOOL_FIELDS.forEach(f => {
+        (data as any)[f] = toBit(checks[f]);
+      });
+
+      Object.entries(MFG_MAP).forEach(([label, field]) => {
+        (data as any)[field] = toBit(mfgChecks[label]);
+      });
+
+      Object.entries(CUST_MAP).forEach(([label, field]) => {
+        (data as any)[field] = toBit(custChecks[label]);
+      });
+
+      (data as any).DubelM = toBit(checks.CTB);
+
+      if (!isEdit) {
+        const maxRowId = orders.length > 0
+          ? Math.max(...orders.map((o: any) => o.ID)) + 1
+          : 1;
+        (data as any).ID = maxRowId;
+      }
+
+      if (isEdit) {
+        await updateOrder.mutateAsync(data);
+      } else {
+        const created = await createOrder.mutateAsync(data);
+        const newId = String((created as any)?.ID ?? (data as any).ID);
+        const yr = String((data as any).Year ?? currentYear);
+
+        await Promise.all([
+          ...pendingMaterials.map(({ ID, _isNew, ...f }) =>
+            createCarton.mutateAsync({ ...f, ID: newId, year: yr }).catch(err => {
+              console.error('❌ Create carton error:', err);
+              return null;
+            })),
+          ...pendingProblems.map(({ ID, _isNew, ...f }) =>
+            createProblem.mutateAsync({ ...f, ID: newId, Year: yr }).catch(err => {
+              console.error('❌ Create problem error:', err);
+              return null;
+            })),
+          ...pendingOps.map(({ ID, _isNew, ...f }) =>
+            createOperation.mutateAsync({ ...f, ID: newId, Year: yr }).catch(err => {
+              console.error('❌ Create operation error:', err);
+              return null;
+            })),
+        ]);
+      }
+
+      await new Promise(resolve => setTimeout(resolve, 100));
+      navigate('/orders');
+    } catch (error) {
+      console.error('❌ Submit error:', error);
+      alert('حدث خطأ أثناء الحفظ. الرجاء المحاولة مرة أخرى.');
     }
-  }
-});
-}, [isEdit, existing, checks, mfgChecks, custChecks, navigate]);
+  }, [checks, mfgChecks, custChecks, isEdit, orders, updateOrder, createOrder, currentYear, pendingMaterials, pendingProblems, pendingOps, createCarton, createProblem, createOperation, navigate]);
 
-const chk = useCallback((k: string) => (v: boolean) => setChecks(c => ({ ...c, [k]: v })), []);
-const mchk = useCallback((k: string) => (v: boolean) => setMfgChecks(c => ({ ...c, [k]: v })), []);
-const cchk = useCallback((k: string) => (v: boolean) => setCustChecks(c => ({ ...c, [k]: v })), []);
+  const handleDuplicate = useCallback(() => {
+    const sourceData = isEdit && existing ? { ...existing } : {};
 
-const toggleSection = useCallback((key: string) => {
-setOpenSections(prev => ({ ...prev, [key]: !prev[key] }));
-}, []);
+    const excludeFields = [
+      'ID', 'ID1', 'Ser',
+      'Year',
+      'date_come', 'Perioud',
+      'marji3',
+      'AttachmentsOrders',
+    ];
 
-const isSaving = createOrder.isPending || updateOrder.isPending;
+    const dataToCopy = { ...sourceData };
+    excludeFields.forEach(field => delete dataToCopy[field]);
 
-// ══════════════════════════════════════════════════════
-// 🖨️ طباعة بطاقة الإنتاج
-const printProductionCard = useCallback(() => {
-const d = formDataRef.current;  const chkd = (val: any) => (val ? '✔' : '');
-  const fmt = (v: any) => v ?? '';
+    navigate('/orders/new', {
+      state: {
+        duplicatedData: {
+          ...dataToCopy,
+          Ser: '',
+          Year: String(new Date().getFullYear()),
+          checks: { ...checks },
+          mfgChecks: { ...mfgChecks },
+          custChecks: { ...custChecks },
+        }
+      }
+    });
+  }, [isEdit, existing, checks, mfgChecks, custChecks, navigate]);
 
-  const html = `<!DOCTYPE html>
+  const chk = useCallback((k: string) => (v: boolean) => setChecks(c => ({ ...c, [k]: v })), []);
+  const mchk = useCallback((k: string) => (v: boolean) => setMfgChecks(c => ({ ...c, [k]: v })), []);
+  const cchk = useCallback((k: string) => (v: boolean) => setCustChecks(c => ({ ...c, [k]: v })), []);
+
+  const toggleSection = useCallback((key: string) => {
+    setOpenSections(prev => ({ ...prev, [key]: !prev[key] }));
+  }, []);
+
+  const isSaving = createOrder.isPending || updateOrder.isPending;
+
+  // ══════════════════════════════════════════════════════
+  // 🖨️ طباعة بطاقة الإنتاج
+  const printProductionCard = useCallback(() => {
+    const d = formDataRef.current;
+    const chkd = (val: any) => (val ? '✔' : '');
+    const fmt = (v: any) => v ?? '';
+
+    const html = `<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
 <style>
-/* ═══════════════════════════════════════════════════════════
-   RESET & FORCE RTL – FIXES TABLE SHIFTING LEFT
-   ═══════════════════════════════════════════════════════════ */
 * {
     box-sizing: border-box;
     margin: 0;
@@ -1059,7 +991,6 @@ html, body {
     height: 100%;
 }
 
-/* Force all block and inline elements to align right */
 div, p, span, h1, h2, h3, h4, h5, h6,
 table, td, th, tr, tbody, thead, tfoot,
 ul, li, section, article, header, footer {
@@ -1067,9 +998,6 @@ ul, li, section, article, header, footer {
     text-align: right !important;
 }
 
-/* ═══════════════════════════════════════════════════════════
-   PAGE CONTAINER
-   ═══════════════════════════════════════════════════════════ */
 .page {
     width: 210mm;
     min-height: 297mm;
@@ -1123,15 +1051,12 @@ ul, li, section, article, header, footer {
     }
 }
 
-/* ═══════════════════════════════════════════════════════════
-   TABLES – CRITICAL FIX
-   ═══════════════════════════════════════════════════════════ */
 table {
     width: 100%;
     border-collapse: collapse;
     direction: rtl !important;
     text-align: right !important;
-    table-layout: fixed;          /* Prevents columns from resizing */
+    table-layout: fixed;
     word-break: break-word;
 }
 
@@ -1142,9 +1067,6 @@ th, td {
     direction: rtl !important;
 }
 
-/* ═══════════════════════════════════════════════════════════
-   FLEX & GRID CONTAINERS – ALIGN TO RIGHT
-   ═══════════════════════════════════════════════════════════ */
 .header,
 .content-layout,
 .wrapper,
@@ -1171,9 +1093,6 @@ th, td {
     align-items: center;
 }
 
-/* ═══════════════════════════════════════════════════════════
-   PULL CONTAINERS TO RIGHT EDGE
-   ═══════════════════════════════════════════════════════════ */
 .warehouse-container,
 .warehouse-out,
 .main-container,
@@ -1184,9 +1103,6 @@ th, td {
     margin-right: 0 !important;
 }
 
-/* ═══════════════════════════════════════════════════════════
-   DOTTED UNDERLINES & CHECKBOXES
-   ═══════════════════════════════════════════════════════════ */
 .dots, .line-fill, .reason-line {
     margin-right: 8px !important;
     margin-left: 0 !important;
@@ -1198,10 +1114,6 @@ th, td {
     display: inline-block;
 }
 
-/* ═══════════════════════════════════════════════════════════
-   EXISTING STYLES (KEPT FOR COMPATIBILITY)
-   ═══════════════════════════════════════════════════════════ */
-/* ------------------- Section 1 ------------------- */
 .header {
     display: flex;
     justify-content: space-between;
@@ -1288,7 +1200,6 @@ th, td {
     font-weight: bold;
 }
 
-/* ------------------- Section 2 ------------------- */
 .warehouse-container {
     width: 100%;
     margin: 12px auto;
@@ -1396,7 +1307,6 @@ th, td {
     margin-right: 5px;
 }
 
-/* ------------------- Section 3 ------------------- */
 .warehouse-out {
     width: 100%;
     margin: 10px auto;
@@ -1447,7 +1357,6 @@ th, td {
     text-align: center;
 }
 
-/* ------------------- Section 4 ------------------- */
 .container {
     width: 100%;
     margin: 12px auto 0 auto;
@@ -1585,7 +1494,6 @@ th, td {
 
 <div class="page">
 
-<!-- Section 1: بطاقة الإنتاج -->
 <div class="header">
     <div class="top-id"><span>رقمنا :</span><span class="dots">${fmt(d.ID)}</span></div>
     <div class="main-title">بطاقة إنتاج</div>
@@ -1611,7 +1519,6 @@ th, td {
 <div class="extra-lines"><div class="line"></div><div class="line"></div></div>
 <div class="footer-right">كود النموذج الطبي : ${fmt(d.Code_M) || '....................'}</div>
 
-<!-- Section 2: المستودع/الأخراج مع wrapper الجديد -->
 <div class="warehouse-container">
     <div class="wrapper">
         <div class="main-container">
@@ -1693,7 +1600,6 @@ th, td {
     </div>
 </div>
 
-<!-- Section 3: إخراج المستودع -->
 <div class="warehouse-out">
     <div class="header-row">
         <span>أخرج من المستودع &nbsp; / &nbsp; / &nbsp; ٢٠١</span>
@@ -1738,7 +1644,6 @@ th, td {
     </div>
 </div>
 
-<!-- Section 4: التفصيل للمقطع -->
 <div class="container">
     <div class="header-split">
         <div class="header-item">التفصيل للمقطع</div>
@@ -1822,7 +1727,6 @@ th, td {
 window.addEventListener('load', () => { 
     setTimeout(() => {
         window.focus();
-        const settings = window.matchMedia('print');
         window.print();
     }, 500);
 });
@@ -1830,428 +1734,431 @@ window.addEventListener('load', () => {
 </body>
 </html>`;
 
-  const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.target = '_blank';
-  a.rel = 'noopener';
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(url), 10000);
-}, [checks, custChecks, mfgChecks]); // Ensure getValues is in deps
+    const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.target = '_blank';
+    a.rel = 'noopener';
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+  }, [mfgChecks, custChecks]);
 
-if (isLoading) return <Loading />;
+  if (isLoading) return <Loading />;
 
-return (
-<div style={{ direction: 'rtl' }}>
-<div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
-<button onClick={() => navigate('/orders')} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18 }}>←</button>
-<h1 style={{ fontSize: 20, fontWeight: 900 }}>
-{isEdit ? `✏️ تعديل الطلب: ${existing?.ID ?? id}` : '➕ طلب جديد'}
-</h1>
-</div>
-
-<div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
-  <button 
-    type="button"
-    onClick={() => setOpenSections({ basic: true, specs: true, printing: true, quality: true, delivery: true })}
-    style={{ 
-      background: 'var(--bg)', border: '1px solid var(--border)', 
-      borderRadius: 6, padding: '6px 12px', fontSize: 12, cursor: 'pointer',
-      color: 'var(--ink)', fontFamily: 'Cairo, sans-serif'
-    }}
-  >
-    📂 فتح الكل
-  </button>
-  <button 
-    type="button"
-    onClick={() => setOpenSections({ basic: false, specs: false, printing: false, quality: false, delivery: false })}
-    style={{ 
-      background: 'var(--bg)', border: '1px solid var(--border)', 
-      borderRadius: 6, padding: '6px 12px', fontSize: 12, cursor: 'pointer',
-      color: 'var(--ink)', fontFamily: 'Cairo, sans-serif'
-    }}
-  >
-    📁 إغلاق الكل
-  </button>
-  <Btn
-    variant="outline"
-    type="button"
-    onClick={handleDuplicate}
-    style={{ display: 'flex', alignItems: 'center', gap: 5 }}
-  >
-    📄 نسخ الطلب
-  </Btn>
-</div>
-
-<form onSubmit={handleSubmit(onSubmit)}>
-
-  {/* ══ 1. بيانات الطلب الأساسية ══ */}
-  <AccordionCard 
-    title="📋 بيانات الطلب الأساسية"
-    isOpen={openSections.basic}
-    onToggle={() => toggleSection('basic')}
-  >
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 12 }}>
-      <G label="تسلسل"><input className="fc" {...register('Ser')} readOnly style={{ textAlign: 'right', background: '#f8f9fa' }} /></G>
-      <G label="اسم الزبون" req><input className="fc" {...register('Customer', { required: true })} list="cust-list" placeholder="ابحث عن الزبون..." style={{ textAlign: 'right' }} /></G>
-      <G label="رقمنا"><input className="fc" {...register('ID')} readOnly style={{ textAlign: 'right', background: '#f8f9fa' }} /></G>
-      <G label="المرجع" req><input className="fc" {...register('marji3', { required: true })} placeholder="65982" style={{ textAlign: 'right' }} /></G>
-      <G label="التفصيلات المرتبطة"><input className="fc" {...register('AttachmentsOrders')} style={{ textAlign: 'right' }} /></G>
-    </div>
-    <datalist id="cust-list">
-      {customers.map(c => <option key={(c as any).ID1} value={c.Customer} />)}
-    </datalist>
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(8,1fr)', gap: 12, marginTop: 12 }}>
-      <G label="تاريخ الورود"><input className="fc" type="date" {...register('date_come')} style={{ textAlign: 'right' }} /></G>
-      <G label="تاريخ الطلب"><input className="fc" {...register('delev_date')} style={{ textAlign: 'right' }} /></G>
-      <G label="موعد التسليم"><input className="fc" {...register('Apoent_Delv_date')} style={{ textAlign: 'right' }} /></G>
-      <G label="موافقة المونتاج"><input className="fc" type="date" {...register('Perioud')} style={{ textAlign: 'right' }} /></G>
-      <G label="المطلوب"><input className="fc" type="number" {...register('Demand')} style={{ textAlign: 'right' }} /></G>
-      <G label="نموذج طبي"><input className="fc" type="number" {...register('Med_smpl_Q')} style={{ textAlign: 'right' }} /></G>
-      <G label="سنة العمل" req><input className="fc" {...register('Year', { required: true })} style={{ textAlign: 'right' }} /></G>
-    </div>
-  </AccordionCard>
-
-  {/* ══ 2. مواصفات المطبوعة ══ */}
-  <AccordionCard 
-    title="🎨 مواصفات المطبوعة"
-    isOpen={openSections.specs}
-    onToggle={() => toggleSection('specs')}
-  >
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(8,1fr)', gap: 12 }}>
-      <G label="نوع المطبوعة">
-        <select className="fc" {...register('unit')} style={{ textAlign: 'right' }}>
-          <option value="">—</option>
-          {['علبة','كرتون','بروشور','استيكر','غلاف','وراقة دحابة'].map(v => <option key={v}>{v}</option>)}
-        </select>
-      </G>
-      <G label="الاسم "><input className="fc" {...register('Pattern')} style={{ textAlign: 'right' }} /></G>
-      <G label=" الوصف"><input className="fc" {...register('Pattern2')} style={{ textAlign: 'right' }} /></G>
-      <G label="العيار"><input className="fc" {...register('ear')} style={{ textAlign: 'right' }} /></G>
-      <G label="الوحدة">
-        <select className="fc" {...register('UnitMed')} style={{ textAlign: 'right' }}>
-          <option>ورقة</option><option>كيلو</option><option>متر</option>
-        </select>
-      </G>
-      <G label="تصدير">
-        <select className="fc" {...register('Form')} style={{ textAlign: 'right' }}>
-          <option>لا</option><option>نعم</option>
-        </select>
-      </G>
-      <G label="التعبئة"><input className="fc" {...register('Loading')} style={{ textAlign: 'right' }} /></G>
-      <G label="ارقام الكود"><input className="fc" {...register('Code_M')} style={{ textAlign: 'right' }} /></G>
-    </div>
-
-    <SectionDiv label="المواصفات الفنية" />
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(8,1fr)', gap: 12 }}>
-      <G label="الترخيص"><input className="fc" {...register('authorization')} style={{ textAlign: 'right' }} /></G>
-      <G label="السعر"><input className="fc" {...register('Price')} style={{ textAlign: 'right' }} /></G>         
-      <G label="النموذج المجاني"><input className="fc" {...register('Free_txt')} style={{ textAlign: 'right' }} /></G>
-      <G label="اللون"><input className="fc" {...register('Free_clr')} style={{ textAlign: 'right' }} /></G>
-      <G label="الكود"><input className="fc" {...register('Code')} style={{ textAlign: 'right' }} /></G>
-      <G label="رقم الطبخة"><input className="fc" {...register('Mix_num')} style={{ textAlign: 'right' }} /></G>
-      <G label="تاريخ الإنتاج"><input className="fc" type="date" {...register('ProDate')} style={{ textAlign: 'right' }} /></G>
-      <G label="تاريخ الانتهاء"><input className="fc" type="date" {...register('ExpDate')} style={{ textAlign: 'right' }} /></G>
-    </div>
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 12, marginTop: 12 }}>
-      <G label="شركة الامتياز"><input className="fc" {...register('Authr_co')} style={{ textAlign: 'right' }} /></G>
-      <G label="رقم النموذج"><input className="fc" {...register('Pat_Num')} style={{ textAlign: 'right' }} /></G>
-      <G label="ملاحظات الطلبية"><input className="fc" style={{ textAlign: 'right' }} /></G>
-      <G label="تعديل بالمونتاج"><input className="fc" {...register('modefyM')} style={{ textAlign: 'right' }} /></G>
-    </div>
-
-    <SectionDiv label="المواد" />
-    <InlineTable
-      cols={MATERIALS_COLS}
-      rows={isEdit ? materialsRows : pendingMaterials}
-      onRowsChange={handleMaterialsChange}
-      syncDraftRows={!isEdit}
-    />
-  </AccordionCard>
-
-  {/* ══ 3. مواصفات الطباعة والمونتاج ══ */}
-  <AccordionCard 
-    title="⚙️ مواصفات الطباعة والمونتاج"
-    isOpen={openSections.printing}
-    onToggle={() => toggleSection('printing')}
-  >
-    <SectionDiv label="الأبعاد" />
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(8,1fr)', gap: 12 }}>
-      <G label="الطري"><input className="fc" type="number" step="0.01" {...register('SoftU')} style={{ textAlign: 'right' }} /></G>
-      <G label="القاسي"><input className="fc" type="number" step="0.01" {...register('TafU')} style={{ textAlign: 'right' }} /></G>
-      <G label="الطول"><input className="fc" type="number" step="0.01" {...register('LongU')} style={{ textAlign: 'right' }} /></G>
-      <G label="العرض"><input className="fc" type="number" step="0.01" {...register('WedthU')} style={{ textAlign: 'right' }} /></G>
-      <G label="الارتفاع"><input className="fc" type="number" step="0.01" {...register('HightU')} style={{ textAlign: 'right' }} /></G>
-      <G label="لسان التدكيك"><input className="fc" type="number" step="0.01" {...register('Lesan')} style={{ textAlign: 'right' }} /></G>
-      <G label="رقم المونتاج"><input className="fc" {...register('MontagNum')} style={{ textAlign: 'right' }} /></G>
-      <G label="القالب">
-        <select className="fc" {...register('Cut_num')} style={{ textAlign: 'right' }}>
-          <option>لأول مرة</option><option>موجود</option>
-        </select>
-      </G>
-    </div>
-
-    <SectionDiv label="الطلبية والإنتاج" />
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(8,1fr)', gap: 12 }}>
-      <G label="الحجم النهائي - طري"><input className="fc" type="number" step="0.01" {...register('final_size_tall')} style={{ textAlign: 'right' }} /></G>
-      <G label="الحجم النهائي - طري2"><input className="fc" type="number" step="0.01" {...register('final_size_tall2')} style={{ textAlign: 'right' }} /></G>
-      <G label="الحجم النهائي - قاسي"><input className="fc" type="number" step="0.01" {...register('final_size_width')} style={{ textAlign: 'right' }} /></G>
-      <G label="الحجم النهائي - قاسي2"><input className="fc" type="number" step="0.01" {...register('final_size_width2')} style={{ textAlign: 'right' }} /></G>
-      <G label="الطبع على"><input className="fc" {...register('print_on')} style={{ textAlign: 'right' }} /></G>
-      <G label="الطبع على"><input className="fc" {...register('print_on2')} style={{ textAlign: 'right' }} /></G>
-      <G label="فصل الطبق"><input className="fc" {...register('sheet_unit_qunt')} style={{ textAlign: 'right' }} /></G>
-      <G label="2فصل الطبق"><input className="fc" {...register('sheet_unit_qunt2')} style={{ textAlign: 'right' }} /></G>
-      <G label="عدد الطبع"><input className="fc"  {...register('Qunt_of_print_on')} style={{ textAlign: 'right' }} /></G>
-      <G label="عدد الطبع"><input className="fc"  {...register('Qunt_of_print_on2')} style={{ textAlign: 'right' }} /></G>
-      <G label="عدد الألوان"><input className="fc" type="number" {...register('Clr_qunt')} style={{ textAlign: 'right' }} /></G>
-      <G label="منها نموذج طبي"><input className="fc"  {...register('Med_Sampel')} style={{ textAlign: 'right' }} /></G>
-      <G label="العدد المنتج">
-        <input className="fc" type="number" {...register('grnd_qunt')}
-          style={{ background: '#f0f9f0', borderColor: '#27ae60', textAlign: 'right' }} />
-      </G>
-      <G label="المعلومات الفنية"><input className="fc" {...register('note_ord')} style={{ textAlign: 'right' }} /></G>
-      <G label="برنيش"><CheckItem label="برنيش" checked={!!checks.varn} onChange={chk('varn')} /></G>
-      <G label="CTB"><CheckItem label="CTB" checked={!!checks.CTB} onChange={chk('CTB')} /></G>
-    </div>
-
-    <SectionDiv label="العمليات" />
-    <InlineTable
-      cols={OPERATIONS_COLS}
-      rows={isEdit ? operationsRows : pendingOps}
-      onRowsChange={handleOperationsChange}
-      syncDraftRows={!isEdit}
-    />
-  </AccordionCard>
-
-  {/* ══ 4. مراقبة الجودة والمشاكل ══ */}
-  <AccordionCard 
-    title="🔍 مراقبة الجودة والمشاكل"
-    isOpen={openSections.quality}
-    onToggle={() => toggleSection('quality')}
-  >
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-      
-      {/* أثناء التصنيع */}
-      <div style={{ border: '1.5px solid var(--border)', borderRadius: 10, overflow: 'hidden' }}>
-        <div style={{ padding: '9px 13px', background: 'rgba(214,137,16,.1)', color: 'var(--warn)', fontSize: 12, fontWeight: 700, borderBottom: '1px solid rgba(214,137,16,.2)', textAlign: 'right' }}>
-          ⚠️ المشاكل الواردة أثناء التصنيع
-        </div>
-        <div style={{ padding: 12 }}>
-          <div style={{ marginBottom: 10 }}>
-            <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--steel)', marginBottom: 6, display: 'block', textAlign: 'right' }}>آلة الطبع</label>
-            <input className="fc" {...register('Machin_Print')} style={{ fontSize: 12, textAlign: 'right' }} />
-          </div>
-          <div style={{ marginBottom: 10 }}>
-            <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--steel)', marginBottom: 6, display: 'block', textAlign: 'right' }}>آلة التقطيع</label>
-            <input className="fc" {...register('Machin_Cut')} style={{ fontSize: 12, textAlign: 'right' }} />
-          </div>
-          <div style={{ marginBottom: 10 }}>
-            <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--steel)', marginBottom: 6, display: 'block', textAlign: 'right' }}>عدد الألوان</label>
-            <input className="fc" {...register('clr_Qnt_order')} style={{ fontSize: 12, textAlign: 'right' }} />
-          </div>
-          
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 8 }}>
-            {CHK_MFG.map(label => (
-              <label 
-                key={label}
-                style={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  gap: 8,
-                  cursor: 'pointer',
-                  padding: '6px 8px',
-                  borderRadius: 6,
-                  background: mfgChecks[label] ? 'rgba(52,152,219,0.1)' : 'transparent',
-                  border: `1px solid ${mfgChecks[label] ? '#3498db' : 'var(--border)'}`,
-                  transition: 'all 0.2s'
-                }}
-              >
-                <input
-                  type="checkbox"
-                  checked={!!mfgChecks[label]}
-                  onChange={(e) => {
-                    setMfgChecks(prev => ({ ...prev, [label]: e.target.checked }));
-                  }}
-                  style={{ width: 16, height: 16, cursor: 'pointer' }}
-                />
-                <span style={{ fontSize: 12, fontWeight: 500 }}>{label}</span>
-              </label>
-            ))}
-          </div>
-        </div>
+  return (
+    <div style={{ direction: 'rtl' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
+        <button onClick={() => navigate('/orders')} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18 }}>←</button>
+        <h1 style={{ fontSize: 20, fontWeight: 900 }}>
+          {isEdit ? `✏️ تعديل الطلب: ${existing?.ID ?? id}` : '➕ طلب جديد'}
+        </h1>
       </div>
 
-      {/* من الزبون */}
-      <div style={{ border: '1.5px solid var(--border)', borderRadius: 10, overflow: 'hidden' }}>
-        <div style={{ padding: '9px 13px', background: 'rgba(192,57,43,.08)', color: 'var(--red)', fontSize: 12, fontWeight: 700, borderBottom: '1px solid rgba(192,57,43,.15)', textAlign: 'right' }}>
-          🚨 المشاكل الواردة من الزبون
-        </div>
-        <div style={{ padding: 12 }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 10 }}>
-            <div>
-              <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--steel)', marginBottom: 4, display: 'block', textAlign: 'right' }}>رقم الطبع</label>
-              <input className="fc" style={{ fontSize: 12, textAlign: 'right' }} />
-            </div>
-            <div>
-              <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--steel)', marginBottom: 4, display: 'block', textAlign: 'right' }}>عدد الطبع</label>
-              <input className="fc" type="number" style={{ fontSize: 12, textAlign: 'right' }} />
-            </div>
-          </div>
-          
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 10 }}>
-            <div>
-              <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--steel)', marginBottom: 4, display: 'block', textAlign: 'right' }}>الأبعاد</label>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                <input className="fc" type="number" defaultValue={23} style={{ fontSize: 12, textAlign: 'right' }} />
-                <span style={{ color: 'var(--muted)', fontWeight: 700 }}>×</span>
-                <input className="fc" type="number" defaultValue={25} style={{ fontSize: 12, textAlign: 'right' }} />
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                <input className="fc" type="number" defaultValue={23} style={{ fontSize: 12, textAlign: 'right' }} />
-                <span style={{ color: 'var(--muted)', fontWeight: 700 }}>×</span>
-                <input className="fc" type="number" defaultValue={25} style={{ fontSize: 12, textAlign: 'right' }} />
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <input className="fc" type="number" defaultValue={23} style={{ fontSize: 12, textAlign: 'right' }} />
-                <span style={{ color: 'var(--muted)', fontWeight: 700 }}>×</span>
-                <input className="fc" type="number" defaultValue={25} style={{ fontSize: 12, textAlign: 'right' }} />
-              </div>
-            </div>
-            
-            <div>
-              <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--steel)', marginBottom: 4, display: 'block', textAlign: 'right' }}>تاريخ الانتهاء</label>
-              <input className="fc" type="date" style={{ fontSize: 12, textAlign: 'right' }} />
-            </div>
-          </div>
-          
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 8 }}>
-            {CHK_CUST.map((label) => (
-              <label 
-                key={label}
-                style={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  gap: 8,
-                  cursor: 'pointer',
-                  padding: '6px 8px',
-                  borderRadius: 6,
-                  background: custChecks[label] ? 'rgba(46,204,113,0.1)' : 'transparent',
-                  border: `1px solid ${custChecks[label] ? '#27ae60' : 'var(--border)'}`,
-                  transition: 'all 0.2s'
-                }}
-              >
-                <input
-                  type="checkbox"
-                  checked={!!custChecks[label]}
-                  onChange={(e) => {
-                    setCustChecks(prev => ({ ...prev, [label]: e.target.checked }));
-                  }}
-                  style={{ width: 16, height: 16, cursor: 'pointer' }}
-                />
-                <span style={{ fontSize: 12, fontWeight: 500 }}>{label}</span>
-              </label>
-            ))}
-          </div>
-          
-          <div style={{ marginTop: 10 }}>
-            <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--steel)', marginBottom: 6, display: 'block', textAlign: 'right' }}>اختبار</label>
-            <input className="fc" placeholder="ادخل نص الاختبار" style={{ fontSize: 12, textAlign: 'right' }} />
-          </div>
-        </div>
+      <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
+        <button
+          type="button"
+          onClick={() => setOpenSections({ basic: true, specs: true, printing: true, quality: true, delivery: true })}
+          style={{
+            background: 'var(--bg)', border: '1px solid var(--border)',
+            borderRadius: 6, padding: '6px 12px', fontSize: 12, cursor: 'pointer',
+            color: 'var(--ink)', fontFamily: 'Cairo, sans-serif'
+          }}
+        >
+          📂 فتح الكل
+        </button>
+        <button
+          type="button"
+          onClick={() => setOpenSections({ basic: false, specs: false, printing: false, quality: false, delivery: false })}
+          style={{
+            background: 'var(--bg)', border: '1px solid var(--border)',
+            borderRadius: 6, padding: '6px 12px', fontSize: 12, cursor: 'pointer',
+            color: 'var(--ink)', fontFamily: 'Cairo, sans-serif'
+          }}
+        >
+          📁 إغلاق الكل
+        </button>
+        <Btn
+          variant="outline"
+          type="button"
+          onClick={handleDuplicate}
+          style={{ display: 'flex', alignItems: 'center', gap: 5 }}
+        >
+          📄 نسخ الطلب
+        </Btn>
       </div>
-    </div>
 
-    <SectionDiv label="سجل المشاكل الواردة من الزبون" />
-    <InlineTable
-      cols={PROBLEMS_COLS}
-      rows={isEdit ? problemsRows : pendingProblems}
-      onRowsChange={handleProblemsChange}
-      syncDraftRows={!isEdit}
-    />
-  </AccordionCard>
+      <form onSubmit={handleSubmit(onSubmit)}>
 
-  {/* ══ 5. التسليم والفوترة ══ */}
-  <AccordionCard 
-    title="🚚 التسليم والفوترة"
-    isOpen={openSections.delivery}
-    onToggle={() => toggleSection('delivery')}
-  >
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 10 }}>
-      <G label="الكمية المسلمة"><input className="fc" type="number" {...register('Qunt_Ac')} style={{ textAlign: 'right' }} /></G>
-      <G label="التعبئة عند الزبون"><input className="fc" {...register('Cus_Paking')} style={{ textAlign: 'right' }} /></G>
-      <G label="طريقة تلزيق العلبة"><input className="fc" {...register('box_stk_typ')} style={{ textAlign: 'right' }} /></G>
-      <G label="الحالة">
-        <div style={{ display: 'flex', gap: 8, paddingTop: 4, flexWrap: 'wrap' }}>
-          <CheckItem label="سُلِّمت" checked={!!checks.Reseved} onChange={chk('Reseved')} />
-          <CheckItem label="فوترة"  checked={!!checks.Billed}  onChange={chk('Billed')} />
-          <CheckItem label="مطبوعة" checked={!!checks.Printed} onChange={chk('Printed')} />
+        {/* ══ 1. بيانات الطلب الأساسية ══ */}
+        <AccordionCard
+          title="📋 بيانات الطلب الأساسية"
+          isOpen={openSections.basic}
+          onToggle={() => toggleSection('basic')}
+        >
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 12 }}>
+            <G label="تسلسل"><input className="fc" {...register('Ser')} readOnly style={{ textAlign: 'right', background: '#f8f9fa' }} /></G>
+            <G label="اسم الزبون" req><input className="fc" {...register('Customer', { required: true })} list="cust-list" placeholder="ابحث عن الزبون..." style={{ textAlign: 'right' }} /></G>
+            <G label="رقمنا"><input className="fc" {...register('ID')} readOnly style={{ textAlign: 'right', background: '#f8f9fa' }} /></G>
+            <G label="المرجع" req><input className="fc" {...register('marji3', { required: true })} placeholder="65982" style={{ textAlign: 'right' }} /></G>
+            <G label="التفصيلات المرتبطة"><input className="fc" {...register('AttachmentsOrders')} style={{ textAlign: 'right' }} /></G>
+          </div>
+          <datalist id="cust-list">
+            {customers.map(c => <option key={(c as any).ID1} value={c.Customer} />)}
+          </datalist>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(8,1fr)', gap: 12, marginTop: 12 }}>
+            <G label="تاريخ الورود"><input className="fc" type="date" {...register('date_come')} style={{ textAlign: 'right' }} /></G>
+            <G label="تاريخ الطلب"><input className="fc" {...register('delev_date')} style={{ textAlign: 'right' }} /></G>
+            <G label="موعد التسليم"><input className="fc" {...register('Apoent_Delv_date')} style={{ textAlign: 'right' }} /></G>
+            <G label="موافقة المونتاج"><input className="fc" type="date" {...register('Perioud')} style={{ textAlign: 'right' }} /></G>
+            <G label="المطلوب"><input className="fc" type="number" {...register('Demand')} style={{ textAlign: 'right' }} /></G>
+            <G label="نموذج طبي"><input className="fc" type="number" {...register('Med_smpl_Q')} style={{ textAlign: 'right' }} /></G>
+            <G label="سنة العمل" req><input className="fc" {...register('Year', { required: true })} style={{ textAlign: 'right' }} /></G>
+          </div>
+        </AccordionCard>
+
+        {/* ══ 2. مواصفات المطبوعة ══ */}
+        <AccordionCard
+          title="🎨 مواصفات المطبوعة"
+          isOpen={openSections.specs}
+          onToggle={() => toggleSection('specs')}
+        >
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(8,1fr)', gap: 12 }}>
+            <G label="نوع المطبوعة">
+              <select className="fc" {...register('unit')} style={{ textAlign: 'right' }}>
+                <option value="">—</option>
+                {['علبة', 'كرتون', 'بروشور', 'استيكر', 'غلاف', 'وراقة دحابة'].map(v => <option key={v}>{v}</option>)}
+              </select>
+            </G>
+            <G label="الاسم "><input className="fc" {...register('Pattern')} style={{ textAlign: 'right' }} /></G>
+            <G label=" الوصف"><input className="fc" {...register('Pattern2')} style={{ textAlign: 'right' }} /></G>
+            <G label="العيار"><input className="fc" {...register('ear')} style={{ textAlign: 'right' }} /></G>
+            <G label="الوحدة">
+              <select className="fc" {...register('UnitMed')} style={{ textAlign: 'right' }}>
+                <option>ورقة</option><option>كيلو</option><option>متر</option>
+              </select>
+            </G>
+            <G label="تصدير">
+              <select className="fc" {...register('Form')} style={{ textAlign: 'right' }}>
+                <option>لا</option><option>نعم</option>
+              </select>
+            </G>
+            <G label="التعبئة"><input className="fc" {...register('Loading')} style={{ textAlign: 'right' }} /></G>
+            <G label="ارقام الكود"><input className="fc" {...register('Code_M')} style={{ textAlign: 'right' }} /></G>
+          </div>
+
+          <SectionDiv label="المواصفات الفنية" />
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(8,1fr)', gap: 12 }}>
+            <G label="الترخيص"><input className="fc" {...register('authorization')} style={{ textAlign: 'right' }} /></G>
+            <G label="السعر"><input className="fc" {...register('Price')} style={{ textAlign: 'right' }} /></G>
+            <G label="النموذج المجاني"><input className="fc" {...register('Free_txt')} style={{ textAlign: 'right' }} /></G>
+            <G label="اللون"><input className="fc" {...register('Free_clr')} style={{ textAlign: 'right' }} /></G>
+            <G label="الكود"><input className="fc" {...register('Code')} style={{ textAlign: 'right' }} /></G>
+            <G label="رقم الطبخة"><input className="fc" {...register('Mix_num')} style={{ textAlign: 'right' }} /></G>
+            <G label="تاريخ الإنتاج"><input className="fc" type="date" {...register('ProDate')} style={{ textAlign: 'right' }} /></G>
+            <G label="تاريخ الانتهاء"><input className="fc" type="date" {...register('ExpDate')} style={{ textAlign: 'right' }} /></G>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 12, marginTop: 12 }}>
+            <G label="شركة الامتياز"><input className="fc" {...register('Authr_co')} style={{ textAlign: 'right' }} /></G>
+            <G label="رقم النموذج"><input className="fc" {...register('Pat_Num')} style={{ textAlign: 'right' }} /></G>
+            <G label="ملاحظات الطلبية"><input className="fc" style={{ textAlign: 'right' }} /></G>
+            <G label="تعديل بالمونتاج"><input className="fc" {...register('modefyM')} style={{ textAlign: 'right' }} /></G>
+          </div>
+
+          <SectionDiv label="المواد" />
+          <InlineTable
+            key={`materials-${isEdit ? id : 'new'}`}
+            cols={MATERIALS_COLS}
+            rows={isEdit ? materialsRows : pendingMaterials}
+            onRowsChange={handleMaterialsChange}
+            syncDraftRows={!isEdit}
+          />
+        </AccordionCard>
+
+        {/* ══ 3. مواصفات الطباعة والمونتاج ══ */}
+        <AccordionCard
+          title="⚙️ مواصفات الطباعة والمونتاج"
+          isOpen={openSections.printing}
+          onToggle={() => toggleSection('printing')}
+        >
+          <SectionDiv label="الأبعاد" />
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(8,1fr)', gap: 12 }}>
+            <G label="الطري"><input className="fc" type="number" step="0.01" {...register('SoftU')} style={{ textAlign: 'right' }} /></G>
+            <G label="القاسي"><input className="fc" type="number" step="0.01" {...register('TafU')} style={{ textAlign: 'right' }} /></G>
+            <G label="الطول"><input className="fc" type="number" step="0.01" {...register('LongU')} style={{ textAlign: 'right' }} /></G>
+            <G label="العرض"><input className="fc" type="number" step="0.01" {...register('WedthU')} style={{ textAlign: 'right' }} /></G>
+            <G label="الارتفاع"><input className="fc" type="number" step="0.01" {...register('HightU')} style={{ textAlign: 'right' }} /></G>
+            <G label="لسان التدكيك"><input className="fc" type="number" step="0.01" {...register('Lesan')} style={{ textAlign: 'right' }} /></G>
+            <G label="رقم المونتاج"><input className="fc" {...register('MontagNum')} style={{ textAlign: 'right' }} /></G>
+            <G label="القالب">
+              <select className="fc" {...register('Cut_num')} style={{ textAlign: 'right' }}>
+                <option>لأول مرة</option><option>موجود</option>
+              </select>
+            </G>
+          </div>
+
+          <SectionDiv label="الطلبية والإنتاج" />
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(8,1fr)', gap: 12 }}>
+            <G label="الحجم النهائي - طري"><input className="fc" type="number" step="0.01" {...register('final_size_tall')} style={{ textAlign: 'right' }} /></G>
+            <G label="الحجم النهائي - طري2"><input className="fc" type="number" step="0.01" {...register('final_size_tall2')} style={{ textAlign: 'right' }} /></G>
+            <G label="الحجم النهائي - قاسي"><input className="fc" type="number" step="0.01" {...register('final_size_width')} style={{ textAlign: 'right' }} /></G>
+            <G label="الحجم النهائي - قاسي2"><input className="fc" type="number" step="0.01" {...register('final_size_width2')} style={{ textAlign: 'right' }} /></G>
+            <G label="الطبع على"><input className="fc" {...register('print_on')} style={{ textAlign: 'right' }} /></G>
+            <G label="الطبع على"><input className="fc" {...register('print_on2')} style={{ textAlign: 'right' }} /></G>
+            <G label="فصل الطبق"><input className="fc" {...register('sheet_unit_qunt')} style={{ textAlign: 'right' }} /></G>
+            <G label="2فصل الطبق"><input className="fc" {...register('sheet_unit_qunt2')} style={{ textAlign: 'right' }} /></G>
+            <G label="عدد الطبع"><input className="fc" {...register('Qunt_of_print_on')} style={{ textAlign: 'right' }} /></G>
+            <G label="عدد الطبع"><input className="fc" {...register('Qunt_of_print_on2')} style={{ textAlign: 'right' }} /></G>
+            <G label="عدد الألوان"><input className="fc" type="number" {...register('Clr_qunt')} style={{ textAlign: 'right' }} /></G>
+            <G label="منها نموذج طبي"><input className="fc" {...register('Med_Sampel')} style={{ textAlign: 'right' }} /></G>
+            <G label="العدد المنتج">
+              <input className="fc" type="number" {...register('grnd_qunt')}
+                style={{ background: '#f0f9f0', borderColor: '#27ae60', textAlign: 'right' }} />
+            </G>
+            <G label="المعلومات الفنية"><input className="fc" {...register('note_ord')} style={{ textAlign: 'right' }} /></G>
+            <G label="برنيش"><CheckItem label="برنيش" checked={!!checks.varn} onChange={chk('varn')} /></G>
+            <G label="CTB"><CheckItem label="CTB" checked={!!checks.CTB} onChange={chk('CTB')} /></G>
+          </div>
+
+          <SectionDiv label="العمليات" />
+          <InlineTable
+            key={`operations-${isEdit ? id : 'new'}`}
+            cols={OPERATIONS_COLS}
+            rows={isEdit ? operationsRows : pendingOps}
+            onRowsChange={handleOperationsChange}
+            syncDraftRows={!isEdit}
+          />
+        </AccordionCard>
+
+        {/* ══ 4. مراقبة الجودة والمشاكل ══ */}
+        <AccordionCard
+          title="🔍 مراقبة الجودة والمشاكل"
+          isOpen={openSections.quality}
+          onToggle={() => toggleSection('quality')}
+        >
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+
+            {/* أثناء التصنيع */}
+            <div style={{ border: '1.5px solid var(--border)', borderRadius: 10, overflow: 'hidden' }}>
+              <div style={{ padding: '9px 13px', background: 'rgba(214,137,16,.1)', color: 'var(--warn)', fontSize: 12, fontWeight: 700, borderBottom: '1px solid rgba(214,137,16,.2)', textAlign: 'right' }}>
+                ⚠️ المشاكل الواردة أثناء التصنيع
+              </div>
+              <div style={{ padding: 12 }}>
+                <div style={{ marginBottom: 10 }}>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--steel)', marginBottom: 6, display: 'block', textAlign: 'right' }}>آلة الطبع</label>
+                  <input className="fc" {...register('Machin_Print')} style={{ fontSize: 12, textAlign: 'right' }} />
+                </div>
+                <div style={{ marginBottom: 10 }}>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--steel)', marginBottom: 6, display: 'block', textAlign: 'right' }}>آلة التقطيع</label>
+                  <input className="fc" {...register('Machin_Cut')} style={{ fontSize: 12, textAlign: 'right' }} />
+                </div>
+                <div style={{ marginBottom: 10 }}>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--steel)', marginBottom: 6, display: 'block', textAlign: 'right' }}>عدد الألوان</label>
+                  <input className="fc" {...register('clr_Qnt_order')} style={{ fontSize: 12, textAlign: 'right' }} />
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 8 }}>
+                  {CHK_MFG.map(label => (
+                    <label
+                      key={label}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 8,
+                        cursor: 'pointer',
+                        padding: '6px 8px',
+                        borderRadius: 6,
+                        background: mfgChecks[label] ? 'rgba(52,152,219,0.1)' : 'transparent',
+                        border: `1px solid ${mfgChecks[label] ? '#3498db' : 'var(--border)'}`,
+                        transition: 'all 0.2s'
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={!!mfgChecks[label]}
+                        onChange={(e) => {
+                          setMfgChecks(prev => ({ ...prev, [label]: e.target.checked }));
+                        }}
+                        style={{ width: 16, height: 16, cursor: 'pointer' }}
+                      />
+                      <span style={{ fontSize: 12, fontWeight: 500 }}>{label}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* من الزبون */}
+            <div style={{ border: '1.5px solid var(--border)', borderRadius: 10, overflow: 'hidden' }}>
+              <div style={{ padding: '9px 13px', background: 'rgba(192,57,43,.08)', color: 'var(--red)', fontSize: 12, fontWeight: 700, borderBottom: '1px solid rgba(192,57,43,.15)', textAlign: 'right' }}>
+                🚨 المشاكل الواردة من الزبون
+              </div>
+              <div style={{ padding: 12 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 10 }}>
+                  <div>
+                    <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--steel)', marginBottom: 4, display: 'block', textAlign: 'right' }}>رقم الطبع</label>
+                    <input className="fc" style={{ fontSize: 12, textAlign: 'right' }} />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--steel)', marginBottom: 4, display: 'block', textAlign: 'right' }}>عدد الطبع</label>
+                    <input className="fc" type="number" style={{ fontSize: 12, textAlign: 'right' }} />
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 10 }}>
+                  <div>
+                    <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--steel)', marginBottom: 4, display: 'block', textAlign: 'right' }}>الأبعاد</label>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                      <input className="fc" type="number" defaultValue={23} style={{ fontSize: 12, textAlign: 'right' }} />
+                      <span style={{ color: 'var(--muted)', fontWeight: 700 }}>×</span>
+                      <input className="fc" type="number" defaultValue={25} style={{ fontSize: 12, textAlign: 'right' }} />
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                      <input className="fc" type="number" defaultValue={23} style={{ fontSize: 12, textAlign: 'right' }} />
+                      <span style={{ color: 'var(--muted)', fontWeight: 700 }}>×</span>
+                      <input className="fc" type="number" defaultValue={25} style={{ fontSize: 12, textAlign: 'right' }} />
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <input className="fc" type="number" defaultValue={23} style={{ fontSize: 12, textAlign: 'right' }} />
+                      <span style={{ color: 'var(--muted)', fontWeight: 700 }}>×</span>
+                      <input className="fc" type="number" defaultValue={25} style={{ fontSize: 12, textAlign: 'right' }} />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--steel)', marginBottom: 4, display: 'block', textAlign: 'right' }}>تاريخ الانتهاء</label>
+                    <input className="fc" type="date" style={{ fontSize: 12, textAlign: 'right' }} />
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 8 }}>
+                  {CHK_CUST.map((label) => (
+                    <label
+                      key={label}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 8,
+                        cursor: 'pointer',
+                        padding: '6px 8px',
+                        borderRadius: 6,
+                        background: custChecks[label] ? 'rgba(46,204,113,0.1)' : 'transparent',
+                        border: `1px solid ${custChecks[label] ? '#27ae60' : 'var(--border)'}`,
+                        transition: 'all 0.2s'
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={!!custChecks[label]}
+                        onChange={(e) => {
+                          setCustChecks(prev => ({ ...prev, [label]: e.target.checked }));
+                        }}
+                        style={{ width: 16, height: 16, cursor: 'pointer' }}
+                      />
+                      <span style={{ fontSize: 12, fontWeight: 500 }}>{label}</span>
+                    </label>
+                  ))}
+                </div>
+
+                <div style={{ marginTop: 10 }}>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--steel)', marginBottom: 6, display: 'block', textAlign: 'right' }}>اختبار</label>
+                  <input className="fc" placeholder="ادخل نص الاختبار" style={{ fontSize: 12, textAlign: 'right' }} />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <SectionDiv label="سجل المشاكل الواردة من الزبون" />
+          <InlineTable
+            key={`problems-${isEdit ? id : 'new'}`}
+            cols={PROBLEMS_COLS}
+            rows={isEdit ? problemsRows : pendingProblems}
+            onRowsChange={handleProblemsChange}
+            syncDraftRows={!isEdit}
+          />
+        </AccordionCard>
+
+        {/* ══ 5. التسليم والفوترة ══ */}
+        <AccordionCard
+          title="🚚 التسليم والفوترة"
+          isOpen={openSections.delivery}
+          onToggle={() => toggleSection('delivery')}
+        >
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 10 }}>
+            <G label="الكمية المسلمة"><input className="fc" type="number" {...register('Qunt_Ac')} style={{ textAlign: 'right' }} /></G>
+            <G label="التعبئة عند الزبون"><input className="fc" {...register('Cus_Paking')} style={{ textAlign: 'right' }} /></G>
+            <G label="طريقة تلزيق العلبة"><input className="fc" {...register('box_stk_typ')} style={{ textAlign: 'right' }} /></G>
+            <G label="الحالة">
+              <div style={{ display: 'flex', gap: 8, paddingTop: 4, flexWrap: 'wrap' }}>
+                <CheckItem label="سُلِّمت" checked={!!checks.Reseved} onChange={chk('Reseved')} />
+                <CheckItem label="فوترة" checked={!!checks.Billed} onChange={chk('Billed')} />
+                <CheckItem label="مطبوعة" checked={!!checks.Printed} onChange={chk('Printed')} />
+              </div>
+            </G>
+          </div>
+
+          <SectionDiv label="الإيصالات" />
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+              <thead>
+                <tr style={{ background: 'var(--steel)', color: '#fff' }}>
+                  {['إيصال', 'تاريخ الإيصال', 'الحد', 'رقم الفاتورة', 'النوع', 'عدد العلب', 'ط', 'ع', 'ا', 'حذف'].map(h => (
+                    <th key={h} style={{ padding: '10px 8px', textAlign: 'right', fontWeight: 600, fontSize: 12 }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {vouchers.length === 0 && (
+                  <tr><td colSpan={10} style={{ textAlign: 'center', color: 'var(--muted)', padding: 20 }}>
+                    ✦ لا توجد إيصالات — اضغط ➕ لإضافة إيصال
+                  </td></tr>
+                )}
+                {vouchers.map((v, i) => (
+                  <tr key={(v as any).ID1} style={{ borderBottom: '1px solid var(--border)', background: i % 2 === 0 ? '#fff' : '#fdf8f0' }}>
+                    <td style={{ padding: '8px', textAlign: 'right' }}><span style={{ fontWeight: 600 }}>{v.Voucher_num || '—'}</span></td>
+                    <td style={{ padding: '8px', textAlign: 'right' }}>{v.V_date || '—'}</td>
+                    <td style={{ padding: '8px', textAlign: 'right' }}>{v.V_Qunt || '0'}</td>
+                    <td style={{ padding: '8px', textAlign: 'right' }}>{v.Bill_Num || '—'}</td>
+                    <td style={{ padding: '8px', textAlign: 'right' }}>{v.Contean || '—'}</td>
+                    <td style={{ padding: '8px', textAlign: 'right' }}>{v.Paking_q || '0'}</td>
+                    <td style={{ padding: '8px', textAlign: 'right' }}>{v.Box_L || '0'}</td>
+                    <td style={{ padding: '8px', textAlign: 'right' }}>{v.Box_W || '0'}</td>
+                    <td style={{ padding: '8px', textAlign: 'right' }}>{v.Box_H || '0'}</td>
+                    <td style={{ padding: '8px', textAlign: 'center' }}>
+                      <button type="button"
+                        onClick={() => confirm('حذف الإيصال؟') && deleteVoucher.mutate((v as any).ID1)}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16 }}>🗑</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div style={{ marginTop: 12 }}>
+            <Btn variant="outline" type="button" onClick={() => setVoucherOpen(true)}>➕ إضافة إيصال</Btn>
+          </div>
+        </AccordionCard>
+
+        {/* ── Footer ── */}
+        <div style={{ background: '#fff', borderRadius: 14, border: '1px solid var(--border)', padding: '12px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <span style={{ fontSize: 12, color: 'var(--muted)' }}>سنة العمل: <strong>{currentYear}</strong></span>
+          <div style={{ display: 'flex', gap: 10 }}>
+            <Btn variant="outline" type="button" onClick={() => navigate('/orders')}>إلغاء</Btn>
+            <Btn variant="outline" type="button" onClick={printProductionCard}>🖨️ طباعة بطاقة الإنتاج</Btn>
+            <Btn variant="primary" type="submit" disabled={isSaving}>
+              {isSaving ? '⏳ جاري الحفظ...' : '✅ حفظ وتأكيد'}
+            </Btn>
+          </div>
         </div>
-      </G>
-    </div>
 
-    <SectionDiv label="الإيصالات" />
-    <div style={{ overflowX: 'auto' }}>
-      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
-        <thead>
-          <tr style={{ background: 'var(--steel)', color: '#fff' }}>
-            {['إيصال','تاريخ الإيصال','الحد','رقم الفاتورة','النوع','عدد العلب','ط','ع','ا','حذف'].map(h => (
-              <th key={h} style={{ padding: '10px 8px', textAlign: 'right', fontWeight: 600, fontSize: 12 }}>{h}</th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {vouchers.length === 0 && (
-            <tr><td colSpan={10} style={{ textAlign: 'center', color: 'var(--muted)', padding: 20 }}>
-              ✦ لا توجد إيصالات — اضغط ➕ لإضافة إيصال
-            </td></tr>
-          )}
-          {vouchers.map((v, i) => (
-            <tr key={(v as any).ID1} style={{ borderBottom: '1px solid var(--border)', background: i % 2 === 0 ? '#fff' : '#fdf8f0' }}>
-              <td style={{ padding: '8px', textAlign: 'right' }}><span style={{ fontWeight: 600 }}>{v.Voucher_num || '—'}</span></td>
-              <td style={{ padding: '8px', textAlign: 'right' }}>{v.V_date || '—'}</td>
-              <td style={{ padding: '8px', textAlign: 'right' }}>{v.V_Qunt || '0'}</td>
-              <td style={{ padding: '8px', textAlign: 'right' }}>{v.Bill_Num || '—'}</td>
-              <td style={{ padding: '8px', textAlign: 'right' }}>{v.Contean || '—'}</td>
-              <td style={{ padding: '8px', textAlign: 'right' }}>{v.Paking_q || '0'}</td>
-              <td style={{ padding: '8px', textAlign: 'right' }}>{v.Box_L || '0'}</td>
-              <td style={{ padding: '8px', textAlign: 'right' }}>{v.Box_W || '0'}</td>
-              <td style={{ padding: '8px', textAlign: 'right' }}>{v.Box_H || '0'}</td>
-              <td style={{ padding: '8px', textAlign: 'center' }}>
-                <button type="button"
-                  onClick={() => confirm('حذف الإيصال؟') && deleteVoucher.mutate((v as any).ID1)}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16 }}>🗑</button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-    <div style={{ marginTop: 12 }}>
-      <Btn variant="outline" type="button" onClick={() => setVoucherOpen(true)}>➕ إضافة إيصال</Btn>
-    </div>
-  </AccordionCard>
+      </form>
 
-  {/* ── Footer ── */}
-  <div style={{ background: '#fff', borderRadius: 14, border: '1px solid var(--border)', padding: '12px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-    <span style={{ fontSize: 12, color: 'var(--muted)' }}>سنة العمل: <strong>{currentYear}</strong></span>
-    <div style={{ display: 'flex', gap: 10 }}>
-      <Btn variant="outline" type="button" onClick={() => navigate('/orders')}>إلغاء</Btn>
-      <Btn variant="outline" type="button" onClick={printProductionCard}>🖨️ طباعة بطاقة الإنتاج</Btn>
-      <Btn variant="primary" type="submit" disabled={isSaving}>
-        {isSaving ? '⏳ جاري الحفظ...' : '✅ حفظ وتأكيد'}
-      </Btn>
+      <VoucherModal
+        open={voucherOpen}
+        onClose={() => setVoucherOpen(false)}
+        orderId={id || ''}
+        orderYear={year || currentYear}
+      />
     </div>
-  </div> 
-
-</form>
-
-<VoucherModal 
-  open={voucherOpen} 
-  onClose={() => setVoucherOpen(false)} 
-  orderId={id || ''} 
-  orderYear={year || currentYear} 
-/>
-</div>
-);
+  );
 }
