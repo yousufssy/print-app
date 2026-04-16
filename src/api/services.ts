@@ -113,7 +113,7 @@ export const materialsApi = {
 // ── Cartons ───────────────────────────────────────────
 export const cartonsApi = {
   list: (order_id: string, year: string) =>
-    client.get(`/cartons?order_id=${order_id}&year=${year}`).then(r => r.data),
+    client.get(`/cartons?ID=${order_id}&year=${year}`).then(r => r.data),
   create: (data: any) => client.post('/cartons', data).then(r => r.data),
   update: (id: string, data: any) => client.put(`/cartons/${id}`, data).then(r => r.data),
   delete: (id: string) => client.delete(`/cartons/${id}`),
@@ -122,7 +122,7 @@ export const cartonsApi = {
 // ── Problems ──────────────────────────────────────────
 export const problemsApi = {
   list: (order_id: string, year: string) =>
-    client.get(`/problems?order_id=${order_id}&year=${year}`).then(r => r.data),
+    client.get(`/problems?ID=${order_id}&year=${year}`).then(r => r.data),
   create: (data: any) => client.post('/problems', data).then(r => r.data),
   update: (id: string, data: any) => client.put(`/problems/${id}`, data).then(r => r.data),
   delete: (id: string) => client.delete(`/problems/${id}`),
