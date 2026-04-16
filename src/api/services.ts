@@ -95,7 +95,7 @@ export const usersApi = {
 // ── Operations (Actions) ──────────────────────────────
 export const operationsApi = {
   list: (order_id: string, year: string) =>
-    client.get(`/actions?order_id=${order_id}&year=${year}`).then(r => r.data),
+    client.get(`/actions?ID=${order_id}&year=${year}`).then(r => r.data),
   create: (data: any) => client.post('/actions', data).then(r => r.data),
   update: (id: string, data: any) => client.put(`/actions/${id}`, data).then(r => r.data),
   delete: (id: string) => client.delete(`/actions/${id}`),
