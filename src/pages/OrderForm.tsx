@@ -937,8 +937,7 @@ const isSaving = createOrder.isPending || updateOrder.isPending;
 // ══════════════════════════════════════════════════════
 // 🖨️ طباعة بطاقة الإنتاج
 const printProductionCard = useCallback(() => {
-  const d = getValues(); // Ensure getValues is available from useForm
-  const chkd = (val: any) => (val ? '✔' : '');
+const d = formDataRef.current;  const chkd = (val: any) => (val ? '✔' : '');
   const fmt = (v: any) => v ?? '';
 
   const html = `<!DOCTYPE html>
@@ -1745,7 +1744,7 @@ window.addEventListener('load', () => {
   a.rel = 'noopener';
   a.click();
   setTimeout(() => URL.revokeObjectURL(url), 10000);
-}, [getValues, checks, custChecks, mfgChecks]); // Ensure getValues is in deps
+}, [checks, custChecks, mfgChecks]); // Ensure getValues is in deps
 
 if (isLoading) return <Loading />;
 
