@@ -721,22 +721,33 @@ print_count: String(p.print_count ?? ''),
 );
 
 const handleProblemsChange = useCallback(async (newRows: Record<string, string>[]) => {
-if (!isEdit) {
-setPendingProblems(newRows);
-return;
-}
+  if (!isEdit) {
+    setPendingProblems(newRows);
+    return;
+  }
 
-try {
-  await syncRows(
-    problemsRows, newRows,
-    (f) => createProblem.mutateAsync({ ...f, ID: id!, Year: year! }),
-    (rowId, f) => updateProblem.mutateAsync({ rowId, data: f }),
-    (rowId) => deleteProblem.mutateAsync(rowId),
-  );
-} catch (error) {
-  console.error('❌ handleProblemsChange error:', error);
-}
-}, [isEdit, problemsRows, syncRows, createProblem, updateProblem, deleteProblem, id, year]);
+  try {
+    // ✅ بناء oldRows مباشرة من problemsData
+    const oldRows = problemsData.map((p: any) => ({
+      ID: String(p.ID1 ?? ''),
+      print_num: p.print_num ?? '',
+      prod_date: p.prod_date ?? '',
+      exp_date: p.exp_date ?? '',
+      print_count: String(p.print_count ?? ''),
+    }));
+
+    await syncRows(
+      oldRows, // ✅ استخدم البيانات الطازجة
+      newRows,
+      (f) => createProblem.mutateAsync({ ...f, ID: id!, Year: year! }),
+      (rowId, f) => updateProblem.mutateAsync({ rowId, data: f }),
+      (rowId) => deleteProblem.mutateAsync(rowId),
+    );
+  } catch (error) {
+    console.error('❌ handleProblemsChange error:', error);
+  }
+}, [isEdit, problemsData, syncRows, createProblem, updateProblem, deleteProblem, id, year]);
+// ✅ غيّر problemsRows إلى problemsData
 
 // ── العمليات ──────────────────────────────────────────────────────────────────
 const { data: operationsData = [] } = useOperations(isEdit ? (id ?? '') : '', isEdit ? (year ?? '') : '');
@@ -767,22 +778,45 @@ Tabrer: op.Tabrer ?? '',
 );
 
 const handleOperationsChange = useCallback(async (newRows: Record<string, string>[]) => {
-if (!isEdit) {
-setPendingOps(newRows);
-return;
-}
+  if (!isEdit) {
+    setPendingOps(newRows);
+    return;
+  }
 
-try {
-  await syncRows(
-    operationsRows, newRows,
-    (f) => createOperation.mutateAsync({ ...f, ID: id!, Year: year! }),
-    (rowId, f) => updateOperation.mutateAsync({ rowId, data: f }),
-    (rowId) => deleteOperation.mutateAsync(rowId),
-  );
-} catch (error) {
-  console.error('❌ handleOperationsChange error:', error);
-}
-}, [isEdit, operationsRows, syncRows, createOperation, updateOperation, deleteOperation, id, year]);
+  try {
+    // ✅ بناء oldRows مباشرة من operationsData
+    const oldRows = operationsData.map((op: any) => ({
+      ID: String(op.ID1 ?? op.ID ?? ''),
+      Action: op.Action ?? '',
+      Color: op.Color ?? '',
+      Qunt_Ac: String(op.Qunt_Ac ?? ''),
+      On: String(op.On ?? ''),
+      Machin: op.Machin ?? '',
+      Hours: String(op.Hours ?? ''),
+      Kelo: String(op.Kelo ?? ''),
+      Actual: String(op.Actual ?? ''),
+      Tarkeb: String(op.Tarkeb ?? ''),
+      Wash: String(op.Wash ?? ''),
+      Electricity: String(op.Electricity ?? ''),
+      Taghez: String(op.Taghez ?? ''),
+      StopVar: String(op.StopVar ?? ''),
+      Date: op.Date ?? '',
+      NotesA: op.NotesA ?? '',
+      Tabrer: op.Tabrer ?? '',
+    }));
+
+    await syncRows(
+      oldRows, // ✅ استخدم البيانات الطازجة
+      newRows,
+      (f) => createOperation.mutateAsync({ ...f, ID: id!, Year: year! }),
+      (rowId, f) => updateOperation.mutateAsync({ rowId, data: f }),
+      (rowId) => deleteOperation.mutateAsync(rowId),
+    );
+  } catch (error) {
+    console.error('❌ handleOperationsChange error:', error);
+  }
+}, [isEdit, operationsData, syncRows, createOperation, updateOperation, deleteOperation, id, year]);
+// ✅ غيّر operationsRows إلى operationsData
 
 // ── حالة الأقسام ──────────────────────────────────────────────────────────────
 const getInitialSections = () => {
