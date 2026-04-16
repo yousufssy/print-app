@@ -568,39 +568,46 @@ const formDataRef = useRef<Partial<Order>>({});
 
 // ── helper مشترك لمزامنة أي InlineTable مع الداتابيز ────────────────────────
 const syncRows = useCallback(async (
-oldRows: Record<string, string>[],
-newRows: Record<string, string>[],
-onCreate: (fields: any) => Promise<any>,
-onUpdate: (rowId: number, fields: any) => Promise<any>,
-onDelete: (rowId: number) => Promise<any>,
+  oldRows: Record<string, string>[],
+  newRows: Record<string, string>[],
+  onCreate: (fields: any) => Promise<any>,
+  onUpdate: (rowId: number, fields: any) => Promise<any>,
+  onDelete: (rowId: number) => Promise<any>,
 ) => {
-const oldIds = new Set(oldRows.map(r => r.ID).filter(v => !!v));
-const newIds = new Set(newRows.map(r => r.ID).filter(v => !!v));
+  const oldMap = new Map(oldRows.map(r => [r.ID, r]));
+  const newIds = new Set(newRows.map(r => r.ID).filter(Boolean));
 
-try {
+  // حذف الصفوف المحذوفة
   for (const old of oldRows) {
     if (old.ID && !newIds.has(old.ID)) {
-      await onDelete(Number(old.ID)).catch(err => {
-        console.error('❌ Delete error:', err);
-      });
+      await onDelete(Number(old.ID)).catch(err =>
+        console.error('❌ Delete error:', err)
+      );
     }
   }
 
   for (const row of newRows) {
-    const { ID, _isNew, ...fields } = row;
-    if (ID && oldIds.has(ID)) {
-      await onUpdate(Number(ID), fields).catch(err => {
-        console.error('❌ Update error:', err);
-      });
-    } else if (!ID) {
-      await onCreate(fields).catch(err => {
-        console.error('❌ Create error:', err);
-      });
+    const { ID, _isNew, _rowId, ...fields } = row;
+
+    if (!ID) {
+      // صف جديد — أنشئه
+      await onCreate(fields).catch(err =>
+        console.error('❌ Create error:', err)
+      );
+    } else if (oldMap.has(ID)) {
+      // صف موجود — حدّثه فقط إذا تغيّر
+      const oldRow = oldMap.get(ID)!;
+      const hasChanged = Object.keys(fields).some(
+        k => String(fields[k] ?? '') !== String(oldRow[k] ?? '')
+      );
+
+      if (hasChanged) { // ✅ لا ترسل PUT إذا ما في تغيير
+        await onUpdate(Number(ID), fields).catch(err =>
+          console.error('❌ Update error:', err)
+        );
+      }
     }
   }
-} catch (error) {
-  console.error('❌ syncRows error:', error);
-}
 }, []);
 
 // ── الكرتون ───────────────────────────────────────────────────────────────────
@@ -618,7 +625,7 @@ const [materialsRows, setMaterialsRows] = useState<Record<string, string>[]>([])
 useEffect(() => {
 setMaterialsRows(
 cartonsData.map((c: any) => ({
-ID: String(c.ID1 ?? c.ID ?? ''),
+ID: String(c.ID1 ?? ''),
 Type1: c.Type1 ?? '',
 Id_carton: c.Id_carton ?? '',
 Source1: c.Source1 ?? '',
