@@ -859,42 +859,58 @@ useEffect(() => {
   console.log('✅ تم تحميل بيانات النسخ بنجاح');
 }, [duplicatedData, hasLoadedDuplicate, reset]);
 
-// ✅ 3️⃣ تهيئة طلب جديد - مرة واحدة فقط
+// ✅ 3️⃣ تهيئة طلب جديد - حساب أعلى قيمة لـ Ser + 1
 const idInitializedRef = useRef(false);
 
 useEffect(() => {
   console.log('🔄 تحقق من تهيئة طلب جديد', { 
     isEdit, 
     duplicatedData: !!duplicatedData,
-    ordersLength: orders.length,
+    ordersLength: orders?.length,
     idInitializedRef: idInitializedRef.current
   });
   
+  // إذا كان تعديل، أو نسخ، أو تمت التهيئة مسبقاً، أو لا توجد بيانات بعد → توقف
   if (isEdit || duplicatedData) return;
   if (idInitializedRef.current) return;
   if (!orders || orders.length === 0) return;
 
+  // علامة لمنع إعادة التهيئة
   idInitializedRef.current = true;
 
-  const latestOrder = orders[orders.length - 1];
-  const lastSer = parseInt(latestOrder?.Ser || '0') || 0;
-  const newId = String((Number(latestOrder?.ID) || 0) + 1);
+  // 🔍 إيجاد أعلى قيمة لـ Ser فعلياً من جميع الطلبات
+  const maxSer = orders.reduce((max, order) => {
+    const currentSer = parseInt(order?.Ser || '0', 10) || 0;
+    return currentSer > max ? currentSer : max;
+  }, 0);
+
+  const newSer = String(maxSer + 1);
+  
+  // 🔍 إيجاد أعلى قيمة لـ ID أيضاً (لضمان عدم التكرار)
+  const maxId = orders.reduce((max, order) => {
+    const currentId = parseInt(order?.ID || '0', 10) || 0;
+    return currentId > max ? currentId : max;
+  }, 0);
+  const newId = String(maxId + 1);
 
   const initData = {
-    Ser: String(lastSer + 1),
+    Ser: newSer,
     ID: newId,
     Year: currentYear,
   };
 
   console.log('🔄 جاري تهيئة طلب جديد:', initData);
   
+  // تحديث الفورم والـ ref
   reset((prev) => ({ ...prev, ...initData }));
-  formDataRef.current = initData;
+  formDataRef.current = { ...formDataRef.current, ...initData };
   setIdInitialized(true);
   
   console.log('✅ تم تهيئة طلب جديد بنجاح');
+
+// ✅ مهم: إضافة جميع المتغيرات المستخدمة كمُتابعات
 // eslint-disable-next-line react-hooks/exhaustive-deps
-}, [orders]);
+}, [orders, isEdit, duplicatedData, currentYear, reset]);
 // ✅ الحفظ - مع معالجة أخطاء شاملة
 const onSubmit = useCallback(async (data: Order) => {
 try {
