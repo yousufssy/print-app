@@ -704,7 +704,7 @@ useEffect(() => {
 useEffect(() => {
   setOperationsRows(
     operationsData.map((op: any) => ({
-      ID: String(op.ID1 ?? op.ID ?? ''),
+      ID: String(op.ID1 ?? ''),
       Action: op.Action ?? '',
       Color: op.Color ?? '',
       Qunt_Ac: String(op.Qunt_Ac ?? ''),
