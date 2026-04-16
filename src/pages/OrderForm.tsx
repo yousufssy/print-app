@@ -652,6 +652,30 @@ note_crt: c.note_crt ?? '',
 );
 }, [cartonsData]);
 
+
+
+
+// ── تحديث problemsRows عند تحميل البيانات ────────────────────────────
+const [localProblemsRows, setLocalProblemsRows] = useState<Record<string, string>[]>([]);
+
+useEffect(() => {
+  if (isEdit && problemsData && problemsData.length > 0) {
+    const rows = problemsData.map((p: Problem) => ({
+      ID: String(p.ID1 ?? ''),
+      print_num: p.print_num ?? '',
+      prod_date: p.prod_date ?? '',
+      exp_date: p.exp_date ?? '',
+      print_count: String(p.print_count ?? ''),
+      _rowId: crypto.randomUUID(),
+    }));
+    setLocalProblemsRows(rows);
+  }
+}, [isEdit, problemsData]);
+
+
+
+
+
 const [pendingMaterials, setPendingMaterials] = useState<Record<string, string>[]>([]);
 const [pendingProblems, setPendingProblems] = useState<Record<string, string>[]>([]);
 const [pendingOps, setPendingOps] = useState<Record<string, string>[]>([]);
@@ -727,26 +751,21 @@ const handleProblemsChange = useCallback(async (newRows: Record<string, string>[
   }
 
   try {
-    // ✅ بناء oldRows مباشرة من problemsData
-    const oldRows = problemsData.map((p: any) => ({
-      ID: String(p.ID1 ?? ''),
-      print_num: p.print_num ?? '',
-      prod_date: p.prod_date ?? '',
-      exp_date: p.exp_date ?? '',
-      print_count: String(p.print_count ?? ''),
-    }));
-
+    // ✅ استخدم localProblemsRows بدلاً من problemsRows
     await syncRows(
-      oldRows, // ✅ استخدم البيانات الطازجة
+      localProblemsRows, 
       newRows,
       (f) => createProblem.mutateAsync({ ...f, ID: id!, Year: year! }),
       (rowId, f) => updateProblem.mutateAsync({ rowId, data: f }),
       (rowId) => deleteProblem.mutateAsync(rowId),
     );
+    
+    // ✅ حدّث الـ state المحلي
+    setLocalProblemsRows(newRows);
   } catch (error) {
     console.error('❌ handleProblemsChange error:', error);
   }
-}, [isEdit, problemsData, syncRows, createProblem, updateProblem, deleteProblem, id, year]);
+}, [isEdit, localProblemsRows, syncRows, createProblem, updateProblem, deleteProblem, id, year]);
 // ✅ غيّر problemsRows إلى problemsData
 
 // ── العمليات ──────────────────────────────────────────────────────────────────
@@ -2082,90 +2101,89 @@ return (
         </div>
       </div>
 
-      {/* من الزبون */}
-      <div style={{ border: '1.5px solid var(--border)', borderRadius: 10, overflow: 'hidden' }}>
-        <div style={{ padding: '9px 13px', background: 'rgba(192,57,43,.08)', color: 'var(--red)', fontSize: 12, fontWeight: 700, borderBottom: '1px solid rgba(192,57,43,.15)', textAlign: 'right' }}>
-          🚨 المشاكل الواردة من الزبون
-        </div>
-        <div style={{ padding: 12 }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 10 }}>
-            <div>
-              <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--steel)', marginBottom: 4, display: 'block', textAlign: 'right' }}>رقم الطبع</label>
-              <input className="fc" style={{ fontSize: 12, textAlign: 'right' }} />
-            </div>
-            <div>
-              <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--steel)', marginBottom: 4, display: 'block', textAlign: 'right' }}>عدد الطبع</label>
-              <input className="fc" type="number" style={{ fontSize: 12, textAlign: 'right' }} />
-            </div>
-          </div>
-          
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 10 }}>
-            <div>
-              <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--steel)', marginBottom: 4, display: 'block', textAlign: 'right' }}>الأبعاد</label>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                <input className="fc" type="number" defaultValue={23} style={{ fontSize: 12, textAlign: 'right' }} />
-                <span style={{ color: 'var(--muted)', fontWeight: 700 }}>×</span>
-                <input className="fc" type="number" defaultValue={25} style={{ fontSize: 12, textAlign: 'right' }} />
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                <input className="fc" type="number" defaultValue={23} style={{ fontSize: 12, textAlign: 'right' }} />
-                <span style={{ color: 'var(--muted)', fontWeight: 700 }}>×</span>
-                <input className="fc" type="number" defaultValue={25} style={{ fontSize: 12, textAlign: 'right' }} />
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <input className="fc" type="number" defaultValue={23} style={{ fontSize: 12, textAlign: 'right' }} />
-                <span style={{ color: 'var(--muted)', fontWeight: 700 }}>×</span>
-                <input className="fc" type="number" defaultValue={25} style={{ fontSize: 12, textAlign: 'right' }} />
-              </div>
-            </div>
-            
-            <div>
-              <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--steel)', marginBottom: 4, display: 'block', textAlign: 'right' }}>تاريخ الانتهاء</label>
-              <input className="fc" type="date" style={{ fontSize: 12, textAlign: 'right' }} />
-            </div>
-          </div>
-          
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 8 }}>
-            {CHK_CUST.map((label) => (
-              <label 
-                key={label}
-                style={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  gap: 8,
-                  cursor: 'pointer',
-                  padding: '6px 8px',
-                  borderRadius: 6,
-                  background: custChecks[label] ? 'rgba(46,204,113,0.1)' : 'transparent',
-                  border: `1px solid ${custChecks[label] ? '#27ae60' : 'var(--border)'}`,
-                  transition: 'all 0.2s'
-                }}
-              >
-                <input
-                  type="checkbox"
-                  checked={!!custChecks[label]}
-                  onChange={(e) => {
-                    setCustChecks(prev => ({ ...prev, [label]: e.target.checked }));
-                  }}
-                  style={{ width: 16, height: 16, cursor: 'pointer' }}
-                />
-                <span style={{ fontSize: 12, fontWeight: 500 }}>{label}</span>
-              </label>
-            ))}
-          </div>
-          
-          <div style={{ marginTop: 10 }}>
-            <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--steel)', marginBottom: 6, display: 'block', textAlign: 'right' }}>اختبار</label>
-            <input className="fc" placeholder="ادخل نص الاختبار" style={{ fontSize: 12, textAlign: 'right' }} />
-          </div>
-        </div>
+{/* من الزبون */}
+<div style={{ border: '1.5px solid var(--border)', borderRadius: 10, overflow: 'hidden' }}>
+  <div style={{ padding: '9px 13px', background: 'rgba(192,57,43,.08)', color: 'var(--red)', fontSize: 12, fontWeight: 700, borderBottom: '1px solid rgba(192,57,43,.15)', textAlign: 'right' }}>
+    🚨 المشاكل الواردة من الزبون
+  </div>
+  <div style={{ padding: 12 }}>
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 10 }}>
+      <div>
+        <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--steel)', marginBottom: 4, display: 'block', textAlign: 'right' }}>رقم الطبع</label>
+        <input className="fc" {...register('customer_print_num')} style={{ fontSize: 12, textAlign: 'right' }} />
+      </div>
+      <div>
+        <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--steel)', marginBottom: 4, display: 'block', textAlign: 'right' }}>عدد الطبع</label>
+        <input className="fc" type="number" {...register('customer_print_count')} style={{ fontSize: 12, textAlign: 'right' }} />
       </div>
     </div>
+    
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 10 }}>
+      <div>
+        <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--steel)', marginBottom: 4, display: 'block', textAlign: 'right' }}>الأبعاد</label>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+          <input className="fc" type="number" {...register('dimension_1_a')} style={{ fontSize: 12, textAlign: 'right' }} />
+          <span style={{ color: 'var(--muted)', fontWeight: 700 }}>×</span>
+          <input className="fc" type="number" {...register('dimension_1_b')} style={{ fontSize: 12, textAlign: 'right' }} />
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+          <input className="fc" type="number" {...register('dimension_2_a')} style={{ fontSize: 12, textAlign: 'right' }} />
+          <span style={{ color: 'var(--muted)', fontWeight: 700 }}>×</span>
+          <input className="fc" type="number" {...register('dimension_2_b')} style={{ fontSize: 12, textAlign: 'right' }} />
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <input className="fc" type="number" {...register('dimension_3_a')} style={{ fontSize: 12, textAlign: 'right' }} />
+          <span style={{ color: 'var(--muted)', fontWeight: 700 }}>×</span>
+          <input className="fc" type="number" {...register('dimension_3_b')} style={{ fontSize: 12, textAlign: 'right' }} />
+        </div>
+      </div>
+      
+      <div>
+        <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--steel)', marginBottom: 4, display: 'block', textAlign: 'right' }}>تاريخ الانتهاء</label>
+        <input className="fc" type="date" {...register('customer_exp_date')} style={{ fontSize: 12, textAlign: 'right' }} />
+      </div>
+    </div>
+    
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 8 }}>
+      {CHK_CUST.map((label) => (
+        <label 
+          key={label}
+          style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: 8,
+            cursor: 'pointer',
+            padding: '6px 8px',
+            borderRadius: 6,
+            background: custChecks[label] ? 'rgba(46,204,113,0.1)' : 'transparent',
+            border: `1px solid ${custChecks[label] ? '#27ae60' : 'var(--border)'}`,
+            transition: 'all 0.2s'
+          }}
+        >
+          <input
+            type="checkbox"
+            checked={!!custChecks[label]}
+            onChange={(e) => {
+              setCustChecks(prev => ({ ...prev, [label]: e.target.checked }));
+            }}
+            style={{ width: 16, height: 16, cursor: 'pointer' }}
+          />
+          <span style={{ fontSize: 12, fontWeight: 500 }}>{label}</span>
+        </label>
+      ))}
+    </div>
+    
+    <div style={{ marginTop: 10 }}>
+      <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--steel)', marginBottom: 6, display: 'block', textAlign: 'right' }}>اختبار</label>
+      <input className="fc" {...register('customer_test')} placeholder="ادخل نص الاختبار" style={{ fontSize: 12, textAlign: 'right' }} />
+    </div>
+  </div>
+</div>
 
     <SectionDiv label="سجل المشاكل الواردة من الزبون" />
     <InlineTable
       cols={PROBLEMS_COLS}
-      rows={isEdit ? problemsRows : pendingProblems}
+      rows={isEdit ? localProblemsRows : pendingProblems}  // ✅ الجديد
       onRowsChange={handleProblemsChange}
       syncDraftRows={!isEdit}
     />
