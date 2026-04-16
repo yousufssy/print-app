@@ -695,6 +695,12 @@ const deleteOperation = useDeleteOperation();
 
 const [operationsRows, setOperationsRows] = useState<Record<string, string>[]>([]);
 
+
+useEffect(() => {
+  console.log('🔍 operationsData:', operationsData);
+}, [operationsData]);
+
+  
 useEffect(() => {
   setOperationsRows(
     operationsData.map((op: any) => ({
