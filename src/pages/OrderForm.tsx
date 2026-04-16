@@ -546,6 +546,7 @@ Ser: ''
 const formDataRef = useRef<Partial<Order>>({});
 
 // إضافة watch لمراقبة التغييرات
+// إضافة watch لمراقبة التغييرات
 const formValues = watch();
 useEffect(() => {
   formDataRef.current = formValues;
@@ -741,12 +742,14 @@ isEdit ? (year ?? currentYear) : currentYear
 const deleteVoucher = useDeleteVoucher();
 
 // ✅ 1️⃣ تحميل بيانات التعديل - مرة واحدة
+// ✅ 1️⃣ تحميل بيانات التعديل - مرة واحدة
 useEffect(() => {
   if (!isEdit || !existing || hasLoadedEdit || duplicatedData) return;
 
   reset(existing);
   formDataRef.current = { ...existing };
 
+  // تحديث الـ checkboxes
   const loadedMfg: Record<string, boolean> = {};
   Object.entries(MFG_MAP).forEach(([label, field]) => {
     loadedMfg[label] = fromBit((existing as any)[field]);
