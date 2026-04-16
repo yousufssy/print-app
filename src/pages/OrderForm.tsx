@@ -939,20 +939,454 @@ const isSaving = createOrder.isPending || updateOrder.isPending;
 // ══════════════════════════════════════════════════════
 const printProductionCard = useCallback(() => {
 const d = formDataRef.current;
-const chkd = (val: any) => (val ? '✔' : '');
-const fmt = (v: any) => v ?? '';
+  const chkd = (val: any) => (val ? '✔' : '');
+  const fmt = (v: any) => v ?? '';
 
-const html = `<!DOCTYPE html>
-<html lang="ar" dir="rtl"> <head> <meta charset="UTF-8"> <style> @page{margin:8mm;size:A4 portrait} *{box-sizing:border-box;margin:0;padding:0} body{font-family:'Arial',sans-serif;background:#fff;direction:rtl;margin:0;padding:0} .page{width:100%;box-sizing:border-box} @media print{body{margin:0;padding:0}.page{width:100%;margin:0;padding:0;border:none}} .header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px} .top-id{display:flex;align-items:center;width:160px;font-size:14px} .logo-box{text-align:center;width:160px} .logo-tpp{font-size:30px;font-weight:bold;line-height:0.8;margin:0;font-family:'Times New Roman',serif} .logo-sub{font-size:10px;font-weight:bold;border-top:2px solid #000;margin-top:4px;display:inline-block} .main-title{font-size:24px;font-weight:bold;margin-top:6px} .content-layout{display:flex;justify-content:space-between;margin-bottom:6px} .column{width:48%} .field{display:flex;align-items:baseline;margin-bottom:7px} .label{font-size:13px;white-space:nowrap} .dots{flex-grow:1;border-bottom:1px dotted #000;margin-left:8px;min-height:14px;padding-right:4px} .gray-box{background:#999;height:18px;width:120px;margin-left:10px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:bold;color:#fff} .extra-lines{margin-top:6px} .line{border-bottom:1px dotted #000;height:18px;width:100%} .footer-right{margin-top:10px;text-align:right;font-size:13px;font-weight:bold} .warehouse-container{width:100%;margin:12px auto} .wrapper{display:flex;gap:6px;align-items:flex-start;width:100%} .side-table{width:150px;border:1.5px solid #000;display:flex;flex-direction:column;flex-shrink:0} .side-cell{border:0.5px solid #000;padding:6px;text-align:center;min-height:30px;display:flex;flex-direction:column;justify-content:center;font-weight:bold;font-size:12px} .side-cell span{font-weight:normal;margin-top:3px} .main-container{flex-grow:1;border:1.5px solid #000} .grid-table{display:grid;grid-template-columns:40px 90px 90px 1fr 70px 55px 55px;width:100%} .grid-item{border:0.5px solid #000;padding:5px 3px;text-align:center;font-size:11px;display:flex;align-items:center;justify-content:center} .grid-header{background-color:#f0f0f0;font-weight:bold} .data-row{height:65px} .bottom-section{display:grid;grid-template-columns:40px 180px 1fr;width:100%} .col-tabaq{display:flex;flex-direction:column} .empty-cell{height:30px;border:0.5px solid #000} .gray-cell{height:30px;border:0.5px solid #000;background-color:#999} .col-details{display:flex;flex-direction:column} .label-cell{height:30px;border:0.5px solid #000;display:flex;align-items:center;padding-right:8px;font-weight:bold;font-size:11px} .col-approval{border:0.5px solid #000;display:flex;flex-direction:column} .approval-head{padding:4px;text-align:center;border-bottom:0.5px solid #000;font-weight:bold;font-size:11px} .checks{display:flex;justify-content:space-around;align-items:center;flex-grow:1;font-size:10px} .footer{border-top:1.5px solid #000;padding:6px} .check-box{width:11px;height:11px;border:1px solid #000;display:inline-block;margin-left:4px;vertical-align:middle;text-align:center;font-size:9px;line-height:11px} .reason-line{border-bottom:1px dotted #000;flex-grow:1;margin-right:5px} .container{width:100%;margin:12px auto 0 auto;border:1.5px solid #000;padding:10px} .header-split{display:grid;grid-template-columns:1fr 1fr;gap:15px;margin-bottom:8px} .header-item{text-align:center;font-weight:bold;font-size:13px} .date-space{border-bottom:1px solid #000;padding:0 15px;margin:0 2px;display:inline-block;min-width:20px} .main-grid{display:grid;grid-template-columns:1fr 1fr;gap:15px} .sketch-box{border:1px solid #000;height:100px;background-image:linear-gradient(to right,#e0e0e0 1px,transparent 1px),linear-gradient(to bottom,#e0e0e0 1px,transparent 1px);background-size:12px 12px} .top-columns{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px} .top-columns-left{display:grid;grid-template-columns:1fr 1.2fr;gap:8px;margin-top:8px} .option-item{display:flex;align-items:center;margin-bottom:4px;font-size:11px} .checkbox{width:11px;height:11px;border:1px solid #000;margin-left:6px;flex-shrink:0;text-align:center;font-size:9px;line-height:11px} .info-line{font-size:11px;margin-bottom:5px} .line-fill{border-bottom:1px dotted #000;display:inline-block;width:60%;height:12px} .dimensions-container{display:flex;align-items:center;margin-top:10px;width:100%} .dimensions-label{font-weight:bold;font-size:11px;margin-left:8px;white-space:nowrap} .independent-dimensions-table{flex-grow:1;border-collapse:collapse} .independent-dimensions-table td{border:1px solid #000;text-align:center;padding:4px;font-size:11px} .notes-wrapper{display:flex;flex-direction:column;align-items:center;width:100%} .note-line{border-bottom:1px dotted #000;height:18px;width:100%} .approval-table{width:100%;border-collapse:collapse;margin-top:12px} .approval-table td{border:1px solid #000;height:25px;text-align:center;font-size:12px} .bg-gray{background-color:#f0f0f0;font-weight:bold;width:100px} </style> </head> <body> <div class="page"><div class="header"> <div class="top-id"><span>رقمنا :</span><span class="dots">${fmt(d.ID)}</span></div> <div class="main-title">بطاقة إنتاج</div> <div class="logo-box"> <div class="logo-tpp">TPP</div> <div class="logo-sub">TARABICHI</div> </div> </div> <div class="content-layout"> <div class="column"> <div class="field"><span class="label">الاسم :</span><span class="dots">${fmt(d.Customer)}</span></div> <div class="field"><span class="label">النموذج :</span><span class="dots">${fmt(d.Pattern)} ${fmt(d.Pattern2)}</span></div> <div class="field"><span class="label">العدد المطلوب :</span><span class="dots">${fmt(d.Demand)}</span></div> <div class="field"><span class="label">ملاحظات :</span><span class="dots">${fmt(d.note_ord)}</span></div> </div> <div class="column"> <div class="field"><span class="label">رقم الطلب :</span><span class="dots">${fmt(d.marji3)}</span></div> <div class="field"><span class="label">تاريخ الورود :</span><span class="dots">${fmt(d.date_come)}</span></div> <div class="field"><span class="label">موعد التسليم :</span><div class="gray-box">${fmt(d.Apoent_Delv_date)}</div></div> <div class="field"><span class="label">أرسلت للفرز :</span><span class="dots">${fmt(d.Perioud)}</span></div> </div> </div> <div class="extra-lines"><div class="line"></div><div class="line"></div></div> <div class="footer-right">كود النموذج الطبي : ${fmt(d.Code_M) || '....................'}</div><div class="warehouse-container"> <div class="wrapper"> <div class="main-container"> <div class="grid-table"> <div class="grid-item grid-header">طبق</div> <div class="grid-item grid-header">النوع</div> <div class="grid-item grid-header">بلد المصدر</div> <div class="grid-item grid-header">المورد</div> <div class="grid-item grid-header">القياس</div> <div class="grid-item grid-header">غراماج</div> <div class="grid-item grid-header">الوزن</div> <div class="grid-item data-row"></div> <div class="grid-item data-row"></div> <div class="grid-item data-row"></div> <div class="grid-item data-row"></div> <div class="grid-item data-row"></div> <div class="grid-item data-row"></div> <div class="grid-item data-row"></div> </div> <div class="bottom-section"> <div class="col-tabaq"> <div class="empty-cell"></div> <div class="gray-cell"></div> </div> <div class="col-details"> <div class="label-cell">اخراج زيادة طبع</div> <div class="label-cell grid-header">المجموع المستهلك في الطبعة</div> </div> <div class="col-approval"> <div class="approval-head">موافقة المدير الفني على :</div> <div class="checks"> <span><div class="check-box"></div> القساوة</span> <span><div class="check-box"></div> قياس الطبع</span> <span><div class="check-box"></div> صلاحية الكرتون</span> </div> </div> </div> <div class="footer"> <div style="display:flex;justify-content:space-between;margin-bottom:8px"> <div style="display:grid;grid-template-columns:80px 130px;gap:4px;font-size:11px"> <div><div class="check-box"></div> تلف</div> <div><div class="check-box"></div> خطأ</div> <div><div class="check-box"></div> زيادة كمية الطبع</div> <div><div class="check-box"></div> تم معالجة الفروقات</div> </div> <div style="flex-grow:1;display:flex;align-items:baseline;margin-right:15px;font-size:11px"> <b>تعليل سبب إخراج الأطباق زيادة:</b> <div class="reason-line"></div> </div> </div> <div style="text-align:left;font-weight:bold;font-size:12px">توقيع أمين المستودع: .......................................</div> </div> </div> <div class="side-table"> <div class="side-cell" style="height:75px"> الحجم النهائي <span>${fmt(d.final_size_tall) || 'X'} × ${fmt(d.final_size_width) || 'X'}</span> <span>${fmt(d.final_size_tall2) || 'X'} × ${fmt(d.final_size_width2) || 'X'}</span> </div> <div class="side-cell" style="height:75px"> الطبع <span style="text-align:right;padding-right:15px">على ${fmt(d.print_on) || ''}</span> <span style="text-align:right;padding-right:15px">على ${fmt(d.print_on2) || ''}</span> </div> <div class="side-cell">يفصل الطبق: ${fmt(d.sheet_unit_qunt)}</div> <div class="side-cell">إجمالي العدد: ${fmt(d.grnd_qunt)}</div> <div class="side-cell">عدد الألوان: ${fmt(d.Clr_qunt)}</div> </div> </div> </div><div class="container"> <div class="header-split"> <div class="header-item">التفصيل للمقطع</div> <div class="header-item">تاريخ القطع: <span class="date-space"></span> / <span class="date-space"></span> / <span class="date-space"></span></div> </div> <div class="main-grid"> <div> <div class="sketch-box"></div> <div class="top-columns"> <div> <div class="info-line">آلة الطبع: <span class="line-fill">${fmt(d.Machin_Print)}</span></div> <div class="info-line">آلة التقطيع: <span class="line-fill">${fmt(d.Machin_Cut)}</span></div> <div class="info-line">رقم القالب: <span class="line-fill">${fmt(d.MontagNum)}</span></div> </div> <div> <div class="option-item"><div class="checkbox">${chkd(checks.varn)}</div> برنيـــش</div> <div class="option-item"><div class="checkbox">${chkd(custChecks['مع تطوية'])}</div> مع تطويــة</div> <div class="option-item"><div class="checkbox">${chkd(mfgChecks['تلميع كامل'])}</div> تلميع كامل</div> <div class="option-item"><div class="checkbox">${chkd(mfgChecks['تلميع بقعي'])}</div> تلميع بقعي</div> </div> </div> <div class="dimensions-container"> <div class="dimensions-label">الأبعاد:</div> <table class="independent-dimensions-table"> <tr><td>الطول</td><td>العرض</td><td>الإرتفاع</td></tr> <tr style="height:20px"><td>${fmt(d.LongU)}</td><td>${fmt(d.WedthU)}</td><td>${fmt(d.HightU)}</td></tr> </table> </div> </div> <div> <div class="sketch-box"></div> <div class="top-columns-left"> <div> <div class="option-item"><div class="checkbox">${chkd(mfgChecks['سلفان لميع'])}</div> سلفان لميع</div> <div class="option-item"><div class="checkbox">${chkd(mfgChecks['سلفان مات'])}</div> سلفان مت</div> <div class="option-item"><div class="checkbox">${chkd(custChecks['حراري'])}</div> حــــراري</div> <div class="option-item"><div class="checkbox">${chkd(custChecks['بلص'])}</div> بـــلص</div> </div> <div class="notes-wrapper"> <div style="font-weight:bold;margin-bottom:4px;text-align:center;font-size:12px">ملاحظات:</div> <div class="note-line"></div> <div class="note-line"></div> <div class="note-line"></div> <div class="note-line"></div> </div> </div> </div> </div> <table class="approval-table"> <tr><td class="bg-gray">موافقة الإدارة</td><td></td><td></td><td></td><td></td></tr> <tr><td></td><td></td><td></td><td></td><td></td></tr> </table> </div></div> <script>window.addEventListener('load', () => { window.focus(); window.print(); });</script> </body> </html>`;
-const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
-const url = URL.createObjectURL(blob);
-const a = document.createElement('a');
-a.href = url;
-a.target = '_blank';
-a.rel = 'noopener';
-a.click();
-setTimeout(() => URL.revokeObjectURL(url), 10000);
-}, [checks, custChecks, mfgChecks]);
+  const html = `<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<style>
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+body {
+  font-family: 'Arial', sans-serif;
+  background: #fff;
+  direction: rtl;
+  margin: 0;
+  padding: 0;
+}
+.page {
+  width: 210mm;
+  min-height: 297mm;
+  margin: 0 auto;
+  padding: 10mm 8mm;
+  background: #fff;
+  border: 1px solid #000;
+  box-sizing: border-box;
+  position: relative;
+}
+@media print {
+  body { margin: 0; }
+  .page {
+    border: none;
+    padding: 10mm 8mm;
+  }
+}
+
+/* ----- Header ----- */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 10px;
+}
+.logo {
+  text-align: center;
+  width: 140px;
+}
+.logo-tpp {
+  font-size: 32px;
+  font-weight: bold;
+  font-family: 'Times New Roman', serif;
+  line-height: 1;
+}
+.logo-sub {
+  font-size: 11px;
+  font-weight: bold;
+  border-top: 2px solid #000;
+  margin-top: 4px;
+  padding-top: 2px;
+}
+.title-main {
+  font-size: 24px;
+  font-weight: bold;
+  margin-right: 20px;
+}
+.order-info {
+  width: 180px;
+  font-size: 13px;
+}
+.info-row {
+  display: flex;
+  margin-bottom: 4px;
+}
+.info-label {
+  width: 70px;
+  white-space: nowrap;
+}
+.info-value {
+  flex: 1;
+  border-bottom: 1px dotted #000;
+  margin-right: 5px;
+  min-height: 18px;
+}
+
+/* ----- Two-column layout for top section ----- */
+.top-section {
+  display: flex;
+  gap: 20px;
+  margin-top: 5px;
+  margin-bottom: 10px;
+}
+.col {
+  flex: 1;
+}
+.field {
+  display: flex;
+  margin-bottom: 6px;
+  font-size: 13px;
+}
+.field-label {
+  width: 80px;
+}
+.field-dots {
+  flex: 1;
+  border-bottom: 1px dotted #000;
+  margin-right: 5px;
+}
+
+/* ----- Material Table + Side Panel ----- */
+.material-wrapper {
+  display: flex;
+  gap: 6px;
+  margin: 12px 0;
+  border: 1.5px solid #000;
+}
+.material-table-container {
+  flex: 1;
+  border-left: 1.5px solid #000;
+}
+.material-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: center;
+}
+.material-table th,
+.material-table td {
+  border: 0.5px solid #000;
+  padding: 6px 2px;
+  font-size: 11px;
+}
+.material-table th {
+  background: #f0f0f0;
+  font-weight: bold;
+}
+.side-panel {
+  width: 150px;
+  padding: 8px 6px;
+  font-size: 11px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.panel-item {
+  border-bottom: 1px dotted #000;
+  padding-bottom: 5px;
+}
+.panel-title {
+  font-weight: bold;
+  margin-bottom: 3px;
+}
+.panel-value {
+  font-weight: normal;
+  margin-top: 2px;
+}
+
+/* ----- Approval Section ----- */
+.approval-box {
+  display: flex;
+  border: 1.5px solid #000;
+  margin: 8px 0;
+  padding: 8px;
+  justify-content: space-between;
+  align-items: center;
+}
+.approval-checks {
+  display: flex;
+  gap: 20px;
+}
+.check-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.check-square {
+  width: 12px;
+  height: 12px;
+  border: 1px solid #000;
+  display: inline-block;
+  text-align: center;
+  font-size: 10px;
+  line-height: 12px;
+}
+
+/* ----- Warehouse Out Section ----- */
+.warehouse-row {
+  display: flex;
+  justify-content: space-between;
+  margin: 8px 0;
+  font-size: 12px;
+  font-weight: bold;
+}
+.warehouse-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 8px 0;
+  font-size: 11px;
+}
+.warehouse-table th,
+.warehouse-table td {
+  border: 1px solid #000;
+  padding: 5px;
+  text-align: center;
+}
+.warehouse-table th {
+  background: #f0f0f0;
+}
+
+/* ----- Bottom Sketch & Notes ----- */
+.bottom-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+  margin-top: 12px;
+  border-top: 1.5px solid #000;
+  padding-top: 10px;
+}
+.sketch-box {
+  border: 1px solid #000;
+  height: 80px;
+  background: repeating-linear-gradient(45deg, #eee 0px, #eee 1px, transparent 1px, transparent 8px);
+}
+.machine-info {
+  margin-top: 6px;
+  font-size: 11px;
+}
+.note-box {
+  border: 1px solid #000;
+  padding: 6px;
+  height: 120px;
+}
+.note-title {
+  font-weight: bold;
+  margin-bottom: 4px;
+}
+
+/* ----- Footer Approvals ----- */
+.footer-signatures {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 15px;
+  font-size: 12px;
+  border-top: 1px solid #000;
+  padding-top: 8px;
+}
+
+/* Utility */
+.dots-line {
+  border-bottom: 1px dotted #000;
+  display: inline-block;
+  min-width: 40px;
+}
+.fw-bold {
+  font-weight: bold;
+}
+.text-left {
+  text-align: left;
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="order-info">
+      <div class="info-row"><span class="info-label">رقم الطلب:</span><span class="info-value">${fmt(d.marji3)}</span></div>
+      <div class="info-row"><span class="info-label">الاسم:</span><span class="info-value">${fmt(d.Customer)}</span></div>
+      <div class="info-row"><span class="info-label">التاريخ:</span><span class="info-value">${fmt(d.date_come)}</span></div>
+      <div class="info-row"><span class="info-label">المودع:</span><span class="info-value"></span></div>
+      <div class="info-row"><span class="info-label">تاريخ الموعد:</span><span class="info-value">${fmt(d.Apoent_Delv_date)}</span></div>
+    </div>
+    <div class="title-main">بطاقة إنتاج</div>
+    <div class="logo">
+      <div class="logo-tpp">TPP</div>
+      <div class="logo-sub">TARABICHI</div>
+    </div>
+  </div>
+
+  <!-- Second row: سند التصديق / أرسلت للفرز -->
+  <div style="display: flex; gap: 30px; margin: 8px 0; font-size:13px;">
+    <div style="display: flex;"><span style="width:80px;">سند التصديق:</span><span class="dots-line" style="width:120px;"></span></div>
+    <div style="display: flex;"><span style="width:80px;">أرسلت للفرز:</span><span class="dots-line" style="width:120px;">${fmt(d.Perioud)}</span></div>
+  </div>
+
+  <!-- كود النموذج الطبي -->
+  <div style="margin: 8px 0; font-size:13px; font-weight:bold;">
+    كود النموذج الطبي: ${fmt(d.Code_M) || '....................'}
+  </div>
+
+  <!-- MATERIAL TABLE + SIDE PANEL -->
+  <div class="material-wrapper">
+    <div class="material-table-container">
+      <table class="material-table">
+        <thead>
+          <tr><th>طبق</th><th>النوع</th><th>بلد المصدر</th><th>المورد</th><th>القياس</th><th>غراماج</th><th>الوزن</th></tr>
+        </thead>
+        <tbody>
+          <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+          <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+          <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+        </tbody>
+      </table>
+      <!-- المجموع المستهلك -->
+      <div style="display: flex; border-top: 1px solid #000; padding: 5px; font-size:12px; font-weight:bold;">
+        <span style="width:120px;">المجموع المستهلك في الطبعة:</span>
+        <span style="flex:1; border-bottom:1px dotted #000;"></span>
+      </div>
+    </div>
+    <div class="side-panel">
+      <div class="panel-item">
+        <div class="panel-title">الحجم النهائي</div>
+        <div class="panel-value">${fmt(d.final_size_tall) || 'X'} × ${fmt(d.final_size_width) || 'X'}</div>
+        <div class="panel-value">${fmt(d.final_size_tall2) || 'X'} × ${fmt(d.final_size_width2) || 'X'}</div>
+      </div>
+      <div class="panel-item">
+        <div class="panel-title">الطبع</div>
+        <div>على ${fmt(d.print_on) || '______'}</div>
+        <div>على ${fmt(d.print_on2) || '______'}</div>
+      </div>
+      <div class="panel-item">يفصل الطبق: ${fmt(d.sheet_unit_qunt)}</div>
+      <div class="panel-item">إجمالي العدد: ${fmt(d.grnd_qunt)}</div>
+      <div class="panel-item">عدد الألوان: ${fmt(d.Clr_qunt)}</div>
+    </div>
+  </div>
+
+  <!-- APPROVAL CHECKS -->
+  <div class="approval-box">
+    <div style="font-weight:bold;">موافقة المدير الفني على:</div>
+    <div class="approval-checks">
+      <div class="check-item"><span class="check-square">${chkd(mfgChecks['تلميع كامل'])}</span> القساوة</div>
+      <div class="check-item"><span class="check-square">${chkd(mfgChecks['تلميع بقعي'])}</span> قياس الطبع</div>
+      <div class="check-item"><span class="check-square"></span> صلاحية الكرتون</div>
+    </div>
+  </div>
+
+  <!-- أسباب الإخراج -->
+  <div style="display: flex; gap: 15px; margin: 10px 0; font-size:12px;">
+    <div style="display: flex; gap: 10px;">
+      <div class="check-item"><span class="check-square"></span> تلف</div>
+      <div class="check-item"><span class="check-square"></span> خطأ</div>
+      <div class="check-item"><span class="check-square"></span> زيادة كمية الطبع</div>
+      <div class="check-item"><span class="check-square"></span> تم معالجة الفروقات</div>
+    </div>
+    <div style="flex:1; display: flex;">
+      <span style="font-weight:bold; margin-left:8px;">تعليل سبب إخراج الأطباق زيادة:</span>
+      <span style="flex:1; border-bottom:1px dotted #000;"></span>
+    </div>
+  </div>
+
+  <!-- توقيع أمين المستودع -->
+  <div style="text-align: left; margin: 5px 0 10px; font-size:13px; font-weight:bold;">
+    توقيع أمين المستودع: .......................................
+  </div>
+
+  <!-- WAREHOUSE OUT SECTION (two rows) -->
+  <div class="warehouse-row">
+    <span>أخرج من المستودع &nbsp; / &nbsp; / &nbsp; ٢٠١</span>
+    <span>رقم الصـــــادر: ___________</span>
+    <span>التوقيـــــع: ___________</span>
+    <span>عدد الطبع على ${fmt(d.Qunt_of_print_on) || ''}</span>
+  </div>
+  <div class="warehouse-row">
+    <span>أخرج من المستودع &nbsp; / &nbsp; / &nbsp; ٢٠١</span>
+    <span>رقم الصـــــادر: ___________</span>
+    <span>التوقيـــــع: ___________</span>
+    <span>عدد الطبع على ${fmt(d.Qunt_of_print_on2) || ''}</span>
+  </div>
+
+  <!-- NOTES TABLE -->
+  <table class="warehouse-table">
+    <thead>
+      <tr><th></th><th>العـدد</th><th>الجهة المنفـــــذة</th><th>ملاحظـــــات</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>بلاكـــــــات</td><td></td><td></td><td></td></tr>
+      <tr><td>بلاكات إضافية</td><td></td><td></td><td></td></tr>
+    </tbody>
+  </table>
+  <div style="text-align: left; font-size:12px; margin: 4px 0;">منها نموذج طبي على ${fmt(d.Med_Sampel) || ''}</div>
+
+  <!-- BOTTOM: SKETCH & NOTES -->
+  <div class="bottom-grid">
+    <div>
+      <div class="sketch-box"></div>
+      <div class="machine-info">
+        <div>آلة الطبع: ${fmt(d.Machin_Print)}</div>
+        <div>آلة التقطيع: ${fmt(d.Machin_Cut)}</div>
+        <div>رقم القالب: ${fmt(d.MontagNum)}</div>
+      </div>
+      <div style="margin-top: 8px; display: flex; gap: 10px;">
+        <div class="check-item"><span class="check-square">${chkd(mfgChecks['برنيش'])}</span> برنيش</div>
+        <div class="check-item"><span class="check-square">${chkd(custChecks['مع تطوية'])}</span> مع تطوية</div>
+        <div class="check-item"><span class="check-square">${chkd(mfgChecks['تلميع كامل'])}</span> تلميع كامل</div>
+        <div class="check-item"><span class="check-square">${chkd(mfgChecks['تلميع بقعي'])}</span> تلميع بقعي</div>
+      </div>
+      <div style="margin-top: 8px;">
+        <span style="font-weight:bold;">الأبعاد:</span> الطول ${fmt(d.LongU)} | العرض ${fmt(d.WedthU)} | الإرتفاع ${fmt(d.HightU)}
+      </div>
+    </div>
+    <div>
+      <div class="sketch-box"></div>
+      <div style="margin-top: 8px; display: flex; gap: 10px;">
+        <div class="check-item"><span class="check-square">${chkd(mfgChecks['سلفان لميع'])}</span> سلفان لميع</div>
+        <div class="check-item"><span class="check-square">${chkd(mfgChecks['سلفان مات'])}</span> سلفان مت</div>
+        <div class="check-item"><span class="check-square">${chkd(custChecks['حراري'])}</span> حراري</div>
+        <div class="check-item"><span class="check-square">${chkd(custChecks['بلص'])}</span> بلص</div>
+      </div>
+      <div class="note-box">
+        <div class="note-title">ملاحظات:</div>
+        <div style="border-bottom:1px dotted #000; margin:6px 0;">&nbsp;</div>
+        <div style="border-bottom:1px dotted #000; margin:6px 0;">&nbsp;</div>
+        <div style="border-bottom:1px dotted #000; margin:6px 0;">&nbsp;</div>
+        <div style="border-bottom:1px dotted #000; margin:6px 0;">&nbsp;</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FOOTER APPROVALS -->
+  <div class="footer-signatures">
+    <span>موافقة الإدارة: _________________</span>
+    <span>تاريخ القطع: ____ / ____ / ٢٠____</span>
+  </div>
+  <div style="margin-top: 8px; text-align: center; font-size: 12px;">
+    التفصيل للمقطع
+  </div>
+
+</div>
+<script>window.addEventListener('load', () => { window.focus(); window.print(); });</script>
+</body>
+</html>`;
+
+  const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const printWindow = window.open(url, '_blank');
+  if (printWindow) {
+    printWindow.focus();
+  } else {
+    // Fallback if popup blocked
+    const a = document.createElement('a');
+    a.href = url;
+    a.target = '_blank';
+    a.rel = 'noopener';
+    a.click();
+  }
+  setTimeout(() => URL.revokeObjectURL(url), 10000);
+}, [ checks, custChecks, mfgChecks]);
 
 if (isLoading) return <Loading />;
 
