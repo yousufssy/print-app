@@ -860,6 +860,7 @@ useEffect(() => {
 }, [duplicatedData, hasLoadedDuplicate, reset]);
 
 // ✅ 3️⃣ تهيئة طلب جديد - مرة واحدة فقط
+// ✅ 3️⃣ تهيئة طلب جديد - مرة واحدة فقط
 const idInitializedRef = useRef(false);
 
 useEffect(() => {
@@ -876,12 +877,12 @@ useEffect(() => {
 
   idInitializedRef.current = true;
 
-  const latestOrder = orders[orders.length - 1];
-  const lastSer = parseInt(latestOrder?.Ser || '0') || 0;
-  const newId = String((Number(latestOrder?.ID) || 0) + 1);
+  // البحث عن أعلى قيمة لـ Ser في جميع السجلات
+  const maxSer = Math.max(...orders.map(o => parseInt(o.Ser) || 0), 0);
+  const newId = String((Number(orders[orders.length - 1]?.ID) || 0) + 1);
 
   const initData = {
-    Ser: String(lastSer + 1),
+    Ser: String(maxSer + 1),
     ID: newId,
     Year: currentYear,
   };
@@ -895,6 +896,7 @@ useEffect(() => {
   console.log('✅ تم تهيئة طلب جديد بنجاح');
 // eslint-disable-next-line react-hooks/exhaustive-deps
 }, [orders]);
+  
 // ✅ الحفظ - مع معالجة أخطاء شاملة
 const onSubmit = useCallback(async (data: Order) => {
 try {
