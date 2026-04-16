@@ -550,8 +550,8 @@ const syncRows = useCallback(async (
 oldRows: Record<string, string>[],
 newRows: Record<string, string>[],
 onCreate: (fields: any) => Promise<any>,
-onUpdate: (ID: number, fields: any) => Promise<any>,
-onDelete: (ID: number) => Promise<any>,
+onUpdate: (rowId: number, fields: any) => Promise<any>,
+onDelete: (rowId: number) => Promise<any>,
 ) => {
 const oldIds = new Set(oldRows.map(r => r.ID).filter(v => !!v));
 const newIds = new Set(newRows.map(r => r.ID).filter(v => !!v));
@@ -630,8 +630,8 @@ try {
   await syncRows(
     materialsRows, newRows,
     (f) => createCarton.mutateAsync({ ...f, ID: id!, year: year! }),
-    (ID, f) => updateCarton.mutateAsync({ ID, data: f }),
-    (ID) => deleteCarton.mutateAsync(ID),
+    (rowId, f) => updateCarton.mutateAsync({ rowId, data: f }),
+    (rowId) => deleteCarton.mutateAsync(rowId),
   );
 } catch (error) {
   console.error('❌ handleMaterialsChange error:', error);
@@ -673,8 +673,8 @@ try {
   await syncRows(
     problemsRows, newRows,
     (f) => createProblem.mutateAsync({ ...f, ID: id!, Year: year! }),
-    (ID, f) => updateProblem.mutateAsync({ ID, data: f }),
-    (ID) => deleteProblem.mutateAsync(ID),
+    (rowId, f) => updateProblem.mutateAsync({ rowId, data: f }),
+    (rowId) => deleteProblem.mutateAsync(rowId),
   );
 } catch (error) {
   console.error('❌ handleProblemsChange error:', error);
@@ -719,8 +719,8 @@ try {
   await syncRows(
     operationsRows, newRows,
     (f) => createOperation.mutateAsync({ ...f, ID: id!, Year: year! }),
-    (ID, f) => updateOperation.mutateAsync({ ID, data: f }),
-    (ID) => deleteOperation.mutateAsync(ID),
+    (rowId, f) => updateOperation.mutateAsync({ rowId, data: f }),
+    (rowId) => deleteOperation.mutateAsync(rowId),
   );
 } catch (error) {
   console.error('❌ handleOperationsChange error:', error);
@@ -858,10 +858,10 @@ Object.entries(CUST_MAP).forEach(([label, field]) => {
 (data as any).DubelM = toBit(checks.CTB);
 
 if (!isEdit) {
-  const maxID = orders.length > 0
+  const maxRowId = orders.length > 0
     ? Math.max(...orders.map((o: any) => o.ID)) + 1
     : 1;
-  (data as any).ID = maxID;
+  (data as any).ID = maxRowId;
 }
 
 if (isEdit) {
