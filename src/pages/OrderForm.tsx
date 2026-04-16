@@ -649,22 +649,41 @@ const [pendingOps, setPendingOps] = useState<Record<string, string>[]>([]);
 
 
 const handleMaterialsChange = useCallback(async (newRows: Record<string, string>[]) => {
-if (!isEdit) {
-setPendingMaterials(newRows);
-return;
-}
+  if (!isEdit) {
+    setPendingMaterials(newRows);
+    return;
+  }
 
-try {
-  await syncRows(
-    materialsRows, newRows,
-    (f) => createCarton.mutateAsync({ ...f, ID: id!, year: year! }),
-    (rowId, f) => updateCarton.mutateAsync({ rowId, data: f }),
-    (rowId) => deleteCarton.mutateAsync(rowId),
-  );
-} catch (error) {
-  console.error('❌ handleMaterialsChange error:', error);
-}
-}, [isEdit, materialsRows, syncRows, createCarton, updateCarton, deleteCarton, id, year]);
+  try {
+    // ✅ نبني oldRows مباشرة من cartonsData بدل الاعتماد على materialsRows
+    const oldRows = cartonsData.map((c: any) => ({
+      ID: String(c.ID1 ?? ''),
+      Type1: c.Type1 ?? '',
+      Id_carton: c.Id_carton ?? '',
+      Source1: c.Source1 ?? '',
+      Supplier1: c.Supplier1 ?? '',
+      Long1: String(c.Long1 ?? ''),
+      Width1: String(c.Width1 ?? ''),
+      Gramage1: String(c.Gramage1 ?? ''),
+      Sheet_count1: String(c.Sheet_count1 ?? ''),
+      Price: String(c.Price ?? ''),
+      Out_Date: c.Out_Date ?? '',
+      Out_ord_num: c.Out_ord_num ?? '',
+      note_crt: c.note_crt ?? '',
+    }));
+
+    await syncRows(
+      oldRows, // ✅ استخدم oldRows المبنية حديثًا
+      newRows,
+      (f) => createCarton.mutateAsync({ ...f, ID: id!, year: year! }),
+      (rowId, f) => updateCarton.mutateAsync({ rowId, data: f }),
+      (rowId) => deleteCarton.mutateAsync(rowId),
+    );
+  } catch (error) {
+    console.error('❌ handleMaterialsChange error:', error);
+  }
+}, [isEdit, cartonsData, syncRows, createCarton, updateCarton, deleteCarton, id, year]); 
+// ✅ غيّر materialsRows إلى cartonsData في dependencies
 
 
 // ── سجل المشاكل ───────────────────────────────────────────────────────────────
