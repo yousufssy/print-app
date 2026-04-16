@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { useForm, useWatch } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form'; // إضافة useWatch
 import { useOrder, useCreateOrder, useUpdateOrder, useCustomers, useVouchers, useCreateVoucher, useDeleteVoucher, useOrders, useOperations, useCreateOperation, useUpdateOperation, useDeleteOperation, useCartons, useCreateCarton, useUpdateCarton, useDeleteCarton, useProblems, useCreateProblem, useUpdateProblem, useDeleteProblem } from '../hooks/useApi';
 import { Card, FormGroup, SectionDiv, CheckItem, Loading, Btn } from '../components/ui';
 import type { Order } from '../types';
@@ -516,10 +516,19 @@ const navigate = useNavigate();
 const location = useLocation();
 const duplicatedData = location.state?.duplicatedData || null;
 
-const {  existing, isLoading } = useOrder(id ?? '', year ?? '');
+// إضافة console.log للتحقق من حالة البيانات
+console.log('🔄 حالة الصفحة:', { 
+  id, 
+  year, 
+  isEdit, 
+  duplicatedData,
+  locationState: location.state
+});
+
+const { data: existing, isLoading } = useOrder(id ?? '', year ?? '');
 const createOrder = useCreateOrder();
 const updateOrder = useUpdateOrder(id ?? '', year ?? '');
-const {  customers = [] } = useCustomers();
+const { data: customers = [] } = useCustomers();
 
 const [checks, setChecks] = useState<Record<string, boolean>>({});
 const [mfgChecks, setMfgChecks] = useState<Record<string, boolean>>({});
@@ -546,9 +555,9 @@ Ser: ''
 const formDataRef = useRef<Partial<Order>>({});
 
 // إضافة watch لمراقبة التغييرات
-// إضافة watch لمراقبة التغييرات
 const formValues = watch();
 useEffect(() => {
+  console.log('🔍 تغيير في قيم النموذج:', formValues);
   formDataRef.current = formValues;
 }, [formValues]);
 
@@ -566,23 +575,31 @@ const newIds = new Set(newRows.map(r => r.ID).filter(v => !!v));
 try {
   for (const old of oldRows) {
     if (old.ID && !newIds.has(old.ID)) {
-      await onDelete(Number(old.ID)).catch(() => {});
+      await onDelete(Number(old.ID)).catch(err => {
+        console.error('❌ Delete error:', err);
+      });
     }
   }
 
   for (const row of newRows) {
     const { ID, _isNew, ...fields } = row;
     if (ID && oldIds.has(ID)) {
-      await onUpdate(Number(ID), fields).catch(() => {});
+      await onUpdate(Number(ID), fields).catch(err => {
+        console.error('❌ Update error:', err);
+      });
     } else if (!ID) {
-      await onCreate(fields).catch(() => {});
+      await onCreate(fields).catch(err => {
+        console.error('❌ Create error:', err);
+      });
     }
   }
-} catch (error) {}
+} catch (error) {
+  console.error('❌ syncRows error:', error);
+}
 }, []);
 
 // ── الكرتون ───────────────────────────────────────────────────────────────────
-const {  cartonsData = [] } = useCartons(
+const { data: cartonsData = [] } = useCartons(
 isEdit ? (id ?? '') : '',
 isEdit ? (year ?? '') : ''
 );
@@ -594,6 +611,7 @@ const deleteCarton = useDeleteCarton();
 const [materialsRows, setMaterialsRows] = useState<Record<string, string>[]>([]);
 
 useEffect(() => {
+console.log('🔄 تحديث بيانات الكرتون:', cartonsData);
 setMaterialsRows(
 cartonsData.map((c: any) => ({
 ID: String(c.ID1 ?? c.ID ?? ''),
@@ -618,6 +636,7 @@ const [pendingProblems, setPendingProblems] = useState<Record<string, string>[]>
 const [pendingOps, setPendingOps] = useState<Record<string, string>[]>([]);
 
 const handleMaterialsChange = useCallback(async (newRows: Record<string, string>[]) => {
+console.log('🔄 تغيير في بيانات المواد:', newRows);
 if (!isEdit) {
 setPendingMaterials(newRows);
 return;
@@ -630,11 +649,13 @@ try {
     (rowId, f) => updateCarton.mutateAsync({ rowId,  f }),
     (rowId) => deleteCarton.mutateAsync(rowId),
   );
-} catch (error) {}
+} catch (error) {
+  console.error('❌ handleMaterialsChange error:', error);
+}
 }, [isEdit, materialsRows, syncRows, createCarton, updateCarton, deleteCarton, id, year]);
 
 // ── سجل المشاكل ───────────────────────────────────────────────────────────────
-const {  problemsData = [] } = useProblems(isEdit ? (id ?? '') : '', isEdit ? (year ?? '') : '');
+const { data: problemsData = [] } = useProblems(isEdit ? (id ?? '') : '', isEdit ? (year ?? '') : '');
 const createProblem = useCreateProblem();
 const updateProblem = useUpdateProblem();
 const deleteProblem = useDeleteProblem();
@@ -657,7 +678,10 @@ print_count: String(p.print_count ?? ''),
 })), [problemsData]
 );
 
+console.log('🔄 بيانات المشاكل:', problemsData);
+
 const handleProblemsChange = useCallback(async (newRows: Record<string, string>[]) => {
+console.log('🔄 تغيير في سجل المشاكل:', newRows);
 if (!isEdit) {
 setPendingProblems(newRows);
 return;
@@ -670,11 +694,13 @@ try {
     (rowId, f) => updateProblem.mutateAsync({ rowId,  f }),
     (rowId) => deleteProblem.mutateAsync(rowId),
   );
-} catch (error) {}
+} catch (error) {
+  console.error('❌ handleProblemsChange error:', error);
+}
 }, [isEdit, problemsRows, syncRows, createProblem, updateProblem, deleteProblem, id, year]);
 
 // ── العمليات ──────────────────────────────────────────────────────────────────
-const {  operationsData = [] } = useOperations(isEdit ? (id ?? '') : '', isEdit ? (year ?? '') : '');
+const { data: operationsData = [] } = useOperations(isEdit ? (id ?? '') : '', isEdit ? (year ?? '') : '');
 const createOperation = useCreateOperation();
 const updateOperation = useUpdateOperation();
 const deleteOperation = useDeleteOperation();
@@ -701,7 +727,10 @@ Tabrer: op.Tabrer ?? '',
 })), [operationsData]
 );
 
+console.log('🔄 بيانات العمليات:', operationsData);
+
 const handleOperationsChange = useCallback(async (newRows: Record<string, string>[]) => {
+console.log('🔄 تغيير في العمليات:', newRows);
 if (!isEdit) {
 setPendingOps(newRows);
 return;
@@ -714,7 +743,9 @@ try {
     (rowId, f) => updateOperation.mutateAsync({ rowId,  f }),
     (rowId) => deleteOperation.mutateAsync(rowId),
   );
-} catch (error) {}
+} catch (error) {
+  console.error('❌ handleOperationsChange error:', error);
+}
 }, [isEdit, operationsRows, syncRows, createOperation, updateOperation, deleteOperation, id, year]);
 
 // ── حالة الأقسام ──────────────────────────────────────────────────────────────
@@ -732,20 +763,31 @@ useEffect(() => {
 localStorage.setItem('orderFormSections', JSON.stringify(openSections));
 }, [openSections]);
 
-const {  ordersResponse } = useOrders({ year: currentYear });
+const { data: ordersResponse } = useOrders({ year: currentYear });
 const orders = useMemo(() => ordersResponse?.data ?? [], [ordersResponse]);
 
-const {  vouchers = [] } = useVouchers(
+console.log('🔄 بيانات الطلبات:', ordersResponse);
+
+const { data: vouchers = [] } = useVouchers(
 isEdit ? (id ?? '') : '',
 isEdit ? (year ?? currentYear) : currentYear
 );
 const deleteVoucher = useDeleteVoucher();
 
 // ✅ 1️⃣ تحميل بيانات التعديل - مرة واحدة
-// ✅ 1️⃣ تحميل بيانات التعديل - مرة واحدة
 useEffect(() => {
+  console.log('🔄 تحقق من تحميل بيانات التعديل', { 
+    isEdit, 
+    existing: !!existing, 
+    hasLoadedEdit, 
+    duplicatedData: !!duplicatedData 
+  });
+  
   if (!isEdit || !existing || hasLoadedEdit || duplicatedData) return;
 
+  console.log('🔄 جاري تحميل بيانات التعديل:', existing);
+  
+  // تحديث نموذج الفورم
   reset(existing);
   formDataRef.current = { ...existing };
 
@@ -780,12 +822,20 @@ useEffect(() => {
   });
 
   setHasLoadedEdit(true);
+  console.log('✅ تم تحميل بيانات التعديل بنجاح');
 }, [isEdit, existing, hasLoadedEdit, duplicatedData, reset]);
 
 // ✅ 2️⃣ تحميل بيانات النسخ - مرة واحدة
 useEffect(() => {
+  console.log('🔄 تحقق من تحميل بيانات النسخ', { 
+    duplicatedData: !!duplicatedData, 
+    hasLoadedDuplicate 
+  });
+  
   if (!duplicatedData || hasLoadedDuplicate) return;
 
+  console.log('🔄 جاري تحميل بيانات النسخ:', duplicatedData);
+  
   const {
     checks: copiedChecks,
     mfgChecks: copiedMfg,
@@ -805,41 +855,51 @@ useEffect(() => {
   setPendingOps([]);
   setPendingProblems([]);
   setHasLoadedDuplicate(true);
+  
+  console.log('✅ تم تحميل بيانات النسخ بنجاح');
 }, [duplicatedData, hasLoadedDuplicate, reset]);
 
 // ✅ 3️⃣ تهيئة طلب جديد - مرة واحدة فقط
 const idInitializedRef = useRef(false);
 
 useEffect(() => {
+  console.log('🔄 تحقق من تهيئة طلب جديد', { 
+    isEdit, 
+    duplicatedData: !!duplicatedData,
+    ordersLength: orders.length,
+    idInitializedRef: idInitializedRef.current
+  });
+  
   if (isEdit || duplicatedData) return;
   if (idInitializedRef.current) return;
-  
-  const lastSer = orders.length > 0 ? 
-    Math.max(...orders.map(o => parseInt(o.Ser) || 0)) : 0;
-  
-  const lastId = orders.length > 0 ? 
-    Math.max(...orders.map(o => parseInt(o.ID) || 0)) : 0;
-  
-  const newSer = lastSer + 1;
-  const newId = lastId + 1;
+  if (!orders || orders.length === 0) return;
 
   idInitializedRef.current = true;
 
+  const latestOrder = orders[orders.length - 1];
+  const lastSer = parseInt(latestOrder?.Ser || '0') || 0;
+  const newId = String((Number(latestOrder?.ID) || 0) + 1);
+
   const initData = {
-    Ser: String(newSer),
-    ID: String(newId),
+    Ser: String(lastSer + 1),
+    ID: newId,
     Year: currentYear,
   };
 
+  console.log('🔄 جاري تهيئة طلب جديد:', initData);
+  
   reset((prev) => ({ ...prev, ...initData }));
   formDataRef.current = initData;
   setIdInitialized(true);
+  
+  console.log('✅ تم تهيئة طلب جديد بنجاح');
 // eslint-disable-next-line react-hooks/exhaustive-deps
 }, [orders]);
-
 // ✅ الحفظ - مع معالجة أخطاء شاملة
 const onSubmit = useCallback(async (data: Order) => {
 try {
+console.log('🔄 جاري حفظ البيانات:', data);
+
 BOOL_FIELDS.forEach(f => {
 (data as any)[f] = toBit(checks[f]);
 });
@@ -870,23 +930,35 @@ if (isEdit) {
 
   await Promise.all([
     ...pendingMaterials.map(({ ID, _isNew, ...f }) =>
-      createCarton.mutateAsync({ ...f, ID: newId, year: yr }).catch(() => null)),
+      createCarton.mutateAsync({ ...f, ID: newId, year: yr }).catch(err => {
+        console.error('❌ Create carton error:', err);
+        return null;
+      })),
     ...pendingProblems.map(({ ID, _isNew, ...f }) =>
-      createProblem.mutateAsync({ ...f, ID: newId, Year: yr }).catch(() => null)),
+      createProblem.mutateAsync({ ...f, ID: newId, Year: yr }).catch(err => {
+        console.error('❌ Create problem error:', err);
+        return null;
+      })),
     ...pendingOps.map(({ ID, _isNew, ...f }) =>
-      createOperation.mutateAsync({ ...f, ID: newId, Year: yr }).catch(() => null)),
+      createOperation.mutateAsync({ ...f, ID: newId, Year: yr }).catch(err => {
+        console.error('❌ Create operation error:', err);
+        return null;
+      })),
   ]);
 }
 
 await new Promise(resolve => setTimeout(resolve, 100));
 navigate('/orders');
 } catch (error) {
+console.error('❌ Submit error:', error);
 alert('حدث خطأ أثناء الحفظ. الرجاء المحاولة مرة أخرى.');
 }
 }, [checks, mfgChecks, custChecks, isEdit, orders, updateOrder, createOrder, currentYear, pendingMaterials, pendingProblems, pendingOps, createCarton, createProblem, createOperation, navigate]);
 
 const handleDuplicate = useCallback(() => {
 const sourceData = isEdit && existing ? { ...existing } : {};
+
+console.log('🔄 جاري إنشاء نسخة من الطلب:', sourceData);
 
 const excludeFields = [
   'ID', 'ID1', 'Ser',
@@ -931,6 +1003,8 @@ const printProductionCard = useCallback(() => {
 const d = formDataRef.current;
 const chkd = (val: any) => (val ? '✔' : '');
 const fmt = (v: any) => v ?? '';
+
+console.log('🖨️ جاري طباعة بطاقة الإنتاج:', d);
 
 const html = `<!DOCTYPE html>
 <html lang="ar" dir="rtl"> <head> <meta charset="UTF-8"> <style> @page{margin:8mm;size:A4 portrait} *{box-sizing:border-box;margin:0;padding:0} body{font-family:'Arial',sans-serif;background:#fff;direction:rtl;margin:0;padding:0} .page{width:100%;box-sizing:border-box} @media print{body{margin:0;padding:0}.page{width:100%;margin:0;padding:0;border:none}} .header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px} .top-id{display:flex;align-items:center;width:160px;font-size:14px} .logo-box{text-align:center;width:160px} .logo-tpp{font-size:30px;font-weight:bold;line-height:0.8;margin:0;font-family:'Times New Roman',serif} .logo-sub{font-size:10px;font-weight:bold;border-top:2px solid #000;margin-top:4px;display:inline-block} .main-title{font-size:24px;font-weight:bold;margin-top:6px} .content-layout{display:flex;justify-content:space-between;margin-bottom:6px} .column{width:48%} .field{display:flex;align-items:baseline;margin-bottom:7px} .label{font-size:13px;white-space:nowrap} .dots{flex-grow:1;border-bottom:1px dotted #000;margin-left:8px;min-height:14px;padding-right:4px} .gray-box{background:#999;height:18px;width:120px;margin-left:10px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:bold;color:#fff} .extra-lines{margin-top:6px} .line{border-bottom:1px dotted #000;height:18px;width:100%} .footer-right{margin-top:10px;text-align:right;font-size:13px;font-weight:bold} .warehouse-container{width:100%;margin:12px auto} .wrapper{display:flex;gap:6px;align-items:flex-start;width:100%} .side-table{width:150px;border:1.5px solid #000;display:flex;flex-direction:column;flex-shrink:0} .side-cell{border:0.5px solid #000;padding:6px;text-align:center;min-height:30px;display:flex;flex-direction:column;justify-content:center;font-weight:bold;font-size:12px} .side-cell span{font-weight:normal;margin-top:3px} .main-container{flex-grow:1;border:1.5px solid #000} .grid-table{display:grid;grid-template-columns:40px 90px 90px 1fr 70px 55px 55px;width:100%} .grid-item{border:0.5px solid #000;padding:5px 3px;text-align:center;font-size:11px;display:flex;align-items:center;justify-content:center} .grid-header{background-color:#f0f0f0;font-weight:bold} .data-row{height:65px} .bottom-section{display:grid;grid-template-columns:40px 180px 1fr;width:100%} .col-tabaq{display:flex;flex-direction:column} .empty-cell{height:30px;border:0.5px solid #000} .gray-cell{height:30px;border:0.5px solid #000;background-color:#999} .col-details{display:flex;flex-direction:column} .label-cell{height:30px;border:0.5px solid #000;display:flex;align-items:center;padding-right:8px;font-weight:bold;font-size:11px} .col-approval{border:0.5px solid #000;display:flex;flex-direction:column} .approval-head{padding:4px;text-align:center;border-bottom:0.5px solid #000;font-weight:bold;font-size:11px} .checks{display:flex;justify-content:space-around;align-items:center;flex-grow:1;font-size:10px} .footer{border-top:1.5px solid #000;padding:6px} .check-box{width:11px;height:11px;border:1px solid #000;display:inline-block;margin-left:4px;vertical-align:middle;text-align:center;font-size:9px;line-height:11px} .reason-line{border-bottom:1px dotted #000;flex-grow:1;margin-right:5px} .container{width:100%;margin:12px auto 0 auto;border:1.5px solid #000;padding:10px} .header-split{display:grid;grid-template-columns:1fr 1fr;gap:15px;margin-bottom:8px} .header-item{text-align:center;font-weight:bold;font-size:13px} .date-space{border-bottom:1px solid #000;padding:0 15px;margin:0 2px;display:inline-block;min-width:20px} .main-grid{display:grid;grid-template-columns:1fr 1fr;gap:15px} .sketch-box{border:1px solid #000;height:100px;background-image:linear-gradient(to right,#e0e0e0 1px,transparent 1px),linear-gradient(to bottom,#e0e0e0 1px,transparent 1px);background-size:12px 12px} .top-columns{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px} .top-columns-left{display:grid;grid-template-columns:1fr 1.2fr;gap:8px;margin-top:8px} .option-item{display:flex;align-items:center;margin-bottom:4px;font-size:11px} .checkbox{width:11px;height:11px;border:1px solid #000;margin-left:6px;flex-shrink:0;text-align:center;font-size:9px;line-height:11px} .info-line{font-size:11px;margin-bottom:5px} .line-fill{border-bottom:1px dotted #000;display:inline-block;width:60%;height:12px} .dimensions-container{display:flex;align-items:center;margin-top:10px;width:100%} .dimensions-label{font-weight:bold;font-size:11px;margin-left:8px;white-space:nowrap} .independent-dimensions-table{flex-grow:1;border-collapse:collapse} .independent-dimensions-table td{border:1px solid #000;text-align:center;padding:4px;font-size:11px} .notes-wrapper{display:flex;flex-direction:column;align-items:center;width:100%} .note-line{border-bottom:1px dotted #000;height:18px;width:100%} .approval-table{width:100%;border-collapse:collapse;margin-top:12px} .approval-table td{border:1px solid #000;height:25px;text-align:center;font-size:12px} .bg-gray{background-color:#f0f0f0;font-weight:bold;width:100px} </style> </head> <body> <div class="page"><div class="header"> <div class="top-id"><span>رقمنا :</span><span class="dots">${fmt(d.ID)}</span></div> <div class="main-title">بطاقة إنتاج</div> <div class="logo-box"> <div class="logo-tpp">TPP</div> <div class="logo-sub">TARABICHI</div> </div> </div> <div class="content-layout"> <div class="column"> <div class="field"><span class="label">الاسم :</span><span class="dots">${fmt(d.Customer)}</span></div> <div class="field"><span class="label">النموذج :</span><span class="dots">${fmt(d.Pattern)} ${fmt(d.Pattern2)}</span></div> <div class="field"><span class="label">العدد المطلوب :</span><span class="dots">${fmt(d.Demand)}</span></div> <div class="field"><span class="label">ملاحظات :</span><span class="dots">${fmt(d.note_ord)}</span></div> </div> <div class="column"> <div class="field"><span class="label">رقم الطلب :</span><span class="dots">${fmt(d.marji3)}</span></div> <div class="field"><span class="label">تاريخ الورود :</span><span class="dots">${fmt(d.date_come)}</span></div> <div class="field"><span class="label">موعد التسليم :</span><div class="gray-box">${fmt(d.Apoent_Delv_date)}</div></div> <div class="field"><span class="label">أرسلت للفرز :</span><span class="dots">${fmt(d.Perioud)}</span></div> </div> </div> <div class="extra-lines"><div class="line"></div><div class="line"></div></div> <div class="footer-right">كود النموذج الطبي : ${fmt(d.Code_M) || '....................'}</div><div class="warehouse-container"> <div class="wrapper"> <div class="main-container"> <div class="grid-table"> <div class="grid-item grid-header">طبق</div> <div class="grid-item grid-header">النوع</div> <div class="grid-item grid-header">بلد المصدر</div> <div class="grid-item grid-header">المورد</div> <div class="grid-item grid-header">القياس</div> <div class="grid-item grid-header">غراماج</div> <div class="grid-item grid-header">الوزن</div> <div class="grid-item data-row"></div> <div class="grid-item data-row"></div> <div class="grid-item data-row"></div> <div class="grid-item data-row"></div> <div class="grid-item data-row"></div> <div class="grid-item data-row"></div> <div class="grid-item data-row"></div> </div> <div class="bottom-section"> <div class="col-tabaq"> <div class="empty-cell"></div> <div class="gray-cell"></div> </div> <div class="col-details"> <div class="label-cell">اخراج زيادة طبع</div> <div class="label-cell grid-header">المجموع المستهلك في الطبعة</div> </div> <div class="col-approval"> <div class="approval-head">موافقة المدير الفني على :</div> <div class="checks"> <span><div class="check-box"></div> القساوة</span> <span><div class="check-box"></div> قياس الطبع</span> <span><div class="check-box"></div> صلاحية الكرتون</span> </div> </div> </div> <div class="footer"> <div style="display:flex;justify-content:space-between;margin-bottom:8px"> <div style="display:grid;grid-template-columns:80px 130px;gap:4px;font-size:11px"> <div><div class="check-box"></div> تلف</div> <div><div class="check-box"></div> خطأ</div> <div><div class="check-box"></div> زيادة كمية الطبع</div> <div><div class="check-box"></div> تم معالجة الفروقات</div> </div> <div style="flex-grow:1;display:flex;align-items:baseline;margin-right:15px;font-size:11px"> <b>تعليل سبب إخراج الأطباق زيادة:</b> <div class="reason-line"></div> </div> </div> <div style="text-align:left;font-weight:bold;font-size:12px">توقيع أمين المستودع: .......................................</div> </div> </div> <div class="side-table"> <div class="side-cell" style="height:75px"> الحجم النهائي <span>${fmt(d.final_size_tall) || 'X'} × ${fmt(d.final_size_width) || 'X'}</span> <span>${fmt(d.final_size_tall2) || 'X'} × ${fmt(d.final_size_width2) || 'X'}</span> </div> <div class="side-cell" style="height:75px"> الطبع <span style="text-align:right;padding-right:15px">على ${fmt(d.print_on) || ''}</span> <span style="text-align:right;padding-right:15px">على ${fmt(d.print_on2) || ''}</span> </div> <div class="side-cell">يفصل الطبق: ${fmt(d.sheet_unit_qunt)}</div> <div class="side-cell">إجمالي العدد: ${fmt(d.grnd_qunt)}</div> <div class="side-cell">عدد الألوان: ${fmt(d.Clr_qunt)}</div> </div> </div> </div><div class="container"> <div class="header-split"> <div class="header-item">التفصيل للمقطع</div> <div class="header-item">تاريخ القطع: <span class="date-space"></span> / <span class="date-space"></span> / <span class="date-space"></span></div> </div> <div class="main-grid"> <div> <div class="sketch-box"></div> <div class="top-columns"> <div> <div class="info-line">آلة الطبع: <span class="line-fill">${fmt(d.Machin_Print)}</span></div> <div class="info-line">آلة التقطيع: <span class="line-fill">${fmt(d.Machin_Cut)}</span></div> <div class="info-line">رقم القالب: <span class="line-fill">${fmt(d.MontagNum)}</span></div> </div> <div> <div class="option-item"><div class="checkbox">${chkd(checks.varn)}</div> برنيـــش</div> <div class="option-item"><div class="checkbox">${chkd(custChecks['مع تطوية'])}</div> مع تطويــة</div> <div class="option-item"><div class="checkbox">${chkd(mfgChecks['تلميع كامل'])}</div> تلميع كامل</div> <div class="option-item"><div class="checkbox">${chkd(mfgChecks['تلميع بقعي'])}</div> تلميع بقعي</div> </div> </div> <div class="dimensions-container"> <div class="dimensions-label">الأبعاد:</div> <table class="independent-dimensions-table"> <tr><td>الطول</td><td>العرض</td><td>الإرتفاع</td></tr> <tr style="height:20px"><td>${fmt(d.LongU)}</td><td>${fmt(d.WedthU)}</td><td>${fmt(d.HightU)}</td></tr> </table> </div> </div> <div> <div class="sketch-box"></div> <div class="top-columns-left"> <div> <div class="option-item"><div class="checkbox">${chkd(mfgChecks['سلفان لميع'])}</div> سلفان لميع</div> <div class="option-item"><div class="checkbox">${chkd(mfgChecks['سلفان مات'])}</div> سلفان مت</div> <div class="option-item"><div class="checkbox">${chkd(custChecks['حراري'])}</div> حــــراري</div> <div class="option-item"><div class="checkbox">${chkd(custChecks['بلص'])}</div> بـــلص</div> </div> <div class="notes-wrapper"> <div style="font-weight:bold;margin-bottom:4px;text-align:center;font-size:12px">ملاحظات:</div> <div class="note-line"></div> <div class="note-line"></div> <div class="note-line"></div> <div class="note-line"></div> </div> </div> </div> </div> <table class="approval-table"> <tr><td class="bg-gray">موافقة الإدارة</td><td></td><td></td><td></td><td></td></tr> <tr><td></td><td></td><td></td><td></td><td></td></tr> </table> </div></div> <script>window.addEventListener('load', () => { window.focus(); window.print(); });</script> </body> </html>`;
@@ -997,56 +1071,11 @@ return (
     onToggle={() => toggleSection('basic')}
   >
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 12 }}>
-      <G label="تسلسل">
-        <input 
-          className="fc" 
-          {...register('Ser')} 
-          readOnly 
-          style={{ 
-            textAlign: 'right', 
-            background: '#f8f9fa' 
-          }} 
-        />
-      </G>
-      
-      <G label="اسم الزبون" req>
-        <input 
-          className="fc" 
-          {...register('Customer', { required: true })} 
-          list="cust-list" 
-          placeholder="ابحث عن الزبون..." 
-          style={{ textAlign: 'right' }} 
-        />
-      </G>
-      
-      <G label="رقمنا">
-        <input 
-          className="fc" 
-          {...register('ID')} 
-          readOnly={isEdit} 
-          style={{ 
-            textAlign: 'right', 
-            background: isEdit ? '#f8f9fa' : 'transparent' 
-          }} 
-        />
-      </G>
-      
-      <G label="المرجع" req>
-        <input 
-          className="fc" 
-          {...register('marji3', { required: true })} 
-          placeholder="65982" 
-          style={{ textAlign: 'right' }} 
-        />
-      </G>
-      
-      <G label="التفصيلات المرتبطة">
-        <input 
-          className="fc" 
-          {...register('AttachmentsOrders')} 
-          style={{ textAlign: 'right' }} 
-        />
-      </G>
+      <G label="تسلسل"><input className="fc" {...register('Ser')} readOnly style={{ textAlign: 'right', background: '#f8f9fa' }} /></G>
+      <G label="اسم الزبون" req><input className="fc" {...register('Customer', { required: true })} list="cust-list" placeholder="ابحث عن الزبون..." style={{ textAlign: 'right' }} /></G>
+      <G label="رقمنا"><input className="fc" {...register('ID')} readOnly style={{ textAlign: 'right', background: '#f8f9fa' }} /></G>
+      <G label="المرجع" req><input className="fc" {...register('marji3', { required: true })} placeholder="65982" style={{ textAlign: 'right' }} /></G>
+      <G label="التفصيلات المرتبطة"><input className="fc" {...register('AttachmentsOrders')} style={{ textAlign: 'right' }} /></G>
     </div>
     <datalist id="cust-list">
       {customers.map(c => <option key={(c as any).ID1} value={c.Customer} />)}
@@ -1381,6 +1410,7 @@ return (
     </div>
   </AccordionCard>
 
+  {/* ── Footer ── */}
   <div style={{ background: '#fff', borderRadius: 14, border: '1px solid var(--border)', padding: '12px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
     <span style={{ fontSize: 12, color: 'var(--muted)' }}>سنة العمل: <strong>{currentYear}</strong></span>
     <div style={{ display: 'flex', gap: 10 }}>
