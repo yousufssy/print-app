@@ -652,7 +652,44 @@ note_crt: c.note_crt ?? '',
 );
 }, [cartonsData]);
 
+const [problemsRows, setProblemsRows] = useState<Record<string, string>[]>([]);
+const [operationsRows, setOperationsRows] = useState<Record<string, string>[]>([]);
 
+useEffect(() => {
+  setProblemsRows(
+    problemsData.map((p: Problem) => ({
+      ID: String(p.ID1 ?? ''),
+      print_num: p.print_num ?? '',
+      prod_date: p.prod_date ?? '',
+      exp_date: p.exp_date ?? '',
+      print_count: String(p.print_count ?? ''),
+    }))
+  );
+}, [problemsData]);
+
+useEffect(() => {
+  setOperationsRows(
+    operationsData.map((op: any) => ({
+      ID: String(op.ID1 ?? op.ID ?? ''),
+      Action: op.Action ?? '',
+      Color: op.Color ?? '',
+      Qunt_Ac: String(op.Qunt_Ac ?? ''),
+      On: String(op.On ?? ''),
+      Machin: op.Machin ?? '',
+      Hours: String(op.Hours ?? ''),
+      Kelo: String(op.Kelo ?? ''),
+      Actual: String(op.Actual ?? ''),
+      Tarkeb: String(op.Tarkeb ?? ''),
+      Wash: String(op.Wash ?? ''),
+      Electricity: String(op.Electricity ?? ''),
+      Taghez: String(op.Taghez ?? ''),
+      StopVar: String(op.StopVar ?? ''),
+      Date: op.Date ?? '',
+      NotesA: op.NotesA ?? '',
+      Tabrer: op.Tabrer ?? '',
+    }))
+  );
+}, [operationsData]);
 
 
 // ── تحديث problemsRows عند تحميل البيانات ────────────────────────────
@@ -734,15 +771,7 @@ exp_date?: string;
 print_count?: number;
 }
 
-const problemsRows: Record<string, string>[] = useMemo(() =>
-problemsData.map((p: Problem) => ({
-ID: String(p.ID1 ?? ''),
-print_num: p.print_num ?? '',
-prod_date: p.prod_date ?? '',
-exp_date: p.exp_date ?? '',
-print_count: String(p.print_count ?? ''),
-})), [problemsData]
-);
+
 
 const handleProblemsChange = useCallback(async (newRows: Record<string, string>[]) => {
   if (!isEdit) {
@@ -751,21 +780,27 @@ const handleProblemsChange = useCallback(async (newRows: Record<string, string>[
   }
 
   try {
-    // ✅ استخدم localProblemsRows بدلاً من problemsRows
+    // ✅ بناء oldRows مباشرة من problemsData بدلاً من الاعتماد على problemsRows
+    const oldRows = problemsData.map((p: Problem) => ({
+      ID: String(p.ID1 ?? ''),
+      print_num: p.print_num ?? '',
+      prod_date: p.prod_date ?? '',
+      exp_date: p.exp_date ?? '',
+      print_count: String(p.print_count ?? ''),
+    }));
+
     await syncRows(
-      localProblemsRows, 
+      oldRows, // ✅ استخدم oldRows المبنية محلياً
       newRows,
       (f) => createProblem.mutateAsync({ ...f, ID: id!, Year: year! }),
       (rowId, f) => updateProblem.mutateAsync({ rowId, data: f }),
       (rowId) => deleteProblem.mutateAsync(rowId),
     );
-    
-    // ✅ حدّث الـ state المحلي
-    setLocalProblemsRows(newRows);
   } catch (error) {
     console.error('❌ handleProblemsChange error:', error);
   }
-}, [isEdit, localProblemsRows, syncRows, createProblem, updateProblem, deleteProblem, id, year]);
+}, [isEdit, problemsData, syncRows, createProblem, updateProblem, deleteProblem, id, year]);
+// ✅ غيّر problemsRows إلى problemsData في dependencies
 // ✅ غيّر problemsRows إلى problemsData
 
 // ── العمليات ──────────────────────────────────────────────────────────────────
@@ -774,27 +809,7 @@ const createOperation = useCreateOperation();
 const updateOperation = useUpdateOperation();
 const deleteOperation = useDeleteOperation();
 
-const operationsRows: Record<string, string>[] = useMemo(() =>
-operationsData.map((op: any) => ({
-ID: String(op.ID1 ?? op.ID ?? ''),
-Action: op.Action ?? '',
-Color: op.Color ?? '',
-Qunt_Ac: String(op.Qunt_Ac ?? ''),
-On: String(op.On ?? ''),
-Machin: op.Machin ?? '',
-Hours: String(op.Hours ?? ''),
-Kelo: String(op.Kelo ?? ''),
-Actual: String(op.Actual ?? ''),
-Tarkeb: String(op.Tarkeb ?? ''),
-Wash: String(op.Wash ?? ''),
-Electricity: String(op.Electricity ?? ''),
-Taghez: String(op.Taghez ?? ''),
-StopVar: String(op.StopVar ?? ''),
-Date: op.Date ?? '',
-NotesA: op.NotesA ?? '',
-Tabrer: op.Tabrer ?? '',
-})), [operationsData]
-);
+
 
 const handleOperationsChange = useCallback(async (newRows: Record<string, string>[]) => {
   if (!isEdit) {
@@ -825,7 +840,7 @@ const handleOperationsChange = useCallback(async (newRows: Record<string, string
     }));
 
     await syncRows(
-      oldRows, // ✅ استخدم البيانات الطازجة
+      oldRows, // ✅ استخدم oldRows المبنية محلياً
       newRows,
       (f) => createOperation.mutateAsync({ ...f, ID: id!, Year: year! }),
       (rowId, f) => updateOperation.mutateAsync({ rowId, data: f }),
@@ -835,7 +850,7 @@ const handleOperationsChange = useCallback(async (newRows: Record<string, string
     console.error('❌ handleOperationsChange error:', error);
   }
 }, [isEdit, operationsData, syncRows, createOperation, updateOperation, deleteOperation, id, year]);
-// ✅ غيّر operationsRows إلى operationsData
+// ✅ غيّر operationsRows إلى operationsData في dependencies// ✅ غيّر operationsRows إلى operationsData
 
 // ── حالة الأقسام ──────────────────────────────────────────────────────────────
 const getInitialSections = () => {
