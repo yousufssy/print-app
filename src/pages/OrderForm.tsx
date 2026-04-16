@@ -113,7 +113,12 @@ rowsRef.current = rows;
 }, [rows]);
 
 React.useEffect(() => {
-setLocalRows(rows);
+  setLocalRows(
+    rows.map((r) => ({
+      ...r,
+      _rowId: r._rowId || crypto.randomUUID(), // 🔥 ضمان ID لكل صف
+    }))
+  );
 }, [rows]);
 
 const isNumericCol = React.useCallback(
@@ -153,12 +158,22 @@ void onRowsChange(nextRows.map(({ _isNew, ID, ...row }) => row));
 );
 
 const addRow = React.useCallback(() => {
-const empty = Object.fromEntries(cols.map((c) => [c.key, '']));
-setLocalRows((prev) => {
-const nextRows = [...prev, { ...empty, ID: '', _isNew: 'true' }];
-pushDraftRows(nextRows);
-return nextRows;
-});
+  const empty = Object.fromEntries(cols.map((c) => [c.key, '']));
+
+  setLocalRows((prev) => {
+    const nextRows = [
+      ...prev,
+      {
+        ...empty,
+        ID: '',
+        _isNew: 'true',
+        _rowId: crypto.randomUUID(), // 🔥 إضافة ID مؤقت
+      },
+    ];
+
+    pushDraftRows(nextRows);
+    return nextRows;
+  });
 }, [cols, pushDraftRows]);
 
 const setCell = React.useCallback((i: number, key: string, value: string) => {
@@ -182,13 +197,13 @@ if (isEmpty) return;
 setSaving((s) => ({ ...s, [i]: true }));
 
 try {
-  const { _isNew, ID, ...fields } = row;
+  const { _isNew, _rowId, ID, ...fields } = row;
 
   if (_isNew === 'true') {
     const allRows = [...rowsRef.current, { ...fields }];
     await onRowsChange(allRows);
   } else if (ID) {
-    const updated = localRows.map((r) => (r.ID === ID ? row : r));
+    const updated = localRows.map((r) =>   r._rowId === row._rowId ? row : r );
     await onRowsChange(updated);
   }
 } finally {
@@ -197,20 +212,26 @@ try {
 }, [cols, localRows, onRowsChange]);
 
 const delRow = React.useCallback(async (i: number) => {
-const row = localRows[i];
-if (!row) return;
+  const row = localRows[i];
+  if (!row) return;
 
-if (row._isNew === 'true') {
-  setLocalRows((prev) => {
-    const nextRows = prev.filter((_, idx) => idx !== i);
-    pushDraftRows(nextRows);
-    return nextRows;
-  });
-} else {
-  setLocalRows((prev) => prev.filter((_, idx) => idx !== i));
-  const remaining = rowsRef.current.filter((r) => r.ID !== row.ID);
-  await onRowsChange(remaining);
-}
+  if (row._isNew === 'true') {
+    setLocalRows((prev) => {
+      const nextRows = prev.filter((r) => r._rowId !== row._rowId);
+      pushDraftRows(nextRows);
+      return nextRows;
+    });
+  } else {
+    setLocalRows((prev) =>
+      prev.filter((r) => r._rowId !== row._rowId)
+    );
+
+    const remaining = rowsRef.current.filter(
+      (r) => r.ID !== row.ID
+    );
+
+    await onRowsChange(remaining);
+  }
 }, [localRows, pushDraftRows, onRowsChange]);
 
 return (
@@ -254,7 +275,7 @@ width: c.width,
 
   {localRows.map((row, i) => (
     <tr
-      key={row.ID || `new-${i}`}
+      key={row.ID || row._rowId}
       style={{
         borderBottom: '1px solid var(--border)',
         background:
@@ -621,31 +642,21 @@ const [pendingOps, setPendingOps] = useState<Record<string, string>[]>([]);
 
 
 const handleMaterialsChange = useCallback(async (newRows: Record<string, string>[]) => {
-  console.log('🔄 تغيير في بيانات المواد:', newRows);
-  if (!isEdit) {
-    setPendingMaterials(newRows);
-    return;
-  }
+if (!isEdit) {
+setPendingMaterials(newRows);
+return;
+}
 
-  try {
-    await syncRows(
-      materialsRows, newRows,
-      (f) => createCarton.mutateAsync({ ...f, ID: id!, year: year! }),
-      (rowId, f) => updateCarton.mutateAsync({ 
-        ID: String(rowId), // تحويل إلى سلسلة
-        ...f, 
-        orderId: id!,      // تمرير معرف الطلب
-        year: year!        // تمرير السنة
-      }),
-      (rowId) => deleteCarton.mutateAsync({ 
-        ID: String(rowId), // تحويل إلى سلسلة
-        orderId: id!,      // تمرير معرف الطلب
-        year: year!        // تمرير السنة
-      }),
-    );
-  } catch (error) {
-    console.error('❌ handleMaterialsChange error:', error);
-  }
+try {
+  await syncRows(
+    materialsRows, newRows,
+    (f) => createCarton.mutateAsync({ ...f, ID: id!, year: year! }),
+    (rowId, f) => updateCarton.mutateAsync({ rowId, data: f }),
+    (rowId) => deleteCarton.mutateAsync(rowId),
+  );
+} catch (error) {
+  console.error('❌ handleMaterialsChange error:', error);
+}
 }, [isEdit, materialsRows, syncRows, createCarton, updateCarton, deleteCarton, id, year]);
 
 
@@ -674,31 +685,21 @@ print_count: String(p.print_count ?? ''),
 );
 
 const handleProblemsChange = useCallback(async (newRows: Record<string, string>[]) => {
-  console.log('🔄 تغيير في سجل المشاكل:', newRows);
-  if (!isEdit) {
-    setPendingProblems(newRows);
-    return;
-  }
+if (!isEdit) {
+setPendingProblems(newRows);
+return;
+}
 
-  try {
-    await syncRows(
-      problemsRows, newRows,
-      (f) => createProblem.mutateAsync({ ...f, ID: id!, Year: year! }),
-      (rowId, f) => updateProblem.mutateAsync({ 
-        ID: String(rowId), 
-        ...f, 
-        orderId: id!, 
-        Year: year! 
-      }),
-      (rowId) => deleteProblem.mutateAsync({ 
-        ID: String(rowId), 
-        orderId: id!, 
-        Year: year! 
-      }),
-    );
-  } catch (error) {
-    console.error('❌ handleProblemsChange error:', error);
-  }
+try {
+  await syncRows(
+    problemsRows, newRows,
+    (f) => createProblem.mutateAsync({ ...f, ID: id!, Year: year! }),
+    (rowId, f) => updateProblem.mutateAsync({ rowId, data: f }),
+    (rowId) => deleteProblem.mutateAsync(rowId),
+  );
+} catch (error) {
+  console.error('❌ handleProblemsChange error:', error);
+}
 }, [isEdit, problemsRows, syncRows, createProblem, updateProblem, deleteProblem, id, year]);
 
 // ── العمليات ──────────────────────────────────────────────────────────────────
@@ -730,31 +731,21 @@ Tabrer: op.Tabrer ?? '',
 );
 
 const handleOperationsChange = useCallback(async (newRows: Record<string, string>[]) => {
-  console.log('🔄 تغيير في العمليات:', newRows);
-  if (!isEdit) {
-    setPendingOps(newRows);
-    return;
-  }
+if (!isEdit) {
+setPendingOps(newRows);
+return;
+}
 
-  try {
-    await syncRows(
-      operationsRows, newRows,
-      (f) => createOperation.mutateAsync({ ...f, ID: id!, Year: year! }),
-      (rowId, f) => updateOperation.mutateAsync({ 
-        ID: String(rowId),  // تحويل إلى سلسلة
-        ...f,              // دمج جميع الحقول
-        orderId: id!,      // تمرير معرف الطلب
-        Year: year!        // تمرير السنة
-      }),
-      (rowId) => deleteOperation.mutateAsync({ 
-        ID: String(rowId), // تحويل إلى سلسلة
-        orderId: id!,      // تمرير معرف الطلب
-        Year: year!        // تمرير السنة
-      }),
-    );
-  } catch (error) {
-    console.error('❌ handleOperationsChange error:', error);
-  }
+try {
+  await syncRows(
+    operationsRows, newRows,
+    (f) => createOperation.mutateAsync({ ...f, ID: id!, Year: year! }),
+    (rowId, f) => updateOperation.mutateAsync({ rowId, data: f }),
+    (rowId) => deleteOperation.mutateAsync(rowId),
+  );
+} catch (error) {
+  console.error('❌ handleOperationsChange error:', error);
+}
 }, [isEdit, operationsRows, syncRows, createOperation, updateOperation, deleteOperation, id, year]);
 
 // ── حالة الأقسام ──────────────────────────────────────────────────────────────
