@@ -133,14 +133,14 @@ const FILTERS: { value: ProdStatus | 'all'; label: string }[] = [
 
 export default function ProductionPage() {
   const navigate = useNavigate();
-  const [year,    setYear]    = useState(String(new Date().getFullYear()));
+  const [Year,    setYear]    = useState(String(new Date().getFullYear()));
   const [q,       setQ]       = useState('');
   const [search,  setSearch]  = useState('');
   const [filter,  setFilter]  = useState<ProdStatus | 'all'>('all');
   const [lastUpd, setLastUpd] = useState(() => new Date().toLocaleTimeString('ar-IQ', { hour: '2-digit', minute: '2-digit' }));
 
   // Fetch only "printed" (active production) orders — no status filter so we get all active
-  const { data, isLoading } = useOrders({ year, q: search, page: 1, status: 'printed' });
+  const { data, isLoading } = useOrders({ Year, q: search, page: 1, status: 'printed' });
 
   const handleSearch = useCallback((val: string) => {
     setQ(val);
@@ -148,7 +148,7 @@ export default function ProductionPage() {
     return () => clearTimeout(t);
   }, []);
 
-  const years = Array.from({ length: 12 }, (_, i) => String(new Date().getFullYear() - i));
+  const Years = Array.from({ length: 12 }, (_, i) => String(new Date().getFullYear() - i));
 
   // Derive production status and apply local filter
   const rows = (data?.data ?? [])
@@ -180,8 +180,8 @@ export default function ProductionPage() {
           }}>مباشر</span>
         </h1>
         <div style={{ display: 'flex', gap: 8 }}>
-          <select className="fc" value={year} onChange={e => setYear(e.target.value)} style={{ width: 90 }}>
-            {years.map(y => <option key={y}>{y}</option>)}
+          <select className="fc" value={Year} onChange={e => setYear(e.target.value)} style={{ width: 90 }}>
+            {Years.map(y => <option key={y}>{y}</option>)}
           </select>
           <Btn variant="outline" onClick={handleRefresh}>🔄 تحديث</Btn>
           <Btn variant="primary" onClick={() => navigate('/orders/new')}>➕ طلب جديد</Btn>
