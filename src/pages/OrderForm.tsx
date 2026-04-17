@@ -562,39 +562,49 @@ const formDataRef = useRef<Partial<Order>>({});
 
 // ── helper مشترك لمزامنة أي InlineTable مع الداتابيز ────────────────────────
 const syncRows = useCallback(async (
-oldRows: Record<string, string>[],
-newRows: Record<string, string>[],
-onCreate: (fields: any) => Promise<any>,
-onUpdate: (rowId: number, fields: any) => Promise<any>,
-onDelete: (rowId: number) => Promise<any>,
+  oldRows: Record<string, string>[],
+  newRows: Record<string, string>[],
+  onCreate: (fields: any) => Promise<any>,
+  onUpdate: (rowId: number, year: number, fields: any) => Promise<any>,
+  onDelete: (rowId: number, year: number) => Promise<any>,
 ) => {
-const oldIds = new Set(oldRows.map(r => r.ID).filter(v => !!v));
-const newIds = new Set(newRows.map(r => r.ID).filter(v => !!v));
+  // دالة لإنشاء مفتاح فريد يجمع بين ID و year
+  const getRowKey = (row: Record<string, string>) => `${row.ID}-${row.year}`;
 
-try {
-  for (const old of oldRows) {
-    if (old.ID && !newIds.has(old.ID)) {
-      await onDelete(Number(old.ID)).catch(err => {
-        console.error('❌ Delete error:', err);
-      });
-    }
-  }
+  // إنشاء مجموعات المفاتيح للصفوف التي تحتوي على ID و year صحيحين
+  const oldKeys = new Set(oldRows.filter(r => r.ID && r.year).map(getRowKey));
+  const newKeys = new Set(newRows.filter(r => r.ID && r.year).map(getRowKey));
 
-  for (const row of newRows) {
-    const { ID, _isNew, ...fields } = row;
-    if (ID && oldIds.has(ID)) {
-      await onUpdate(Number(ID), fields).catch(err => {
-        console.error('❌ Update error:', err);
-      });
-    } else if (!ID) {
-      await onCreate(fields).catch(err => {
-        console.error('❌ Create error:', err);
-      });
+  try {
+    // 🔽 1. حذف الصفوف الموجودة في القديم وغير موجودة في الجديد
+    for (const old of oldRows) {
+      if (old.ID && old.year && !newKeys.has(getRowKey(old))) {
+        await onDelete(Number(old.ID), Number(old.year)).catch(err => {
+          console.error('❌ Delete error:', err);
+        });
+      }
     }
+
+    // 🔄➕ 2. تحديث أو إنشاء الصفوف الجديدة
+    for (const row of newRows) {
+      const { ID, year, _isNew, ...fields } = row;
+      const key = ID && year ? getRowKey(row) : null;
+
+      if (key && oldKeys.has(key)) {
+        // تحديث صف موجود مسبقاً (نفس الـ ID والـ year)
+        await onUpdate(Number(ID), Number(year), fields).catch(err => {
+          console.error('❌ Update error:', err);
+        });
+      } else if (!ID) {
+        // إنشاء صف جديد (لا يملك ID)
+        await onCreate({ ...fields, year }).catch(err => {
+          console.error('❌ Create error:', err);
+        });
+      }
+    }
+  } catch (error) {
+    console.error('❌ syncRows error:', error);
   }
-} catch (error) {
-  console.error('❌ syncRows error:', error);
-}
 }, []);
 
 // ── الكرتون ───────────────────────────────────────────────────────────────────
