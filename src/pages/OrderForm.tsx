@@ -196,8 +196,10 @@ try {
     await onRowsChange(allRows);
   } else if (ID) {
     // Build updated list from rowsRef (not stale localRows closure)
-    const updated = rowsRef.current.map((r) => (r.ID === ID ? row : r));
-    await onRowsChange(updated);
+    const updated = rowsRef.current.map((r) => 
+          (r.ID === ID && r.Year === Year) ? row : r
+      );
+      await onRowsChange(updated);
   }
   setDirtyRows((prev) => {
     const next = new Set(prev);
