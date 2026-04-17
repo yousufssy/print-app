@@ -14,22 +14,22 @@ export const authApi = {
 
 // ── Dashboard ─────────────────────────────────────────
 export const dashboardApi = {
-  get: (Year: string) =>
-    client.get<DashboardData>(`/dashboard?Year=${Year}`).then(r => r.data),
+  get: (year: string) =>
+    client.get<DashboardData>(`/dashboard?year=${year}`).then(r => r.data),
 };
 
 // ── Orders ────────────────────────────────────────────
 export const ordersApi = {
-  list: (params: { Year: string; q?: string; page?: number; status?: string }) =>
+  list: (params: { year: string; q?: string; page?: number; status?: string }) =>
     client.get<OrdersResponse>('/orders', { params }).then(r => r.data),
-  get: (id: string, Year: string) =>
-    client.get<Order>(`/orders/${id}/${Year}`).then(r => r.data),
+  get: (id: string, year: string) =>
+    client.get<Order>(`/orders/${id}/${year}`).then(r => r.data),
   create: (data: Partial<Order>) =>
     client.post<Order>('/orders', data).then(r => r.data),
-  update: (id: string, Year: string, data: Partial<Order>) =>
-    client.put<Order>(`/orders/${id}/${Year}`, data).then(r => r.data),
-  delete: (id: string, Year: string) =>
-    client.delete(`/orders/${id}/${Year}`),
+  update: (id: string, year: string, data: Partial<Order>) =>
+    client.put<Order>(`/orders/${id}/${year}`, data).then(r => r.data),
+  delete: (id: string, year: string) =>
+    client.delete(`/orders/${id}/${year}`),
 };
 
 // ── Advanced Search ──────────────────────────────────
@@ -64,8 +64,8 @@ export const advancedSearchApi = {
 
 // ── Vouchers ──────────────────────────────────────────
 export const vouchersApi = {
-  list: (order_id?: string, Year?: string) =>
-    client.get<Voucher[]>('/vouchers', { params: { order_id, Year } }).then(r => r.data),
+  list: (order_id?: string, year?: string) =>
+    client.get<Voucher[]>('/vouchers', { params: { order_id, year } }).then(r => r.data),
   create: (data: Partial<Voucher>) =>
     client.post<Voucher>('/vouchers', data).then(r => r.data),
   delete: (id: number) =>
@@ -94,8 +94,8 @@ export const usersApi = {
 
 // ── Operations (Actions) ──────────────────────────────
 export const operationsApi = {
-  list: (order_id: string, Year: string) =>
-    client.get(`/actions?ID=${order_id}&Year=${Year}`).then(r => r.data),
+  list: (order_id: string, year: string) =>
+    client.get(`/actions?ID=${order_id}&year=${year}`).then(r => r.data),
   create: (data: any) => client.post('/actions', data).then(r => r.data),
   update: (id: string, data: any) => client.put(`/actions/${id}`, data).then(r => r.data),
   delete: (id: string) => client.delete(`/actions/${id}`),
@@ -103,8 +103,8 @@ export const operationsApi = {
 
 // ── Materials ─────────────────────────────────────────
 export const materialsApi = {
-  list: (order_id: string, Year: string) =>
-    client.get(`/materials?order_id=${order_id}&Year=${Year}`).then(r => r.data),
+  list: (order_id: string, year: string) =>
+    client.get(`/materials?order_id=${order_id}&year=${year}`).then(r => r.data),
   create: (data: any) => client.post('/materials', data).then(r => r.data),
   update: (id: string, data: any) => client.put(`/materials/${id}`, data).then(r => r.data),
   delete: (id: string) => client.delete(`/materials/${id}`),
@@ -112,8 +112,8 @@ export const materialsApi = {
 
 // ── Cartons ───────────────────────────────────────────
 export const cartonsApi = {
-  list: (order_id: string, Year: string) =>
-    client.get(`/cartons?ID=${order_id}&Year=${Year}`).then(r => r.data),
+  list: (order_id: string, year: string) =>
+    client.get(`/cartons?ID=${order_id}&year=${year}`).then(r => r.data),
   create: (data: any) => client.post('/cartons', data).then(r => r.data),
   update: (id: string, data: any) => client.put(`/cartons/${id}`, data).then(r => r.data),
   delete: (id: string) => client.delete(`/cartons/${id}`),
@@ -121,8 +121,8 @@ export const cartonsApi = {
 
 // ── Problems ──────────────────────────────────────────
 export const problemsApi = {
-  list: (order_id: string, Year: string) =>
-    client.get(`/problems?ID=${order_id}&Year=${Year}`).then(r => r.data),
+  list: (order_id: string, year: string) =>
+    client.get(`/problems?ID=${order_id}&year=${year}`).then(r => r.data),
   create: (data: any) => client.post('/problems', data).then(r => r.data),
   update: (id: string, data: any) => client.put(`/problems/${id}`, data).then(r => r.data),
   delete: (id: string) => client.delete(`/problems/${id}`),
