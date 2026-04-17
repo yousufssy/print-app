@@ -875,67 +875,25 @@ if (!isEdit) {
 }
 
 if (isEdit) {
-  await updateOrder.mutateAsync({ 
-    ...data, 
-    ID: id,        // ✅ نأخذ ID من الـ URL وليس من الفورم
-    Year: year     // ✅ نأخذ Year من الـ URL وليس من الفورم
-  });
-// 🔁 استبدل كل هذا القسم:
-
+  await updateOrder.mutateAsync(data);
 } else {
-  const maxRowId = orders.length > 0
-    ? Math.max(...orders.map((o: any) => o.ID)) + 1
-    : 1;
-  (data as any).ID = maxRowId;
-}
-
-if (isEdit) {
-  await updateOrder.mutateAsync({ 
-    ...data, 
-    ID: id,        // ✅ تثبيت ID من الـ URL
-    Year: year     // ✅ تثبيت Year من الـ URL
-  });
-} else {
-  // ✅ 1️⃣ إنشاء الطلب الرئيسي مع ضمان وجود Year
-  const created = await createOrder.mutateAsync({ 
-    ...data, 
-    Year: data.Year || currentYear  // ✅ يضمن وجود Year دائماً
-  });
-  
+  const created = await createOrder.mutateAsync(data);
   const newId = String((created as any)?.ID ?? (data as any).ID);
-  
-  // ✅ 2️⃣ تحديد السنة للـ sub-tables (كرتون، مشاكل، عمليات)
-  const yr = String(data.Year || currentYear);  // ✅ نفس المنطق
+  const yr = String((data as any).Year ?? currentYear);
 
-  // ✅ 3️⃣ إنشاء العناصر الفرعية مع تمرير Year بشكل صحيح
   await Promise.all([
     ...pendingMaterials.map(({ ID, _isNew, ...f }) =>
-      createCarton.mutateAsync({ 
-        ...f, 
-        ID: newId, 
-        Year: yr,    // ✅ اسم الحقل في الداتابيز
-        year: yr     // ✅ احتياطاً لو الـ API يقبل الاسم الصغير
-      }).catch(err => {
+      createCarton.mutateAsync({ ...f, ID: newId, year: yr }).catch(err => {
         console.error('❌ Create carton error:', err);
         return null;
       })),
-      
     ...pendingProblems.map(({ ID, _isNew, ...f }) =>
-      createProblem.mutateAsync({ 
-        ...f, 
-        ID: newId, 
-        Year: yr 
-      }).catch(err => {
+      createProblem.mutateAsync({ ...f, ID: newId, Year: yr }).catch(err => {
         console.error('❌ Create problem error:', err);
         return null;
       })),
-      
     ...pendingOps.map(({ ID, _isNew, ...f }) =>
-      createOperation.mutateAsync({ 
-        ...f, 
-        ID: newId, 
-        Year: yr 
-      }).catch(err => {
+      createOperation.mutateAsync({ ...f, ID: newId, year: yr }).catch(err => {
         console.error('❌ Create operation error:', err);
         return null;
       })),
