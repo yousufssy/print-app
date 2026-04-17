@@ -179,45 +179,34 @@ setDirtyRows((prev) => {
 });
 }, [isNumericCol, cleanNumber]);
 
+// 📌 ضع هذه الدالة أعلى المكون أو خارجها
+const makeKey = (r: Record<string, any>) => 
+  `${String(r.ID ?? '').trim()}|${String(r.year ?? r.Year ?? '').trim()}`;
+
 const saveRow = React.useCallback(async (i: number) => {
   const row = localRows[i];
   if (!row) return;
+  if (cols.every(c => !row[c.key])) return;
 
-  const isEmpty = cols.every((c) => !row[c.key]);
-  if (isEmpty) return;
-
-  setSaving((s) => ({ ...s, [i]: true }));
-
+  setSaving(s => ({ ...s, [i]: true }));
   try {
-    // ✅ استخراج year مع الحقول الأخرى
-    const { _isNew, ID, year, ...fields } = row;
+    const { _isNew, ID, year, Year, ...fields } = row;
+    const unifiedYear = String(year ?? Year ?? '').trim();
+    const targetKey = `${String(ID ?? '').trim()}|${unifiedYear}`;
 
     if (_isNew === 'true') {
-      // ✅ إضافة year عند الإنشاء
-      const allRows = [...rowsRef.current, { ...fields, year }];
-      await onRowsChange(allRows);
+      const nextRows = [...rowsRef.current, { ...fields, year: unifiedYear }];
+      await onRowsChange(nextRows);
     } else if (ID) {
-      // ✅ مقارنة آمنة باستخدام المفتاح المركب (ID + year)
-      const rowYear = String(year ?? '');
-      
-      const updated = rowsRef.current.map((r) => {
-        const matchId = String(r.ID) === String(ID);
-        // ✅ دعم كل من year و Year لتجنب أخطاء البيانات
-        const matchYear = String(r.year) === rowYear || String(r.Year) === rowYear;
-        
-        return (matchId && matchYear) ? { ...r, ...fields, year } : r;
-      });
-      
+      // ✅ مقارنة دقيقة باستخدام المفتاح الموحد
+      const updated = rowsRef.current.map(r =>
+        makeKey(r) === targetKey ? { ...r, ...fields, year: unifiedYear } : r
+      );
       await onRowsChange(updated);
     }
-    
-    setDirtyRows((prev) => {
-      const next = new Set(prev);
-      next.delete(i);
-      return next;
-    });
+    setDirtyRows(prev => { const n = new Set(prev); n.delete(i); return n; });
   } finally {
-    setSaving((s) => ({ ...s, [i]: false }));
+    setSaving(s => ({ ...s, [i]: false }));
   }
 }, [cols, localRows, onRowsChange]);
 
@@ -226,25 +215,17 @@ const delRow = React.useCallback(async (i: number) => {
   if (!row) return;
 
   if (row._isNew === 'true') {
-    setLocalRows((prev) => {
-      const nextRows = prev.filter((_, idx) => idx !== i);
-      pushDraftRows(nextRows);
-      return nextRows;
+    setLocalRows(prev => {
+      const next = prev.filter((_, idx) => idx !== i);
+      pushDraftRows(next);
+      return next;
     });
   } else {
-    // ✅ حذف يعتمد على المفتاح المركب (ID + year)
-    const rowId = String(row.ID);
-    const rowYear = String(row.year ?? '');
-    
-    // ✅ نحتفظ فقط بالصفوف التي لا تطابق الـ ID والـ year معاً
-    const remaining = rowsRef.current.filter((r) => {
-      const matchId = String(r.ID) === rowId;
-      const matchYear = String(r.year) === rowYear || String(r.Year) === rowYear;
-      return !(matchId && matchYear); // ❌ نحذف فقط عند التطابق التام
-    });
-    
+    // ✅ حذف دقيق باستخدام المفتاح المركب
+    const targetKey = makeKey(row);
+    const remaining = rowsRef.current.filter(r => makeKey(r) !== targetKey);
     await onRowsChange(remaining);
-    setLocalRows((prev) => prev.filter((_, idx) => idx !== i));
+    setLocalRows(prev => prev.filter((_, idx) => idx !== i));
   }
 }, [localRows, pushDraftRows, onRowsChange]);
 
@@ -582,41 +563,39 @@ const formDataRef = useRef<Partial<Order>>({});
 
 // ── helper مشترك لمزامنة أي InlineTable مع الداتابيز ────────────────────────
 const syncRows = useCallback(async (
-  oldRows: Record<string, string>[],
-  newRows: Record<string, string>[],
-  onCreate: (fields: any) => Promise<any>,
-  onUpdate: (rowId: number, year: number, fields: any) => Promise<any>, // ✅ year مضاف
-  onDelete: (rowId: number, year: number) => Promise<any>,              // ✅ year مضاف
+oldRows: Record<string, string>[],
+newRows: Record<string, string>[],
+onCreate: (fields: any) => Promise<any>,
+onUpdate: (rowId: number, fields: any) => Promise<any>,
+onDelete: (rowId: number) => Promise<any>,
 ) => {
-  // ✅ دالة لإنشاء مفتاح مركب
-  const getRowKey = (row: Record<string, string>) => `${row.ID}-${row.year}`;
+const oldIds = new Set(oldRows.map(r => r.ID).filter(v => !!v));
+const newIds = new Set(newRows.map(r => r.ID).filter(v => !!v));
 
-  // ✅ فلترة الصفوف التي تحتوي على ID و year معاً
-  const oldKeys = new Set(oldRows.filter(r => r.ID && r.year).map(getRowKey));
-  const newKeys = new Set(newRows.filter(r => r.ID && r.year).map(getRowKey));
-
-  try {
-    for (const old of oldRows) {
-      // ✅ حذف فقط إذا اختفى المفتاح المركب
-      if (old.ID && old.year && !newKeys.has(getRowKey(old))) {
-        await onDelete(Number(old.ID), Number(old.year)).catch(err => console.error('❌ Delete error:', err));
-      }
+try {
+  for (const old of oldRows) {
+    if (old.ID && !newIds.has(old.ID)) {
+      await onDelete(Number(old.ID)).catch(err => {
+        console.error('❌ Delete error:', err);
+      });
     }
-    for (const row of newRows) {
-      const { ID, year, _isNew, ...fields } = row;
-      const key = ID && year ? getRowKey(row) : null;
-
-      if (key && oldKeys.has(key)) {
-        // ✅ تحديث فقط إذا وجد المفتاح المركب
-        await onUpdate(Number(ID), Number(year), fields).catch(err => console.error('❌ Update error:', err));
-      } else if (!ID) {
-        // ✅ إنشاء مع إضافة year
-        await onCreate({ ...fields, year }).catch(err => console.error('❌ Create error:', err));
-      }
-    }
-  } catch (error) {
-    console.error('❌ syncRows error:', error);
   }
+
+  for (const row of newRows) {
+    const { ID, _isNew, ...fields } = row;
+    if (ID && oldIds.has(ID)) {
+      await onUpdate(Number(ID), fields).catch(err => {
+        console.error('❌ Update error:', err);
+      });
+    } else if (!ID) {
+      await onCreate(fields).catch(err => {
+        console.error('❌ Create error:', err);
+      });
+    }
+  }
+} catch (error) {
+  console.error('❌ syncRows error:', error);
+}
 }, []);
 
 // ── الكرتون ───────────────────────────────────────────────────────────────────
@@ -656,24 +635,21 @@ const [pendingProblems, setPendingProblems] = useState<Record<string, string>[]>
 const [pendingOps, setPendingOps] = useState<Record<string, string>[]>([]);
 
 const handleMaterialsChange = useCallback(async (newRows: Record<string, string>[]) => {
-  if (!isEdit) {
-    setPendingMaterials(newRows);
-    return;
-  }
+if (!isEdit) {
+setPendingMaterials(newRows);
+return;
+}
 
-  try {
-    await syncRows(
-      materialsRows, newRows,
-      // ✅ Create: year يُمرر كجزء من fields
-      (f) => createCarton.mutateAsync({ ...f, ID: id!, year: year! }),
-      // ✅ Update: year يُمرر كوسيط منفصل (حسب توقيع الدالة المعدل)
-      (rowId, rowYear, f) => updateCarton.mutateAsync({ rowId, year: rowYear, data: f }),
-      // ✅ Delete: year يُمرر كوسيط منفصل
-      (rowId, rowYear) => deleteCarton.mutateAsync({ rowId, year: rowYear }),
-    );
-  } catch (error) {
-    console.error('❌ handleMaterialsChange error:', error);
-  }
+try {
+  await syncRows(
+    materialsRows, newRows,
+    (f) => createCarton.mutateAsync({ ...f, ID: id!, year: year! }),
+    (rowId, f) => updateCarton.mutateAsync({ rowId, data: f }),
+    (rowId) => deleteCarton.mutateAsync(rowId),
+  );
+} catch (error) {
+  console.error('❌ handleMaterialsChange error:', error);
+}
 }, [isEdit, materialsRows, syncRows, createCarton, updateCarton, deleteCarton, id, year]);
 
 // ── سجل المشاكل ───────────────────────────────────────────────────────────────
