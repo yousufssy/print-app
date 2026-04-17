@@ -143,14 +143,14 @@ export default function OrdersPage() {
   const navigate    = useNavigate();
   const deleteOrder = useDeleteOrder();
 
-  const [year,        setYear]        = useState(String(new Date().getFullYear()));
+  const [Year,        setYear]        = useState(String(new Date().getFullYear()));
   const [q,           setQ]           = useState('');
   const [status,      setStatus]      = useState('');
   const [page,        setPage]        = useState(1);
   const [search,      setSearch]      = useState('');
   const [toDelete,    setToDelete]    = useState<OrderListItem | null>(null);
 
-  const { data, isLoading } = useOrders({ year, q: search, page, status });
+  const { data, isLoading } = useOrders({ Year, q: search, page, status });
 
   const handleSearch = useCallback((val: string) => {
     setQ(val);
@@ -161,12 +161,12 @@ export default function OrdersPage() {
   const confirmDelete = () => {
     if (!toDelete) return;
     deleteOrder.mutate(
-      { id: toDelete.ID, year: toDelete.Year },
+      { id: toDelete.ID, Year: toDelete.Year },
       { onSettled: () => setToDelete(null) }
     );
   };
 
-  const years = Array.from({ length: 12 }, (_, i) => String(new Date().getFullYear() - i));
+  const Years = Array.from({ length: 12 }, (_, i) => String(new Date().getFullYear() - i));
 
   return (
     <div>
@@ -217,11 +217,11 @@ export default function OrdersPage() {
           {/* Year */}
           <select
             className="fc"
-            value={year}
+            value={Year}
             onChange={e => { setYear(e.target.value); setPage(1); }}
             style={{ width: 100 }}
           >
-            {years.map(y => <option key={y}>{y}</option>)}
+            {Years.map(y => <option key={y}>{y}</option>)}
           </select>
 
           {/* Status pills */}
