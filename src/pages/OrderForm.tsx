@@ -523,15 +523,15 @@ const BOOL_FIELDS = [
 // 🎯 MAIN COMPONENT - OrderFormPage
 // ══════════════════════════════════════════════════════
 export default function OrderFormPage() {
-const { id, year } = useParams<{ id?: string; year?: string }>();
-const isEdit = !!(id && year && String(id).trim() && String(year).trim());
+const { id, Year } = useParams<{ id?: string; Year?: string }>();
+const isEdit = !!(id && Year && String(id).trim() && String(Year).trim());
 const navigate = useNavigate();
 const location = useLocation();
 const duplicatedData = location.state?.duplicatedData || null;
 
-const { data: existing, isLoading } = useOrder(id ?? '', year ?? '');
+const { data: existing, isLoading } = useOrder(id ?? '', Year ?? '');
 const createOrder = useCreateOrder();
-const updateOrder = useUpdateOrder(id ?? '', year ?? '');
+const updateOrder = useUpdateOrder(id ?? '', Year ?? '');
 const { data: customers = [] } = useCustomers();
 
 const [checks, setChecks] = useState<Record<string, boolean>>({});
@@ -598,7 +598,7 @@ try {
 // ── الكرتون ───────────────────────────────────────────────────────────────────
 const { data: cartonsData = [] } = useCartons(
 isEdit ? (id ?? '') : '',
-isEdit ? (year ?? '') : ''
+isEdit ? (Year ?? '') : ''
 );
 
 const createCarton = useCreateCarton();
@@ -640,17 +640,17 @@ return;
 try {
   await syncRows(
     materialsRows, newRows,
-    (f) => createCarton.mutateAsync({ ...f, ID: id!, year: year! }),
+    (f) => createCarton.mutateAsync({ ...f, ID: id!, Year: Year! }),
     (rowId, f) => updateCarton.mutateAsync({ rowId, data: f }),
     (rowId) => deleteCarton.mutateAsync(rowId),
   );
 } catch (error) {
   console.error('❌ handleMaterialsChange error:', error);
 }
-}, [isEdit, materialsRows, syncRows, createCarton, updateCarton, deleteCarton, id, year]);
+}, [isEdit, materialsRows, syncRows, createCarton, updateCarton, deleteCarton, id, Year]);
 
 // ── سجل المشاكل ───────────────────────────────────────────────────────────────
-const { data: problemsData = [] } = useProblems(isEdit ? (id ?? '') : '', isEdit ? (year ?? '') : '');
+const { data: problemsData = [] } = useProblems(isEdit ? (id ?? '') : '', isEdit ? (Year ?? '') : '');
 const createProblem = useCreateProblem();
 const updateProblem = useUpdateProblem();
 const deleteProblem = useDeleteProblem();
@@ -682,17 +682,17 @@ return;
 try {
   await syncRows(
     problemsRows, newRows,
-    (f) => createProblem.mutateAsync({ ...f, ID: id!, Year: year! }),
+    (f) => createProblem.mutateAsync({ ...f, ID: id!, Year: Year! }),
     (rowId, f) => updateProblem.mutateAsync({ rowId, data: f }),
     (rowId) => deleteProblem.mutateAsync(rowId),
   );
 } catch (error) {
   console.error('❌ handleProblemsChange error:', error);
 }
-}, [isEdit, problemsRows, syncRows, createProblem, updateProblem, deleteProblem, id, year]);
+}, [isEdit, problemsRows, syncRows, createProblem, updateProblem, deleteProblem, id, Year]);
 
 // ── العمليات ──────────────────────────────────────────────────────────────────
-const { data: operationsData = [] } = useOperations(isEdit ? (id ?? '') : '', isEdit ? (year ?? '') : '');
+const { data: operationsData = [] } = useOperations(isEdit ? (id ?? '') : '', isEdit ? (Year ?? '') : '');
 const createOperation = useCreateOperation();
 const updateOperation = useUpdateOperation();
 const deleteOperation = useDeleteOperation();
@@ -728,14 +728,14 @@ return;
 try {
   await syncRows(
     operationsRows, newRows,
-    (f) => createOperation.mutateAsync({ ...f, ID: id!, year: year! }),
+    (f) => createOperation.mutateAsync({ ...f, ID: id!, Year: Year! }),
     (rowId, f) => updateOperation.mutateAsync({ rowId, data: f }),
     (rowId) => deleteOperation.mutateAsync(rowId),
   );
 } catch (error) {
   console.error('❌ handleOperationsChange error:', error);
 }
-}, [isEdit, operationsRows, syncRows, createOperation, updateOperation, deleteOperation, id, year]);
+}, [isEdit, operationsRows, syncRows, createOperation, updateOperation, deleteOperation, id, Year]);
 
 // ── حالة الأقسام ──────────────────────────────────────────────────────────────
 const getInitialSections = () => {
@@ -752,12 +752,12 @@ useEffect(() => {
 localStorage.setItem('orderFormSections', JSON.stringify(openSections));
 }, [openSections]);
 
-const { data: ordersResponse } = useOrders({ year: currentYear });
+const { data: ordersResponse } = useOrders({ Year: currentYear });
 const orders = useMemo(() => ordersResponse?.data ?? [], [ordersResponse]);
 
 const { data: vouchers = [] } = useVouchers(
 isEdit ? (id ?? '') : '',
-isEdit ? (year ?? currentYear) : currentYear
+isEdit ? (Year ?? currentYear) : currentYear
 );
 const deleteVoucher = useDeleteVoucher();
 
@@ -883,7 +883,7 @@ if (isEdit) {
 
   await Promise.all([
     ...pendingMaterials.map(({ ID, _isNew, ...f }) =>
-      createCarton.mutateAsync({ ...f, ID: newId, year: yr }).catch(err => {
+      createCarton.mutateAsync({ ...f, ID: newId, Year: yr }).catch(err => {
         console.error('❌ Create carton error:', err);
         return null;
       })),
@@ -893,7 +893,7 @@ if (isEdit) {
         return null;
       })),
     ...pendingOps.map(({ ID, _isNew, ...f }) =>
-      createOperation.mutateAsync({ ...f, ID: newId, year: yr }).catch(err => {
+      createOperation.mutateAsync({ ...f, ID: newId, Year: yr }).catch(err => {
         console.error('❌ Create operation error:', err);
         return null;
       })),
@@ -1391,7 +1391,7 @@ th, td {
     display: inline-block;
     min-width: 20px;
 }
-.year-input {
+.Year-input {
     border-bottom: 1px solid #000;
     padding: 0 8px;
     margin-left: 2px;
@@ -1665,7 +1665,7 @@ th, td {
             تاريخ القطع:
             <span class="date-space"></span> /
             <span class="date-space"></span> /
-            <span class="year-input"></span>٢٠
+            <span class="Year-input"></span>٢٠
         </div>
     </div>
 
@@ -2169,7 +2169,7 @@ return (
   open={voucherOpen} 
   onClose={() => setVoucherOpen(false)} 
   orderId={id || ''} 
-  orderYear={year || currentYear} 
+  orderYear={Year || currentYear} 
 />
 </div>
 );
