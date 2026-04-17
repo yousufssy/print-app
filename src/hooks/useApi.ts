@@ -3,15 +3,15 @@ import { ordersApi, vouchersApi, customersApi, dashboardApi, usersApi, operation
 import toast from 'react-hot-toast';
 
 // ── Dashboard ─────────────────────────────────────────
-export function useDashboard(Year: string) {
+export function useDashboard(year: string) {
   return useQuery({
-    queryKey: ['dashboard', Year],
-    queryFn:  () => dashboardApi.get(Year),
+    queryKey: ['dashboard', year],
+    queryFn:  () => dashboardApi.get(year),
   });
 }
 
 // ── Orders ────────────────────────────────────────────
-export function useOrders(params: { Year: string; q?: string; page?: number; status?: string }) {
+export function useOrders(params: { year: string; q?: string; page?: number; status?: string }) {
   return useQuery({
     queryKey: ['orders', params],
     queryFn:  () => ordersApi.list(params),
@@ -19,11 +19,11 @@ export function useOrders(params: { Year: string; q?: string; page?: number; sta
   });
 }
 
-export function useOrder(id: string, Year: string) {
+export function useOrder(id: string, year: string) {
   return useQuery({
-    queryKey: ['order', id, Year],
-    queryFn:  () => ordersApi.get(id, Year),
-    enabled:  !!id && !!Year,
+    queryKey: ['order', id, year],
+    queryFn:  () => ordersApi.get(id, year),
+    enabled:  !!id && !!year,
   });
 }
 
@@ -40,13 +40,13 @@ export function useCreateOrder() {
   });
 }
 
-export function useUpdateOrder(id: string, Year: string) {
+export function useUpdateOrder(id: string, year: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (data: any) => ordersApi.update(id, Year, data),
+    mutationFn: (data: any) => ordersApi.update(id, year, data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['orders'] });
-      qc.invalidateQueries({ queryKey: ['order', id, Year] });
+      qc.invalidateQueries({ queryKey: ['order', id, year] });
       qc.invalidateQueries({ queryKey: ['dashboard'] });
       toast.success('✅ تم تحديث الطلب');
     },
@@ -57,7 +57,7 @@ export function useUpdateOrder(id: string, Year: string) {
 export function useDeleteOrder() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, Year }: { id: string; Year: string }) => ordersApi.delete(id, Year),
+    mutationFn: ({ id, year }: { id: string; year: string }) => ordersApi.delete(id, year),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['orders'] });
       toast.success('تم الحذف');
@@ -67,10 +67,10 @@ export function useDeleteOrder() {
 }
 
 // ── Vouchers ──────────────────────────────────────────
-export function useVouchers(orderId: string, Year: string) {
+export function useVouchers(orderId: string, year: string) {
   return useQuery({
-    queryKey: ['vouchers', orderId, Year],
-    queryFn:  () => vouchersApi.list(orderId, Year),
+    queryKey: ['vouchers', orderId, year],
+    queryFn:  () => vouchersApi.list(orderId, year),
     enabled:  !!orderId,
   });
 }
@@ -100,11 +100,11 @@ export function useDeleteVoucher() {
 }
 
 // ── Cartons ───────────────────────────────────────────
-export function useCartons(orderId: string, Year: string) {
+export function useCartons(orderId: string, year: string) {
   return useQuery({
-    queryKey: ['cartons', orderId, Year],
-    queryFn:  () => cartonsApi.list(orderId, Year),
-    enabled:  !!orderId && !!Year,
+    queryKey: ['cartons', orderId, year],
+    queryFn:  () => cartonsApi.list(orderId, year),
+    enabled:  !!orderId && !!year,
   });
 }
 
@@ -136,11 +136,11 @@ export function useDeleteCarton() {
 }
 
 // ── Problems ──────────────────────────────────────────
-export function useProblems(orderId: string, Year: string) {
+export function useProblems(orderId: string, year: string) {
   return useQuery({
-    queryKey: ['problems', orderId, Year],
-    queryFn:  () => problemsApi.list(orderId, Year),
-    enabled:  !!orderId && !!Year,
+    queryKey: ['problems', orderId, year],
+    queryFn:  () => problemsApi.list(orderId, year),
+    enabled:  !!orderId && !!year,
   });
 }
 
@@ -172,11 +172,11 @@ export function useDeleteProblem() {
 }
 
 // ── Operations ────────────────────────────────────────
-export function useOperations(orderId: string, Year: string) {
+export function useOperations(orderId: string, year: string) {
   return useQuery({
-    queryKey: ['operations', orderId, Year],
-    queryFn:  () => operationsApi.list(orderId, Year),
-    enabled:  !!orderId && !!Year,
+    queryKey: ['operations', orderId, year],
+    queryFn:  () => operationsApi.list(orderId, year),
+    enabled:  !!orderId && !!year,
   });
 }
 
