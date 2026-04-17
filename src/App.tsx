@@ -32,7 +32,7 @@ export default function App() {
           <Route path="orders" element={<OrdersPage />} />
            <Route path="search" element={<AdvancedSearch />}  />
           <Route path="orders/new" element={<OrderFormPage />} />
-          <Route path="orders/:id/:year" element={<OrderFormPage />} />
+          <Route path="orders/:id/:Year" element={<OrderFormPage />} />
            <Route path="production" element={<ProductionPage />} />
           <Route path="delivery" element={<DeliveryPage />} />
           <Route path="users" element={<RequireAdmin><UsersPage /></RequireAdmin>} />
