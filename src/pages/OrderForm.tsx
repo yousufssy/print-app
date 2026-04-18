@@ -538,6 +538,7 @@ const [checks, setChecks] = useState<Record<string, boolean>>({});
 const [mfgChecks, setMfgChecks] = useState<Record<string, boolean>>({});
 const [custChecks, setCustChecks] = useState<Record<string, boolean>>({});
 const [voucherOpen, setVoucherOpen] = useState(false);
+const [submitError, setSubmitError] = useState<string | null>(null);
 
 const [idInitialized, setIdInitialized] = useState(false);
 const [hasLoadedEdit, setHasLoadedEdit] = useState(false);
@@ -869,62 +870,73 @@ useEffect(() => {
 }, [orders, isEdit, currentYear, reset]);
 // ✅ الحفظ - مع معالجة أخطاء شاملة
 const onSubmit = useCallback(async (data: Order) => {
-try {
-BOOL_FIELDS.forEach(f => {
-(data as any)[f] = toBit(checks[f]);
-});
-
-Object.entries(MFG_MAP).forEach(([label, field]) => {
-  (data as any)[field] = toBit(mfgChecks[label]);
-});
-
-Object.entries(CUST_MAP).forEach(([label, field]) => {
-  (data as any)[field] = toBit(custChecks[label]);
-});
-
-(data as any).DubelM = toBit(checks.CTB);
-
-if (!isEdit) {
-  const maxRowId = orders.length > 0
-    ? Math.max(...orders.map((o: any) => o.ID)) + 1
-    : 1;
-  (data as any).ID = maxRowId;
-}
-
-if (isEdit) {
-  await updateOrder.mutateAsync(data);
-} else {
-  const created = await createOrder.mutateAsync(data);
-  const newId = String((created as any)?.ID ?? (data as any).ID);
-  const yr = String((data as any).Year ?? currentYear);
-
-  await Promise.all([
-    ...pendingMaterials.map(({ ID, _isNew, ...f }) =>
-      createCarton.mutateAsync({ ...f, ID: newId, year: yr }).catch(err => {
-        console.error('❌ Create carton error:', err);
-        return null;
-      })),
-    ...pendingProblems.map(({ ID, _isNew, ...f }) =>
-      createProblem.mutateAsync({ ...f, ID: newId, Year: yr }).catch(err => {
-        console.error('❌ Create problem error:', err);
-        return null;
-      })),
-    ...pendingOps.map(({ ID, _isNew, ...f }) =>
-      createOperation.mutateAsync({ ...f, ID: newId, year: yr }).catch(err => {
-        console.error('❌ Create operation error:', err);
-        return null;
-      })),
-  ]);
-}
-
-await new Promise(resolve => setTimeout(resolve, 100));
-navigate('/orders');
-} catch (error) {
-console.error('❌ Submit error:', error);
-alert('حدث خطأ أثناء الحفظ. الرجاء المحاولة مرة أخرى.');
-}
-}, [checks, mfgChecks, custChecks, isEdit, orders, updateOrder, createOrder, currentYear, pendingMaterials, pendingProblems, pendingOps, createCarton, createProblem, createOperation, navigate]);
-
+    setSubmitError(null); // امسح الخطأ السابق
+  
+    try {
+      BOOL_FIELDS.forEach(f => {
+        (data as any)[f] = toBit(checks[f]);
+      });
+  
+      Object.entries(MFG_MAP).forEach(([label, field]) => {
+        (data as any)[field] = toBit(mfgChecks[label]);
+      });
+  
+      Object.entries(CUST_MAP).forEach(([label, field]) => {
+        (data as any)[field] = toBit(custChecks[label]);
+      });
+  
+      (data as any).DubelM = toBit(checks.CTB);
+  
+      if (!isEdit) {
+        const maxRowId = orders.length > 0
+          ? Math.max(...orders.map((o: any) => o.ID)) + 1
+          : 1;
+        (data as any).ID = maxRowId;
+      }
+  
+      if (isEdit) {
+        await updateOrder.mutateAsync(data);
+      } else {
+        const created = await createOrder.mutateAsync(data);
+        const newId = String((created as any)?.ID ?? (data as any).ID);
+        const yr = String((data as any).Year ?? currentYear);
+  
+        await Promise.all([
+          ...pendingMaterials.map(({ ID, _isNew, ...f }) =>
+            createCarton.mutateAsync({ ...f, ID: newId, year: yr }).catch(err => {
+              console.error('❌ Create carton error:', err);
+              return null;
+            })),
+          ...pendingProblems.map(({ ID, _isNew, ...f }) =>
+            createProblem.mutateAsync({ ...f, ID: newId, Year: yr }).catch(err => {
+              console.error('❌ Create problem error:', err);
+              return null;
+            })),
+          ...pendingOps.map(({ ID, _isNew, ...f }) =>
+            createOperation.mutateAsync({ ...f, ID: newId, year: yr }).catch(err => {
+              console.error('❌ Create operation error:', err);
+              return null;
+            })),
+        ]);
+      }
+  
+      await new Promise(resolve => setTimeout(resolve, 100));
+      navigate('/orders');
+  
+    } catch (error: any) {
+      // ✅ تعارض ID و Year — رسالة خطأ بدون مغادرة الصفحة
+      const responseData = error?.response?.data;
+  
+      if (error?.response?.status === 409 && responseData?.code === 'ID_YEAR_DUPLICATE') {
+        setSubmitError(responseData.error);
+        return; // لا تغادر الصفحة ولا تمسح المدخلات
+      }
+  
+      console.error('❌ Submit error:', error);
+      alert('حدث خطأ أثناء الحفظ. الرجاء المحاولة مرة أخرى.');
+    }
+  }, [checks, mfgChecks, custChecks, isEdit, orders, updateOrder, createOrder, currentYear, pendingMaterials, pendingProblems, pendingOps, createCarton, createProblem, createOperation, navigate]);
+    
 const handleDuplicate = useCallback(() => {
 const sourceData = isEdit && existing ? { ...existing } : {};
 
@@ -2170,6 +2182,52 @@ return (
 
   {/* ── Footer ── */}
   <div style={{ background: '#fff', borderRadius: 14, border: '1px solid var(--border)', padding: '12px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+   {/* ── Footer ── */}
+<div style={{ background: '#fff', borderRadius: 14, border: '1px solid var(--border)', padding: '12px 20px' }}>
+  
+  {/* ✅ رسالة الخطأ */}
+  {submitError && (
+    <div style={{
+      background: '#fef2f2',
+      border: '1px solid #fca5a5',
+      borderRadius: 8,
+      padding: '10px 16px',
+      marginBottom: 12,
+      color: '#dc2626',
+      fontSize: 13,
+      fontWeight: 600,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: 8,
+      direction: 'rtl',
+    }}>
+      <span>⚠️ {submitError}</span>
+      <button
+        type="button"
+        onClick={() => setSubmitError(null)}
+        style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, color: '#dc2626' }}
+      >
+        ✕
+      </button>
+    </div>
+  )}
+
+  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+    <span style={{ fontSize: 12, color: 'var(--muted)' }}>سنة العمل: <strong>{currentYear}</strong></span>
+    <div style={{ display: 'flex', gap: 10 }}>
+      <Btn variant="outline" type="button" onClick={() => navigate('/orders')}>إلغاء</Btn>
+      <Btn variant="outline" type="button" onClick={printProductionCard}>🖨️ طباعة بطاقة الإنتاج</Btn>
+      <Btn variant="primary" type="submit" disabled={isSaving}>
+        {isSaving ? '⏳ جاري الحفظ...' : '✅ حفظ وتأكيد'}
+      </Btn>
+    </div>
+  </div>
+</div>
+    
+    
+    
+    
     <span style={{ fontSize: 12, color: 'var(--muted)' }}>سنة العمل: <strong>{currentYear}</strong></span>
     <div style={{ display: 'flex', gap: 10 }}>
       <Btn variant="outline" type="button" onClick={() => navigate('/orders')}>إلغاء</Btn>
