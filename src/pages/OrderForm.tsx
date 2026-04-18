@@ -194,7 +194,7 @@ try {
   if (_isNew === 'true') {
     const allRows = [...rowsRef.current, { ...fields }];
     await onRowsChange(allRows);
-  } else if (ID) {
+  } else if (ID && year) {
     // Build updated list from rowsRef (not stale localRows closure)
     const updated = rowsRef.current.map((r) => (r.ID === ID ? row : r));
     await onRowsChange(updated);
