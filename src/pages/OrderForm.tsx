@@ -183,9 +183,7 @@ setDirtyRows((prev) => {
 });
 }, [isNumericCol, cleanNumber]);
 
-// 📌 ضع هذه الدالة أعلى المكون أو خارجها
-const makeKey = (r: Record<string, any>) => 
-  `${String(r.ID ?? '').trim()}|${String(r.year ?? r.Year ?? '').trim()}`;
+
 
 // 📌 ضع هذا السطر أعلى المكون InlineTable (خارج الدوال)
 const makeKey = (r: Record<string, any>) => `${String(r.ID ?? '').trim()}|${String(r.year ?? r.Year ?? '').trim()}`;
