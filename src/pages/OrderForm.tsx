@@ -2229,14 +2229,7 @@ return (
     
     
     <span style={{ fontSize: 12, color: 'var(--muted)' }}>سنة العمل: <strong>{currentYear}</strong></span>
-    <div style={{ display: 'flex', gap: 10 }}>
-      <Btn variant="outline" type="button" onClick={() => navigate('/orders')}>إلغاء</Btn>
-      <Btn variant="outline" type="button" onClick={printProductionCard}>🖨️ طباعة بطاقة الإنتاج</Btn>
-      <Btn variant="primary" type="submit" disabled={isSaving}>
-        {isSaving ? '⏳ جاري الحفظ...' : '✅ حفظ وتأكيد'}
-      </Btn>
-    </div>
-  </div> 
+   
 
 </form>
 
