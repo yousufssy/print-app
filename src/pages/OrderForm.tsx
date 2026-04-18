@@ -2183,7 +2183,7 @@ return (
   {/* ── Footer ── */}
   <div style={{ background: '#fff', borderRadius: 14, border: '1px solid var(--border)', padding: '12px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
    {/* ── Footer ── */}
-<div style={{ background: '#fff', borderRadius: 14, border: '1px solid var(--border)', padding: '12px 20px' }}>
+<span style={{ fontSize: 12, color: 'var(--muted)' }}>سنة العمل: <strong>{currentYear}</strong></span>
   
   {/* ✅ رسالة الخطأ */}
   {submitError && (
@@ -2228,10 +2228,10 @@ return (
     
     
     
-    <span style={{ fontSize: 12, color: 'var(--muted)' }}>سنة العمل: <strong>{currentYear}</strong></span>
+    
    
 
-</form>
+
 
 <VoucherModal 
   open={voucherOpen} 
