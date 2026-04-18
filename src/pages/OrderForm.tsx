@@ -187,40 +187,32 @@ setDirtyRows((prev) => {
 const makeKey = (r: Record<string, any>) => 
   `${String(r.ID ?? '').trim()}|${String(r.year ?? r.Year ?? '').trim()}`;
 
+// 📌 ضع هذا السطر أعلى المكون InlineTable (خارج الدوال)
+const makeKey = (r: Record<string, any>) => `${String(r.ID ?? '').trim()}|${String(r.year ?? r.Year ?? '').trim()}`;
+
 const saveRow = React.useCallback(async (i: number) => {
-  console.log('🟢 saveRow STARTED for index:', i); // 🔍 سيتأكد أن الدالة دخلت
-  
   const row = localRows[i];
-  if (!row) { console.warn('⚠️ row is undefined'); return; }
-  
-  const isEmpty = cols.every((c) => !row[c.key]);
-  if (isEmpty) { console.warn('⚠️ Row is empty, skipping save'); return; }
+  if (!row) return;
+  if (cols.every(c => !row[c.key])) return;
 
-  setSaving((s) => ({ ...s, [i]: true }));
-
+  setSaving(s => ({ ...s, [i]: true }));
   try {
-    console.log('📦 RAW ROW DATA:', row);
+    // ✅ استخراج كل من year و Year لتجنب أخطاء التسمية
     const { _isNew, ID, year, Year, ...fields } = row;
     const unifiedYear = String(year ?? Year ?? '').trim();
     const targetKey = `${String(ID ?? '').trim()}|${unifiedYear}`;
-
-    console.log('🔑 TARGET KEY:', targetKey);
-    console.log('📜 STATE KEYS:', rowsRef.current.map(r => `${r.ID}|${r.year ?? r.Year}`));
 
     if (_isNew === 'true') {
       const nextRows = [...rowsRef.current, { ...fields, year: unifiedYear }];
       await onRowsChange(nextRows);
     } else if (ID) {
-      const updated = rowsRef.current.map(r => {
-        const existingKey = `${r.ID}|${r.year ?? r.Year}`;
-        return existingKey === targetKey ? { ...r, ...fields, year: unifiedYear } : r;
-      });
-      console.log('✅ UPDATED ARRAY:', updated.map(r => ({ ID: r.ID, year: r.year })));
+      // ✅ مقارنة دقيقة بالمفتاح المركب
+      const updated = rowsRef.current.map(r =>
+        makeKey(r) === targetKey ? { ...r, ...fields, year: unifiedYear } : r
+      );
       await onRowsChange(updated);
     }
     setDirtyRows(prev => { const n = new Set(prev); n.delete(i); return n; });
-  } catch (err) {
-    console.error('❌ Save failed:', err);
   } finally {
     setSaving(s => ({ ...s, [i]: false }));
   }
@@ -237,7 +229,7 @@ const delRow = React.useCallback(async (i: number) => {
       return next;
     });
   } else {
-    // ✅ حذف دقيق باستخدام المفتاح المركب
+    // ✅ حذف دقيق باستخدام المفتاح المركب (ID + year)
     const targetKey = makeKey(row);
     const remaining = rowsRef.current.filter(r => makeKey(r) !== targetKey);
     await onRowsChange(remaining);
@@ -679,13 +671,16 @@ print_count?: number;
 }
 
 const problemsRows: Record<string, string>[] = useMemo(() =>
-problemsData.map((p: Problem) => ({
-ID: String(p.ID1 ?? ''),
-print_num: p.print_num ?? '',
-prod_date: p.prod_date ?? '',
-exp_date: p.exp_date ?? '',
-print_count: String(p.print_count ?? ''),
-})), [problemsData]
+  problemsData.map((p: any) => ({
+    // ✅ جرّب كل الأسماء المحتملة التي يرجعها الـ Backend
+    ID: String(p.ID1 ?? p.ID ?? p.id ?? '').trim(),
+    // ✅ وحد حقل السنة (يدعم year, Year, Y, Yr)
+    year: String(p.year ?? p.Year ?? p.Y ?? p.Yr ?? new Date().getFullYear()).trim(),
+    print_num: p.print_num ?? '',
+    prod_date: p.prod_date ?? '',
+    exp_date: p.exp_date ?? '',
+    print_count: String(p.print_count ?? ''),
+  })), [problemsData]
 );
 
 const handleProblemsChange = useCallback(async (newRows: Record<string, string>[]) => {
@@ -697,10 +692,13 @@ return;
 try {
   await syncRows(
     problemsRows, newRows,
-    (f) => createProblem.mutateAsync({ ...f, ID: id!, Year: year! }),
-    (rowId, f) => updateProblem.mutateAsync({ rowId, data: f }),
-    (rowId) => deleteProblem.mutateAsync(rowId),
-  );
+      // ✅ Create
+      (f) => createProblem.mutateAsync({ ...f, ID: id!, year: year! }),
+      // ✅ Update: تمرير السنة كوسيط ثاني مطابق للتوقيع الجديد
+      (rowId, rowYear, f) => updateProblem.mutateAsync({ rowId, year: rowYear,  f }),
+      // ✅ Delete: تمرير السنة كوسيط ثاني
+      (rowId, rowYear) => deleteProblem.mutateAsync({ rowId, year: rowYear }),
+    );
 } catch (error) {
   console.error('❌ handleProblemsChange error:', error);
 }
