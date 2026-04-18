@@ -1,675 +1,1393 @@
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
-import {
-  useOrder, useCreateOrder, useUpdateOrder, useCustomers, useVouchers,
-  useCreateVoucher, useOrders, useOperations,
-  useCreateOperation, useUpdateOperation, useDeleteOperation,
-  useCartons, useCreateCarton, useUpdateCarton, useDeleteCarton,
-  useProblems, useCreateProblem, useUpdateProblem, useDeleteProblem
-} from '../hooks/useApi';
-import { FormGroup, SectionDiv, CheckItem, Btn } from '../components/ui';
+import { useOrder, useCreateOrder, useUpdateOrder, useCustomers, useVouchers, useCreateVoucher, useDeleteVoucher, useOrders, useOperations, useCreateOperation, useUpdateOperation, useDeleteOperation, useCartons, useCreateCarton, useUpdateCarton, useDeleteCarton, useProblems, useCreateProblem, useUpdateProblem, useDeleteProblem } from '../hooks/useApi';
+import { Card, FormGroup, SectionDiv, CheckItem, Loading, Btn } from '../components/ui';
 import type { Order } from '../types';
 
+// ── مساعد الحقل ── خارج الـ component لمنع إعادة الإنشاء
 function G({ label, req, children }: { label: string; req?: boolean; children: React.ReactNode }) {
   return <FormGroup label={label} required={req}>{children}</FormGroup>;
 }
 
+// ══════════════════════════════════════════════════════
+// 🔽 Accordion Card Component
+// ══════════════════════════════════════════════════════
 function AccordionCard({
-  title,
-  children,
-  isOpen,
-  onToggle
+title,
+children,
+defaultOpen = true,
+isOpen,
+onToggle
 }: {
-  title: string;
-  children: React.ReactNode;
-  isOpen?: boolean;
-  onToggle?: () => void;
+title: string;
+children: React.ReactNode;
+defaultOpen?: boolean;
+isOpen?: boolean;
+onToggle?: () => void;
 }) {
-  return (
-    <div className="border border-slate-200 rounded-xl mb-4 bg-white overflow-hidden shadow-sm">
-      <button
-        type="button"
-        onClick={onToggle}
-        className={`w-full px-5 py-3.5 flex items-center justify-between text-right text-sm font-bold transition-all duration-200 ${
-          isOpen ? 'bg-indigo-600 text-white' : 'bg-slate-50 text-slate-800 hover:bg-slate-100'
-        }`}
-        dir="rtl"
-      >
-        <span>{title}</span>
-        <span className={`transform transition-transform duration-200 ${isOpen ? 'rotate-180' : 'rotate-0'}`}>
-          ▼
-        </span>
-      </button>
+const [internalOpen, setInternalOpen] = useState(defaultOpen);
+const isControlled = isOpen !== undefined;
+const open = isControlled ? isOpen : internalOpen;
 
-      <div className={`transition-all duration-300 ease-in-out ${isOpen ? 'max-h-[3000px] opacity-100' : 'max-h-0 opacity-0 overflow-hidden'}`}>
-        <div className="p-5">{children}</div>
-      </div>
-    </div>
-  );
+const toggle = () => {
+if (isControlled) onToggle?.();
+else setInternalOpen(!open);
+};
+
+return (
+<div style={{
+border: '1px solid var(--border)',
+borderRadius: 12,
+marginBottom: 16,
+background: '#fff',
+overflow: 'hidden',
+boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
+}}>
+<button
+type="button"
+onClick={toggle}
+style={{
+width: '100%',
+padding: '14px 20px',
+background: open ? 'var(--steel)' : 'var(--bg)',
+color: open ? '#fff' : 'var(--ink)',
+border: 'none',
+display: 'flex',
+alignItems: 'center',
+justifyContent: 'space-between',
+cursor: 'pointer',
+fontSize: 14,
+fontWeight: 700,
+fontFamily: 'Cairo, sans-serif',
+transition: 'background 0.2s',
+textAlign: 'right',
+direction: 'rtl'
+}}
+>
+<span>{title}</span>
+<span style={{
+fontSize: 14,
+transition: 'transform 0.25s ease',
+transform: open ? 'rotate(180deg)' : 'rotate(0)',
+display: 'inline-flex',
+alignItems: 'center'
+}}>
+▼
+</span>
+</button>
+
+<div style={{
+  maxHeight: open ? '3000px' : '0',
+  overflow: 'hidden',
+  transition: 'max-height 0.35s ease-in-out, opacity 0.25s ease',
+  opacity: open ? 1 : 0
+}}>
+  <div style={{ padding: '16px 20px 20px' }}>
+    {children}
+  </div>
+</div>
+</div>
+);
 }
 
+// ── Inline editable table ──────────────────────────────────────────────────────
 const InlineTable = React.memo(function InlineTable({
-  cols,
-  rows,
-  onRowsChange,
-  syncDraftRows = false,
+cols,
+rows,
+onRowsChange,
+syncDraftRows = false,
 }: {
-  cols: { key: string; label: string; type?: string; width?: number }[];
-  rows: Record<string, string>[];
-  onRowsChange: (rows: Record<string, string>[]) => void | Promise<void>;
-  syncDraftRows?: boolean;
+cols: { key: string; label: string; type?: string; width?: number }[];
+rows: Record<string, string>[];
+onRowsChange: (rows: Record<string, string>[]) => void | Promise<void>;
+syncDraftRows?: boolean;
 }) {
-  const [localRows, setLocalRows] = React.useState<Record<string, string>[]>([]);
-  const [saving, setSaving] = React.useState<Record<number, boolean>>({});
-  const [dirtyRows, setDirtyRows] = React.useState<Set<number>>(new Set());
+const [localRows, setLocalRows] = React.useState<Record<string, string>[]>([]);
+const [saving, setSaving] = React.useState<Record<number, boolean>>({});
+const [dirtyRows, setDirtyRows] = React.useState<Set<number>>(new Set());
 
-  const rowsRef = React.useRef(rows);
+const rowsRef = React.useRef(rows);
 
-  React.useEffect(() => {
-    rowsRef.current = rows;
-  }, [rows]);
+React.useEffect(() => {
+rowsRef.current = rows;
+}, [rows]);
 
-  React.useEffect(() => {
-    setLocalRows(rows);
-    setDirtyRows(new Set());
-  }, [rows]);
+React.useEffect(() => {
+setLocalRows(rows);
+setDirtyRows(new Set());
+}, [rows]);
 
-  const isNumericCol = React.useCallback(
-    (key: string) => cols.some((c) => c.key === key && c.type === 'number'),
-    [cols]
+const isNumericCol = React.useCallback(
+(key: string) => cols.some((c) => c.key === key && c.type === 'number'),
+[cols]
+);
+
+const cleanNumber = React.useCallback((value: string) => {
+if (value === '') return '';
+
+let v = value.replace(/[^0-9.\-]/g, '');
+
+const minusCount = (v.match(/-/g) || []).length;
+if (minusCount > 1) {
+v = v.replace(/-/g, '');
+}
+if (v.includes('-') && v.indexOf('-') !== 0) {
+v = v.replace(/-/g, '');
+}
+
+const parts = v.split('.');
+if (parts.length > 2) {
+v = parts[0] + '.' + parts.slice(1).join('');
+}
+
+if (v === '-' || v === '.' || v === '-.' || v === '') return '';
+
+return v;
+}, []);
+
+const pushDraftRows = React.useCallback(
+(nextRows: Record<string, string>[]) => {
+if (!syncDraftRows) return;
+void onRowsChange(nextRows.map(({ _isNew, ID, ...row }) => row));
+},
+[onRowsChange, syncDraftRows]
+);
+
+const addRow = React.useCallback(() => {
+const empty = Object.fromEntries(cols.map((c) => [c.key, '']));
+setLocalRows((prev) => {
+const nextRows = [...prev, { ...empty, ID: '', _isNew: 'true' }];
+pushDraftRows(nextRows);
+return nextRows;
+});
+}, [cols, pushDraftRows]);
+
+const setCell = React.useCallback((i: number, key: string, value: string) => {
+const finalValue = isNumericCol(key) ? cleanNumber(value) : value;
+
+setLocalRows((prev) => {
+  const nextRows = prev.map((r, idx) =>
+    idx === i ? { ...r, [key]: finalValue } : r
   );
+  return nextRows;
+});
+setDirtyRows((prev) => {
+  const next = new Set(prev);
+  next.add(i);
+  return next;
+});
+}, [isNumericCol, cleanNumber]);
 
-  const cleanNumber = React.useCallback((value: string) => {
-    if (value === '') return '';
-    let v = value.replace(/[^0-9.\-]/g, '');
-    const minusCount = (v.match(/-/g) || []).length;
-    if (minusCount > 1) v = v.replace(/-/g, '');
-    if (v.includes('-') && v.indexOf('-') !== 0) v = v.replace(/-/g, '');
-    const parts = v.split('.');
-    if (parts.length > 2) v = parts[0] + '.' + parts.slice(1).join('');
-    return v;
-  }, []);
+const saveRow = React.useCallback(async (i: number) => {
+const row = localRows[i];
+if (!row) return;
 
-  const pushDraftRows = React.useCallback(
-    (nextRows: Record<string, string>[]) => {
-      if (!syncDraftRows) return;
-      void onRowsChange(nextRows.map(({ _isNew, ID, ...row }) => row));
-    },
-    [onRowsChange, syncDraftRows]
+const isEmpty = cols.every((c) => !row[c.key]);
+if (isEmpty) return;
+
+setSaving((s) => ({ ...s, [i]: true }));
+
+try {
+  const { _isNew, ID, ...fields } = row;
+
+  if (_isNew === 'true') {
+    const allRows = [...rowsRef.current, { ...fields }];
+    await onRowsChange(allRows);
+  } else if (ID) {
+    // Build updated list from rowsRef (not stale localRows closure)
+    const updated = rowsRef.current.map((r) => (r.ID === ID ? row : r));
+    await onRowsChange(updated);
+  }
+  setDirtyRows((prev) => {
+    const next = new Set(prev);
+    next.delete(i);
+    return next;
+  });
+} finally {
+  setSaving((s) => ({ ...s, [i]: false }));
+}
+}, [cols, localRows, onRowsChange]);
+
+const delRow = React.useCallback(async (i: number) => {
+const row = localRows[i];
+if (!row) return;
+
+if (row._isNew === 'true') {
+  setLocalRows((prev) => {
+    const nextRows = prev.filter((_, idx) => idx !== i);
+    pushDraftRows(nextRows);
+    return nextRows;
+  });
+} else {
+  setLocalRows((prev) => prev.filter((_, idx) => idx !== i));
+  const remaining = rowsRef.current.filter((r) => r.ID !== row.ID);
+  await onRowsChange(remaining);
+}
+}, [localRows, pushDraftRows, onRowsChange]);
+
+return (
+<div style={{ overflowX: 'auto', marginTop: 8 }}>
+<table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+<thead>
+<tr style={{ background: 'var(--steel)', color: '#fff' }}>
+{cols.map((c) => (
+<th
+key={c.key}
+style={{
+padding: '8px 10px',
+textAlign: 'right',
+fontWeight: 600,
+whiteSpace: 'nowrap',
+width: c.width,
+}}
+>
+{c.label}
+</th>
+))}
+<th style={{ padding: '8px 10px', width: 36 }}></th>
+</tr>
+</thead>
+
+<tbody>
+  {localRows.length === 0 && (
+    <tr>
+      <td
+        colSpan={cols.length + 1}
+        style={{
+          textAlign: 'center',
+          color: 'var(--muted)',
+          padding: 16,
+        }}
+      >
+        ✦ لا توجد سجلات — اضغط ➕ لإضافة سطر
+      </td>
+    </tr>
+  )}
+
+  {localRows.map((row, i) => (
+    <tr
+      key={row.ID || `new-${i}`}
+      style={{
+        borderBottom: '1px solid var(--border)',
+        background:
+          row._isNew === 'true'
+            ? '#fffbe6'
+            : i % 2 === 0
+              ? '#fff'
+              : '#fdf8f0',
+      }}
+    >
+      {cols.map((c, ci) => {
+        const isNumber = c.type === 'number';
+        const value = isNumber
+          ? cleanNumber(String(row[c.key] ?? ''))
+          : (row[c.key] ?? '');
+
+        return (
+          <td key={`${c.key}-${i}`} style={{ padding: '3px 5px' }}>
+            <input
+              value={value}
+              type={c.type === 'date' ? 'date' : 'text'}
+              inputMode={isNumber ? 'decimal' : undefined}
+              onChange={(e) => {
+                let val = e.target.value;
+                if (isNumber) val = cleanNumber(val);
+                setCell(i, c.key, val);
+              }}
+              style={{
+                width: '100%',
+                border: 'none',
+                background: 'transparent',
+                fontFamily: 'Cairo, sans-serif',
+                fontSize: 12,
+                outline: 'none',
+                padding: '4px 3px',
+                color: 'var(--ink)',
+                textAlign: 'right',
+              }}
+              onFocus={(e) => {
+                e.target.style.background = '#fff9f0';
+              }}
+            />
+          </td>
+        );
+      })}
+
+      <td
+        style={{
+          padding: '3px 6px',
+          textAlign: 'center',
+          whiteSpace: 'nowrap',
+        }}
+      >
+        {saving[i] ? (
+          <span style={{ fontSize: 11, color: 'var(--muted)' }}>⏳</span>
+        ) : (
+          <>
+            {(row._isNew === 'true' || dirtyRows.has(i)) && (
+              <button
+                type="button"
+                onClick={() => saveRow(i)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  color: '#27ae60',
+                  fontSize: 14,
+                  marginLeft: 4,
+                }}
+                title="حفظ"
+              >
+                💾
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => delRow(i)}
+              style={{
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                color: 'var(--red)',
+                fontSize: 14,
+              }}
+              title="حذف"
+            >
+              🗑
+            </button>
+          </>
+        )}
+      </td>
+    </tr>
+  ))}
+</tbody>
+
+<tfoot>
+  <tr>
+    <td colSpan={cols.length + 1} style={{ padding: '8px 10px' }}>
+      <button
+        type="button"
+        onClick={addRow}
+        style={{
+          background: 'none',
+          border: '1.5px dashed var(--border)',
+          borderRadius: 6,
+          padding: '5px 14px',
+          cursor: 'pointer',
+          color: 'var(--muted)',
+          fontFamily: 'Cairo, sans-serif',
+          fontSize: 12,
+          width: '100%',
+        }}
+      >
+        ➕ إضافة سطر
+      </button>
+    </td>
+  </tr>
+</tfoot>
+</table>
+</div>
+);
+});
+
+// ── Voucher Modal ──────────────────────────────────────────────────────────────
+function VoucherModal({ open, onClose, orderId, orderYear }: {
+open: boolean; onClose: () => void; orderId: string; orderYear: string;
+}) {
+const create = useCreateVoucher();
+const [form, setForm] = useState({
+ID: orderId, Year: orderYear,
+Voucher_num: '', V_date: '', V_Qunt: '', Bill_Num: '',
+Contean: '', Paking_q: '', Box_tp: '', Box_L: '', Box_W: '', Box_H: '',
+});
+const F = (k: string, numeric = false) => (e: React.ChangeEvent<HTMLInputElement>) => {
+let val = e.target.value;
+if (numeric) {
+val = val.replace(/[^0-9]/g, '');
+}
+setForm(f => ({ ...f, [k]: val }));
+};
+if (!open) return null;
+
+return (
+<div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)', zIndex: 500, display: 'flex', alignItems: 'center', justifyContent: 'center', direction: 'rtl' }}>
+<div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 16, padding: 24, width: 540, maxWidth: '95vw', boxShadow: '0 20px 60px rgba(0,0,0,.3)' }}>
+<h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16, paddingBottom: 12, borderBottom: '1px solid var(--border)', textAlign: 'right' }}>➕ إضافة إيصال</h3>
+<div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 12 }}>
+<FormGroup label="رقم الإيصال"><input className="fc" value={form.Voucher_num} onChange={F('Voucher_num')} style={{ textAlign: 'right' }} /></FormGroup>
+<FormGroup label="تاريخ الإيصال"><input className="fc" type="date" value={form.V_date} onChange={F('V_date')} style={{ textAlign: 'right' }} /></FormGroup>
+<FormGroup label="الحد (الكمية)"><input className="fc" type="number" value={form.V_Qunt} onChange={F('V_Qunt')} style={{ textAlign: 'right' }} /></FormGroup>
+<FormGroup label="رقم الفاتورة"><input className="fc" value={form.Bill_Num} onChange={F('Bill_Num')} style={{ textAlign: 'right' }} /></FormGroup>
+<FormGroup label="النوع"><input className="fc" value={form.Contean} onChange={F('Contean')} style={{ textAlign: 'right' }} /></FormGroup>
+<FormGroup label="عدد العلب"><input className="fc" type="number" value={form.Paking_q} onChange={F('Paking_q')} style={{ textAlign: 'right' }} /></FormGroup>
+</div>
+<SectionDiv label="أبعاد الكرتون (ط × ع × ا)" />
+<div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 12, marginTop: 12 }}>
+<FormGroup label="النوع"><input className="fc" value={form.Box_tp} onChange={F('Box_tp')} style={{ textAlign: 'right' }} /></FormGroup>
+<FormGroup label="ط"><input className="fc" type="number" value={form.Box_L} onChange={F('Box_L')} style={{ textAlign: 'right' }} /></FormGroup>
+<FormGroup label="ع"><input className="fc" type="number" value={form.Box_W} onChange={F('Box_W')} style={{ textAlign: 'right' }} /></FormGroup>
+<FormGroup label="ا"><input className="fc" type="number" value={form.Box_H} onChange={F('Box_H')} style={{ textAlign: 'right' }} /></FormGroup>
+</div>
+<div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 20 }}>
+<Btn variant="outline" type="button" onClick={onClose}>إلغاء</Btn>
+<Btn variant="primary" type="button" disabled={create.isPending}
+onClick={async () => { await create.mutateAsync({ ...form, ID: orderId, Year: orderYear }); onClose(); }}>
+{create.isPending ? '⏳...' : '✅ حفظ الإيصال'}
+</Btn>
+</div>
+</div>
+</div>
+);
+}
+
+// ── Table column definitions ───────────────────────────────────────────────────
+const MATERIALS_COLS = [
+{ key: 'Type1', label: 'النوع' },
+{ key: 'Id_carton', label: 'رقم الكرتون' },
+{ key: 'Source1', label: 'المصدر' },
+{ key: 'Supplier1', label: 'المورد' },
+{ key: 'Long1', label: 'الطول', type: 'number' },
+{ key: 'Width1', label: 'العرض', type: 'number' },
+{ key: 'Gramage1', label: 'غراماج', type: 'number' },
+{ key: 'Sheet_count1', label: 'عدد الأطباق', type: 'number' },
+{ key: 'Price', label: 'السعر' },
+{ key: 'Out_Date', label: 'تاريخ الإخراج', type: 'date' },
+{ key: 'Out_ord_num', label: 'رقم أمر الإخراج' },
+{ key: 'note_crt', label: 'ملاحظات' },
+];
+
+const PROBLEMS_COLS = [
+{ key: 'print_num', label: 'رقم الطبع' },
+{ key: 'prod_date', label: 'تاريخ الإنتاج', type: 'date' },
+{ key: 'exp_date', label: 'تاريخ الانتهاء', type: 'date' },
+{ key: 'print_count', label: 'عدد الطبع', type: 'number' },
+];
+
+const OPERATIONS_COLS = [
+{ key: 'Action', label: 'العملية' },
+{ key: 'Color', label: 'اللون' },
+{ key: 'Qunt_Ac', label: 'الكمية', type: 'number' },
+{ key: 'On', label: 'على', type: 'number' },
+{ key: 'Machin', label: 'الآلة' },
+{ key: 'Hours', label: 'الساعات', type: 'number' },
+{ key: 'Kelo', label: 'كيلو', type: 'number' },
+{ key: 'Actual', label: 'الفعلي', type: 'number' },
+{ key: 'Tarkeb', label: 'تركيب', type: 'number' },
+{ key: 'Wash', label: 'غسيل', type: 'number' },
+{ key: 'Electricity',label: 'كهرباء', type: 'number' },
+{ key: 'Taghez', label: 'تجهيز', type: 'number' },
+{ key: 'StopVar', label: 'توقف', type: 'number' },
+{ key: 'Date', label: 'التاريخ', type: 'date' },
+{ key: 'NotesA', label: 'ملاحظات' },
+{ key: 'Tabrer', label: 'تبرير' },
+];
+
+const CHK_MFG = ['برنيش','تلميع بقعي','تلميع كامل','سلفان لميع','سلفان مات','طُبعت؟'];
+const CHK_CUST = ['مع طبخة','مع تطوية','تدعيم زكزاك','حراري','بلص'];
+
+// ── ربط checkboxes التصنيع بحقول الداتابيز ────────────────────────────────────
+const MFG_MAP: Record<string, string> = {
+'برنيش': 'varnich',
+'تلميع بقعي': 'uv_Spot',
+'تلميع كامل': 'uv',
+'سلفان لميع': 'seluvan_lum',
+'سلفان مات': 'seluvan_mat',
+'طُبعت؟': 'Printed',
+};
+
+// ✅ ربط checkboxes الزبون بحقول الداتابيز
+const CUST_MAP: Record<string, string> = {
+'مع طبخة': 'tabkha',
+'مع تطوية': 'Tay',
+'تدعيم زكزاك': 'Tad3em',
+'حراري': 'harary',
+'بلص': 'bals',
+};
+
+// ── Helper: تحويل أي قيمة boolean لـ 1 أو 0 ──────────────────────────────────
+const toBit = (val: any): number =>
+val === true || val === 1 || val === '1' || String(val).toLowerCase() === 'true' ? 1 : 0;
+
+// ── Helper: قراءة boolean من الداتابيز بأي صيغة ──────────────────────────────
+const fromBit = (val: any): boolean =>
+val === true || val === 1 || val === '1' || String(val).toLowerCase() === 'true';
+
+// ── قائمة حقول الـ boolean ────────────────────────────────────────────────────
+const BOOL_FIELDS = [
+'varnich','uv','uv_Spot','seluvan_lum','seluvan_mat',
+'Tad3em','Tay','harary','rolling','Printed','Billed','Reseved'
+];
+
+// ══════════════════════════════════════════════════════
+// 🎯 MAIN COMPONENT - OrderFormPage
+// ══════════════════════════════════════════════════════
+export default function OrderFormPage() {
+const { id, year } = useParams<{ id?: string; year?: string }>();
+const isEdit = !!(id && year && String(id).trim() && String(year).trim());
+const navigate = useNavigate();
+const location = useLocation();
+const duplicatedData = location.state?.duplicatedData || null;
+
+const { data: existing, isLoading } = useOrder(id ?? '', year ?? '');
+const createOrder = useCreateOrder();
+const updateOrder = useUpdateOrder(id ?? '', year ?? '');
+const { data: customers = [] } = useCustomers();
+
+const [checks, setChecks] = useState<Record<string, boolean>>({});
+const [mfgChecks, setMfgChecks] = useState<Record<string, boolean>>({});
+const [custChecks, setCustChecks] = useState<Record<string, boolean>>({});
+const [voucherOpen, setVoucherOpen] = useState(false);
+
+const [idInitialized, setIdInitialized] = useState(false);
+const [hasLoadedEdit, setHasLoadedEdit] = useState(false);
+const [hasLoadedDuplicate, setHasLoadedDuplicate] = useState(false);
+
+const [currentYear] = useState(String(new Date().getFullYear()));
+const ordersYearRef = useRef<string>(String(new Date().getFullYear()));
+
+// ✅ useForm بدون dependencies معقدة
+const { register, handleSubmit, reset, setValue } = useForm<Order>({
+defaultValues: {
+Year: currentYear,
+ID: '',
+Ser: ''
+}
+});
+
+// ✅ استخدام useRef لحفظ بيانات الفورم
+const formDataRef = useRef<Partial<Order>>({});
+
+// ── helper مشترك لمزامنة أي InlineTable مع الداتابيز ────────────────────────
+const syncRows = useCallback(async (
+oldRows: Record<string, string>[],
+newRows: Record<string, string>[],
+onCreate: (fields: any) => Promise<any>,
+onUpdate: (rowId: number, fields: any) => Promise<any>,
+onDelete: (rowId: number) => Promise<any>,
+) => {
+const oldIds = new Set(oldRows.map(r => r.ID).filter(v => !!v));
+const newIds = new Set(newRows.map(r => r.ID).filter(v => !!v));
+
+try {
+  for (const old of oldRows) {
+    if (old.ID && !newIds.has(old.ID)) {
+      await onDelete(Number(old.ID)).catch(err => {
+        console.error('❌ Delete error:', err);
+      });
+    }
+  }
+
+  for (const row of newRows) {
+    const { ID, _isNew, ...fields } = row;
+    if (ID && oldIds.has(ID)) {
+      await onUpdate(Number(ID), fields).catch(err => {
+        console.error('❌ Update error:', err);
+      });
+    } else if (!ID) {
+      await onCreate(fields).catch(err => {
+        console.error('❌ Create error:', err);
+      });
+    }
+  }
+} catch (error) {
+  console.error('❌ syncRows error:', error);
+}
+}, []);
+
+// ── الكرتون ───────────────────────────────────────────────────────────────────
+const { data: cartonsData = [] } = useCartons(
+isEdit ? (id ?? '') : '',
+isEdit ? (year ?? '') : ''
+);
+
+const createCarton = useCreateCarton();
+const updateCarton = useUpdateCarton();
+const deleteCarton = useDeleteCarton();
+
+const [materialsRows, setMaterialsRows] = useState<Record<string, string>[]>([]);
+
+useEffect(() => {
+setMaterialsRows(
+cartonsData.map((c: any) => ({
+ID: String(c.ID1 ?? c.ID ?? ''),
+Type1: c.Type1 ?? '',
+Id_carton: c.Id_carton ?? '',
+Source1: c.Source1 ?? '',
+Supplier1: c.Supplier1 ?? '',
+Long1: String(c.Long1 ?? ''),
+Width1: String(c.Width1 ?? ''),
+Gramage1: String(c.Gramage1 ?? ''),
+Sheet_count1: String(c.Sheet_count1 ?? ''),
+Price: String(c.Price ?? ''),
+Out_Date: c.Out_Date ?? '',
+Out_ord_num: c.Out_ord_num ?? '',
+note_crt: c.note_crt ?? '',
+}))
+);
+}, [cartonsData]);
+
+const [pendingMaterials, setPendingMaterials] = useState<Record<string, string>[]>([]);
+const [pendingProblems, setPendingProblems] = useState<Record<string, string>[]>([]);
+const [pendingOps, setPendingOps] = useState<Record<string, string>[]>([]);
+
+const handleMaterialsChange = useCallback(async (newRows: Record<string, string>[]) => {
+if (!isEdit) {
+setPendingMaterials(newRows);
+return;
+}
+
+try {
+  await syncRows(
+    materialsRows, newRows,
+    (f) => createCarton.mutateAsync({ ...f, ID: id!, Year: year! }),
+    (rowId, f) => updateCarton.mutateAsync({ rowId, Year: year!, data: f }),
+    (rowId) => deleteCarton.mutateAsync({ rowId, Year: year! }),
   );
+} catch (error) {
+  console.error('❌ handleMaterialsChange error:', error);
+}
+}, [isEdit, materialsRows, syncRows, createCarton, updateCarton, deleteCarton, id, year]);
 
-  const addRow = React.useCallback(() => {
-    const empty = Object.fromEntries(cols.map((c) => [c.key, '']));
-    setLocalRows((prev) => {
-      const nextRows = [...prev, { ...empty, ID: '', _isNew: 'true' }];
-      pushDraftRows(nextRows);
-      return nextRows;
-    });
-  }, [cols, pushDraftRows]);
+// ── سجل المشاكل ───────────────────────────────────────────────────────────────
+const { data: problemsData = [] } = useProblems(isEdit ? (id ?? '') : '', isEdit ? (year ?? '') : '');
+const createProblem = useCreateProblem();
+const updateProblem = useUpdateProblem();
+const deleteProblem = useDeleteProblem();
 
-  const setCell = React.useCallback((i: number, key: string, value: string) => {
-    const finalValue = isNumericCol(key) ? cleanNumber(value) : value;
-    setLocalRows((prev) => prev.map((r, idx) => (idx === i ? { ...r, [key]: finalValue } : r)));
-    setDirtyRows((prev) => {
-      const next = new Set(prev);
-      next.add(i);
-      return next;
-    });
-  }, [isNumericCol, cleanNumber]);
+interface Problem {
+ID1?: number;
+print_num?: string;
+prod_date?: string;
+exp_date?: string;
+print_count?: number;
+}
 
-  const saveRow = React.useCallback(async (i: number) => {
-    const row = localRows[i];
-    if (!row) return;
+const problemsRows: Record<string, string>[] = useMemo(() =>
+problemsData.map((p: Problem) => ({
+ID: String(p.ID1 ?? ''),
+print_num: p.print_num ?? '',
+prod_date: p.prod_date ?? '',
+exp_date: p.exp_date ?? '',
+print_count: String(p.print_count ?? ''),
+})), [problemsData]
+);
 
-    setSaving((s) => ({ ...s, [i]: true }));
-    try {
-      const { _isNew, ID, ...fields } = row;
-      if (_isNew === 'true') {
-        const allRows = [...rowsRef.current, { ...fields }];
-        await onRowsChange(allRows);
-      } else if (ID) {
-        const updated = rowsRef.current.map((r) => (r.ID === ID ? row : r));
-        await onRowsChange(updated);
-      }
-      setDirtyRows((prev) => {
-        const next = new Set(prev);
-        next.delete(i);
-        return next;
-      });
-    } finally {
-      setSaving((s) => ({ ...s, [i]: false }));
+const handleProblemsChange = useCallback(async (newRows: Record<string, string>[]) => {
+if (!isEdit) {
+setPendingProblems(newRows);
+return;
+}
+
+try {
+  await syncRows(
+    problemsRows, newRows,
+    (f) => createProblem.mutateAsync({ ...f, ID: id!, Year: year! }),
+    (rowId, f) => updateProblem.mutateAsync({ rowId, Year: year!, data: f }),
+    (rowId) => deleteProblem.mutateAsync({ rowId, Year: year! }),
+  );
+} catch (error) {
+  console.error('❌ handleProblemsChange error:', error);
+}
+}, [isEdit, problemsRows, syncRows, createProblem, updateProblem, deleteProblem, id, year]);
+
+// ── العمليات ──────────────────────────────────────────────────────────────────
+const { data: operationsData = [] } = useOperations(isEdit ? (id ?? '') : '', isEdit ? (year ?? '') : '');
+const createOperation = useCreateOperation();
+const updateOperation = useUpdateOperation();
+const deleteOperation = useDeleteOperation();
+
+const operationsRows: Record<string, string>[] = useMemo(() =>
+operationsData.map((op: any) => ({
+ID: String(op.ID1 ?? op.ID ?? ''),
+Action: op.Action ?? '',
+Color: op.Color ?? '',
+Qunt_Ac: String(op.Qunt_Ac ?? ''),
+On: String(op.On ?? ''),
+Machin: op.Machin ?? '',
+Hours: String(op.Hours ?? ''),
+Kelo: String(op.Kelo ?? ''),
+Actual: String(op.Actual ?? ''),
+Tarkeb: String(op.Tarkeb ?? ''),
+Wash: String(op.Wash ?? ''),
+Electricity: String(op.Electricity ?? ''),
+Taghez: String(op.Taghez ?? ''),
+StopVar: String(op.StopVar ?? ''),
+Date: op.Date ?? '',
+NotesA: op.NotesA ?? '',
+Tabrer: op.Tabrer ?? '',
+})), [operationsData]
+);
+
+const handleOperationsChange = useCallback(async (newRows: Record<string, string>[]) => {
+if (!isEdit) {
+setPendingOps(newRows);
+return;
+}
+
+try {
+  await syncRows(
+    operationsRows, newRows,
+    (f) => createOperation.mutateAsync({ ...f, ID: id!, Year: year! }),
+    (rowId, f) => updateOperation.mutateAsync({ rowId, Year: year!, data: f }),
+    (rowId) => deleteOperation.mutateAsync({ rowId, Year: year! }),
+  );
+} catch (error) {
+  console.error('❌ handleOperationsChange error:', error);
+}
+}, [isEdit, operationsRows, syncRows, createOperation, updateOperation, deleteOperation, id, year]);
+
+// ── حالة الأقسام ──────────────────────────────────────────────────────────────
+const getInitialSections = () => {
+try {
+const saved = localStorage.getItem('orderFormSections');
+if (saved) return JSON.parse(saved);
+} catch {}
+return { basic: true, specs: true, printing: true, quality: true, delivery: true };
+};
+
+const [openSections, setOpenSections] = useState<Record<string, boolean>>(getInitialSections);
+
+useEffect(() => {
+localStorage.setItem('orderFormSections', JSON.stringify(openSections));
+}, [openSections]);
+
+const { data: ordersResponse } = useOrders({ year: currentYear });
+const orders = useMemo(() => ordersResponse?.data ?? [], [ordersResponse]);
+
+const { data: vouchers = [] } = useVouchers(
+isEdit ? (id ?? '') : '',
+isEdit ? (year ?? currentYear) : currentYear
+);
+const deleteVoucher = useDeleteVoucher();
+
+// ✅ 1️⃣ تحميل بيانات التعديل - مرة واحدة
+useEffect(() => {
+if (!isEdit || !existing || hasLoadedEdit || duplicatedData) return;
+
+reset(existing);
+formDataRef.current = { ...existing };
+
+const loadedMfg: Record<string, boolean> = {};
+Object.entries(MFG_MAP).forEach(([label, field]) => {
+  loadedMfg[label] = fromBit((existing as any)[field]);
+});
+setMfgChecks(loadedMfg);
+
+const loadedCust: Record<string, boolean> = {};
+Object.entries(CUST_MAP).forEach(([label, field]) => {
+  loadedCust[label] = fromBit((existing as any)[field]);
+});
+setCustChecks(loadedCust);
+
+setChecks({
+  varnich: fromBit(existing.varnich),
+  uv: fromBit(existing.uv),
+  uv_Spot: fromBit(existing.uv_Spot),
+  seluvan_lum: fromBit(existing.seluvan_lum),
+  seluvan_mat: fromBit(existing.seluvan_mat),
+  Tad3em: fromBit(existing.Tad3em),
+  Tay: fromBit(existing.Tay),
+  harary: fromBit(existing.harary),
+  rolling: fromBit(existing.rolling),
+  Printed: fromBit(existing.Printed),
+  Billed: fromBit(existing.Billed),
+  Reseved: fromBit(existing.Reseved),
+  CTB: fromBit(existing.DubelM),
+  varn: fromBit(existing.varnich),
+});
+
+setHasLoadedEdit(true);
+}, [isEdit, existing, hasLoadedEdit, duplicatedData, reset]);
+
+// ✅ 2️⃣ تحميل بيانات النسخ - مرة واحدة
+useEffect(() => {
+if (!duplicatedData || hasLoadedDuplicate) return;
+
+const {
+  checks: copiedChecks,
+  mfgChecks: copiedMfg,
+  custChecks: copiedCust,
+  idInitialized: copiedIdInitialized,
+  ...orderData
+} = duplicatedData;
+
+reset(orderData);
+formDataRef.current = { ...orderData };
+setChecks(copiedChecks ?? {});
+setMfgChecks(copiedMfg ?? {});
+setCustChecks(copiedCust ?? {});
+setIdInitialized(copiedIdInitialized ?? false);
+setMaterialsRows([]);
+setPendingMaterials([]);
+setPendingOps([]);
+setPendingProblems([]);
+setHasLoadedDuplicate(true);
+}, [duplicatedData, hasLoadedDuplicate, reset]);
+
+// ✅ 3️⃣ تهيئة طلب جديد - مرة واحدة فقط
+const idInitializedRef = useRef(false);
+
+useEffect(() => {
+  if (isEdit || duplicatedData) return;
+  if (idInitializedRef.current) return;
+  if (!orders || orders.length === 0) return;
+
+  idInitializedRef.current = true;
+
+  const latestOrder = orders[orders.length - 1];
+  const lastSer = parseInt(latestOrder?.Ser || '0') || 0;
+  const newId = String((Number(latestOrder?.ID) || 0) + 1);
+
+  const initData = {
+    Ser: String(lastSer + 1),
+    ID: newId,
+    Year: currentYear,
+  };
+
+  reset((prev: any) => ({ ...prev, ...initData }));
+  formDataRef.current = initData;
+  setIdInitialized(true);
+// eslint-disable-next-line react-hooks/exhaustive-deps
+}, [orders]);
+
+// ✅ الحفظ - مع معالجة أخطاء شاملة
+const onSubmit = useCallback(async (data: Order) => {
+try {
+BOOL_FIELDS.forEach(f => {
+(data as any)[f] = toBit(checks[f]);
+});
+
+Object.entries(MFG_MAP).forEach(([label, field]) => {
+  (data as any)[field] = toBit(mfgChecks[label]);
+});
+
+Object.entries(CUST_MAP).forEach(([label, field]) => {
+  (data as any)[field] = toBit(custChecks[label]);
+});
+
+(data as any).DubelM = toBit(checks.CTB);
+
+if (!isEdit) {
+  const maxRowId = orders.length > 0
+    ? Math.max(...orders.map((o: any) => o.ID)) + 1
+    : 1;
+  (data as any).ID = maxRowId;
+}
+
+if (isEdit) {
+  await updateOrder.mutateAsync(data);
+} else {
+  const created = await createOrder.mutateAsync(data);
+  const newId = String((created as any)?.ID ?? (data as any).ID);
+  const yr = String((data as any).Year ?? currentYear);
+
+  await Promise.all([
+    ...pendingMaterials.map(({ ID, _isNew, ...f }) =>
+      createCarton.mutateAsync({ ...f, ID: newId, Year: yr }).catch(err => {
+        console.error('❌ Create carton error:', err);
+        return null;
+      })),
+    ...pendingProblems.map(({ ID, _isNew, ...f }) =>
+      createProblem.mutateAsync({ ...f, ID: newId, Year: yr }).catch(err => {
+        console.error('❌ Create problem error:', err);
+        return null;
+      })),
+    ...pendingOps.map(({ ID, _isNew, ...f }) =>
+      createOperation.mutateAsync({ ...f, ID: newId, Year: yr }).catch(err => {
+        console.error('❌ Create operation error:', err);
+        return null;
+      })),
+  ]);
+}
+
+await new Promise(resolve => setTimeout(resolve, 100));
+navigate('/orders');
+} catch (error) {
+console.error('❌ Submit error:', error);
+alert('حدث خطأ أثناء الحفظ. الرجاء المحاولة مرة أخرى.');
+}
+}, [checks, mfgChecks, custChecks, isEdit, orders, updateOrder, createOrder, currentYear, pendingMaterials, pendingProblems, pendingOps, createCarton, createProblem, createOperation, navigate]);
+
+const handleDuplicate = useCallback(() => {
+const sourceData = isEdit && existing ? { ...existing } : {};
+
+const excludeFields = [
+  'ID', 'ID1', 'Ser',
+  'Year',
+  'date_come', 'Perioud',
+  'marji3',
+  'AttachmentsOrders',
+];
+
+const dataToCopy = { ...sourceData };
+excludeFields.forEach(field => delete dataToCopy[field]);
+
+navigate('/orders/new', {
+  state: {
+    duplicatedData: {
+      ...dataToCopy,
+      Ser: '',
+      Year: String(new Date().getFullYear()),
+      checks: { ...checks },
+      mfgChecks: { ...mfgChecks },
+      custChecks: { ...custChecks },
+      idInitialized: false,
     }
-  }, [localRows, onRowsChange]);
+  }
+});
+}, [isEdit, existing, checks, mfgChecks, custChecks, navigate]);
 
-  const delRow = React.useCallback(async (i: number) => {
-    const row = localRows[i];
-    if (!row) return;
+const chk = useCallback((k: string) => (v: boolean) => setChecks(c => ({ ...c, [k]: v })), []);
+const mchk = useCallback((k: string) => (v: boolean) => setMfgChecks(c => ({ ...c, [k]: v })), []);
+const cchk = useCallback((k: string) => (v: boolean) => setCustChecks(c => ({ ...c, [k]: v })), []);
 
-    if (row._isNew === 'true') {
-      setLocalRows((prev) => {
-        const nextRows = prev.filter((_, idx) => idx !== i);
-        pushDraftRows(nextRows);
-        return nextRows;
-      });
-    } else {
-      setLocalRows((prev) => prev.filter((_, idx) => idx !== i));
-      const remaining = rowsRef.current.filter((r) => r.ID !== row.ID);
-      await onRowsChange(remaining);
-    }
-  }, [localRows, pushDraftRows, onRowsChange]);
+const toggleSection = useCallback((key: string) => {
+setOpenSections(prev => ({ ...prev, [key]: !prev[key] }));
+}, []);
 
-  return (
-    <div className="overflow-x-auto mt-2 border border-slate-200 rounded-lg">
-      <table className="w-full border-collapse text-xs text-right">
-        <thead>
-          <tr className="bg-slate-700 text-white font-bold">
-            {cols.map((c) => (
-              <th key={c.key} className="p-2.5 whitespace-nowrap" style={{ width: c.width }}>{c.label}</th>
+const isSaving = createOrder.isPending || updateOrder.isPending;
+
+// ══════════════════════════════════════════════════════
+// 🖨️ طباعة بطاقة الإنتاج
+const printProductionCard = useCallback(() => {
+const d = formDataRef.current;  const chkd = (val: any) => (val ? '✔' : '');
+  const fmt = (v: any) => v ?? '';
+
+  const html = `<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+</head>
+<body>
+<h1>بطاقة الإنتاج</h1>
+<p>رقمنا: ${fmt(d.ID)}</p>
+</body>
+</html>`;
+
+  const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.target = '_blank';
+  a.rel = 'noopener';
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 10000);
+}, [checks, custChecks, mfgChecks]); 
+
+if (isLoading) return <Loading />;
+
+return (
+<div style={{ direction: 'rtl', padding: 20 }}>
+<div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
+<button onClick={() => navigate('/orders')} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18 }}>←</button>
+<h1 style={{ fontSize: 20, fontWeight: 900 }}>
+{isEdit ? `✏️ تعديل الطلب: ${existing?.ID ?? id}` : '➕ طلب جديد'}
+</h1>
+</div>
+
+<div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
+  <button 
+    type="button"
+    onClick={() => setOpenSections({ basic: true, specs: true, printing: true, quality: true, delivery: true })}
+    style={{ 
+      background: 'var(--bg)', border: '1px solid var(--border)', 
+      borderRadius: 6, padding: '6px 12px', fontSize: 12, cursor: 'pointer',
+      color: 'var(--ink)', fontFamily: 'Cairo, sans-serif'
+    }}
+  >
+    📂 فتح الكل
+  </button>
+  <button 
+    type="button"
+    onClick={() => setOpenSections({ basic: false, specs: false, printing: false, quality: false, delivery: false })}
+    style={{ 
+      background: 'var(--bg)', border: '1px solid var(--border)', 
+      borderRadius: 6, padding: '6px 12px', fontSize: 12, cursor: 'pointer',
+      color: 'var(--ink)', fontFamily: 'Cairo, sans-serif'
+    }}
+  >
+    📁 إغلاق الكل
+  </button>
+  <Btn
+    variant="outline"
+    type="button"
+    onClick={handleDuplicate}
+    style={{ display: 'flex', alignItems: 'center', gap: 5 }}
+  >
+    📄 نسخ الطلب
+  </Btn>
+</div>
+
+<form onSubmit={handleSubmit(onSubmit)}>
+
+  {/* ══ 1. بيانات الطلب الأساسية ══ */}
+  <AccordionCard 
+    title="📋 بيانات الطلب الأساسية"
+    isOpen={openSections.basic}
+    onToggle={() => toggleSection('basic')}
+  >
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 12 }}>
+      <G label="تسلسل"><input className="fc" {...register('Ser')} readOnly style={{ textAlign: 'right', background: '#f8f9fa' }} /></G>
+      <G label="اسم الزبون" req><input className="fc" {...register('Customer', { required: true })} list="cust-list" placeholder="ابحث عن الزبون..." style={{ textAlign: 'right' }} /></G>
+      <G label="رقمنا"><input className="fc" {...register('ID')} readOnly style={{ textAlign: 'right', background: '#f8f9fa' }} /></G>
+      <G label="المرجع" req><input className="fc" {...register('marji3', { required: true })} placeholder="65982" style={{ textAlign: 'right' }} /></G>
+      <G label="التفصيلات المرتبطة"><input className="fc" {...register('AttachmentsOrders')} style={{ textAlign: 'right' }} /></G>
+    </div>
+    <datalist id="cust-list">
+      {customers.map(c => <option key={(c as any).ID1} value={c.Customer} />)}
+    </datalist>
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(8,1fr)', gap: 12, marginTop: 12 }}>
+      <G label="تاريخ الورود"><input className="fc" type="date" {...register('date_come')} style={{ textAlign: 'right' }} /></G>
+      <G label="تاريخ الطلب"><input className="fc" {...register('delev_date')} style={{ textAlign: 'right' }} /></G>
+      <G label="موعد التسليم"><input className="fc" {...register('Apoent_Delv_date')} style={{ textAlign: 'right' }} /></G>
+      <G label="موافقة المونتاج"><input className="fc" type="date" {...register('Perioud')} style={{ textAlign: 'right' }} /></G>
+      <G label="المطلوب"><input className="fc" type="number" {...register('Demand')} style={{ textAlign: 'right' }} /></G>
+      <G label="نموذج طبي"><input className="fc" type="number" {...register('Med_smpl_Q')} style={{ textAlign: 'right' }} /></G>
+      <G label="سنة العمل" req><input className="fc" {...register('Year', { required: true })} style={{ textAlign: 'right' }} /></G>
+    </div>
+  </AccordionCard>
+
+  {/* ══ 2. مواصفات المطبوعة ══ */}
+  <AccordionCard 
+    title="🎨 مواصفات المطبوعة"
+    isOpen={openSections.specs}
+    onToggle={() => toggleSection('specs')}
+  >
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(8,1fr)', gap: 12 }}>
+      <G label="نوع المطبوعة">
+        <select className="fc" {...register('unit')} style={{ textAlign: 'right' }}>
+          <option value="">—</option>
+          {['علبة','كرتون','بروشور','استيكر','غلاف','وراقة دحابة'].map(v => <option key={v}>{v}</option>)}
+        </select>
+      </G>
+      <G label="الاسم "><input className="fc" {...register('Pattern')} style={{ textAlign: 'right' }} /></G>
+      <G label=" الوصف"><input className="fc" {...register('Pattern2')} style={{ textAlign: 'right' }} /></G>
+      <G label="العيار"><input className="fc" {...register('ear')} style={{ textAlign: 'right' }} /></G>
+      <G label="الوحدة">
+        <select className="fc" {...register('UnitMed')} style={{ textAlign: 'right' }}>
+          <option>ورقة</option><option>كيلو</option><option>متر</option>
+        </select>
+      </G>
+      <G label="تصدير">
+        <select className="fc" {...register('Form')} style={{ textAlign: 'right' }}>
+          <option>لا</option><option>نعم</option>
+        </select>
+      </G>
+      <G label="التعبئة"><input className="fc" {...register('Loading')} style={{ textAlign: 'right' }} /></G>
+      <G label="ارقام الكود"><input className="fc" {...register('Code_M')} style={{ textAlign: 'right' }} /></G>
+    </div>
+
+    <SectionDiv label="المواصفات الفنية" />
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(8,1fr)', gap: 12 }}>
+      <G label="الترخيص"><input className="fc" {...register('authorization')} style={{ textAlign: 'right' }} /></G>
+      <G label="السعر"><input className="fc" {...register('Price')} style={{ textAlign: 'right' }} /></G>         
+      <G label="النموذج المجاني"><input className="fc" {...register('Free_txt')} style={{ textAlign: 'right' }} /></G>
+      <G label="اللون"><input className="fc" {...register('Free_clr')} style={{ textAlign: 'right' }} /></G>
+      <G label="الكود"><input className="fc" {...register('Code')} style={{ textAlign: 'right' }} /></G>
+      <G label="رقم الطبخة"><input className="fc" {...register('Mix_num')} style={{ textAlign: 'right' }} /></G>
+      <G label="تاريخ الإنتاج"><input className="fc" type="date" {...register('ProDate')} style={{ textAlign: 'right' }} /></G>
+      <G label="تاريخ الانتهاء"><input className="fc" type="date" {...register('ExpDate')} style={{ textAlign: 'right' }} /></G>
+    </div>
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 12, marginTop: 12 }}>
+      <G label="شركة الامتياز"><input className="fc" {...register('Authr_co')} style={{ textAlign: 'right' }} /></G>
+      <G label="رقم النموذج"><input className="fc" {...register('Pat_Num')} style={{ textAlign: 'right' }} /></G>
+      <G label="ملاحظات الطلبية"><input className="fc" style={{ textAlign: 'right' }} /></G>
+      <G label="تعديل بالمونتاج"><input className="fc" {...register('modefyM')} style={{ textAlign: 'right' }} /></G>
+    </div>
+
+    <SectionDiv label="المواد" />
+    <InlineTable
+      cols={MATERIALS_COLS}
+      rows={isEdit ? materialsRows : pendingMaterials}
+      onRowsChange={handleMaterialsChange}
+      syncDraftRows={!isEdit}
+    />
+  </AccordionCard>
+
+  {/* ══ 3. مواصفات الطباعة والمونتاج ══ */}
+  <AccordionCard 
+    title="⚙️ مواصفات الطباعة والمونتاج"
+    isOpen={openSections.printing}
+    onToggle={() => toggleSection('printing')}
+  >
+    <SectionDiv label="الأبعاد" />
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(8,1fr)', gap: 12 }}>
+      <G label="الطري"><input className="fc" type="number" step="0.01" {...register('SoftU')} style={{ textAlign: 'right' }} /></G>
+      <G label="القاسي"><input className="fc" type="number" step="0.01" {...register('TafU')} style={{ textAlign: 'right' }} /></G>
+      <G label="الطول"><input className="fc" type="number" step="0.01" {...register('LongU')} style={{ textAlign: 'right' }} /></G>
+      <G label="العرض"><input className="fc" type="number" step="0.01" {...register('WedthU')} style={{ textAlign: 'right' }} /></G>
+      <G label="الارتفاع"><input className="fc" type="number" step="0.01" {...register('HightU')} style={{ textAlign: 'right' }} /></G>
+      <G label="لسان التدكيك"><input className="fc" type="number" step="0.01" {...register('Lesan')} style={{ textAlign: 'right' }} /></G>
+      <G label="رقم المونتاج"><input className="fc" {...register('MontagNum')} style={{ textAlign: 'right' }} /></G>
+      <G label="القالب">
+        <select className="fc" {...register('Cut_num')} style={{ textAlign: 'right' }}>
+          <option>لأول مرة</option><option>موجود</option>
+        </select>
+      </G>
+    </div>
+
+    <SectionDiv label="الطلبية والإنتاج" />
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(8,1fr)', gap: 12 }}>
+      <G label="الحجم النهائي - طري"><input className="fc" type="number" step="0.01" {...register('final_size_tall')} style={{ textAlign: 'right' }} /></G>
+      <G label="الحجم النهائي - طري2"><input className="fc" type="number" step="0.01" {...register('final_size_tall2')} style={{ textAlign: 'right' }} /></G>
+      <G label="الحجم النهائي - قاسي"><input className="fc" type="number" step="0.01" {...register('final_size_width')} style={{ textAlign: 'right' }} /></G>
+      <G label="الحجم النهائي - قاسي2"><input className="fc" type="number" step="0.01" {...register('final_size_width2')} style={{ textAlign: 'right' }} /></G>
+      <G label="الطبع على"><input className="fc" {...register('print_on')} style={{ textAlign: 'right' }} /></G>
+      <G label="الطبع على"><input className="fc" {...register('print_on2')} style={{ textAlign: 'right' }} /></G>
+      <G label="فصل الطبق"><input className="fc" {...register('sheet_unit_qunt')} style={{ textAlign: 'right' }} /></G>
+      <G label="2فصل الطبق"><input className="fc" {...register('sheet_unit_qunt2')} style={{ textAlign: 'right' }} /></G>
+      <G label="عدد الطبع"><input className="fc"  {...register('Qunt_of_print_on')} style={{ textAlign: 'right' }} /></G>
+      <G label="عدد الطبع"><input className="fc"  {...register('Qunt_of_print_on2')} style={{ textAlign: 'right' }} /></G>
+      <G label="عدد الألوان"><input className="fc" type="number" {...register('Clr_qunt')} style={{ textAlign: 'right' }} /></G>
+      <G label="منها نموذج طبي"><input className="fc"  {...register('Med_Sampel')} style={{ textAlign: 'right' }} /></G>
+      <G label="العدد المنتج">
+        <input className="fc" type="number" {...register('grnd_qunt')}
+          style={{ background: '#f0f9f0', borderColor: '#27ae60', textAlign: 'right' }} />
+      </G>
+      <G label="المعلومات الفنية"><input className="fc" {...register('note_ord')} style={{ textAlign: 'right' }} /></G>
+      <G label="برنيش"><CheckItem label="برنيش" checked={!!checks.varn} onChange={chk('varn')} /></G>
+      <G label="CTB"><CheckItem label="CTB" checked={!!checks.CTB} onChange={chk('CTB')} /></G>
+    </div>
+
+    <SectionDiv label="العمليات" />
+    <InlineTable
+      cols={OPERATIONS_COLS}
+      rows={isEdit ? operationsRows : pendingOps}
+      onRowsChange={handleOperationsChange}
+      syncDraftRows={!isEdit}
+    />
+  </AccordionCard>
+
+  {/* ══ 4. مراقبة الجودة والمشاكل ══ */}
+  <AccordionCard 
+    title="🔍 مراقبة الجودة والمشاكل"
+    isOpen={openSections.quality}
+    onToggle={() => toggleSection('quality')}
+  >
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+      
+      {/* أثناء التصنيع */}
+      <div style={{ border: '1.5px solid var(--border)', borderRadius: 10, overflow: 'hidden' }}>
+        <div style={{ padding: '9px 13px', background: 'rgba(214,137,16,.1)', color: 'var(--warn)', fontSize: 12, fontWeight: 700, borderBottom: '1px solid rgba(214,137,16,.2)', textAlign: 'right' }}>
+          ⚠️ المشاكل الواردة أثناء التصنيع
+        </div>
+        <div style={{ padding: 12 }}>
+          <div style={{ marginBottom: 10 }}>
+            <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--steel)', marginBottom: 6, display: 'block', textAlign: 'right' }}>آلة الطبع</label>
+            <input className="fc" {...register('Machin_Print')} style={{ fontSize: 12, textAlign: 'right' }} />
+          </div>
+          <div style={{ marginBottom: 10 }}>
+            <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--steel)', marginBottom: 6, display: 'block', textAlign: 'right' }}>آلة التقطيع</label>
+            <input className="fc" {...register('Machin_Cut')} style={{ fontSize: 12, textAlign: 'right' }} />
+          </div>
+          <div style={{ marginBottom: 10 }}>
+            <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--steel)', marginBottom: 6, display: 'block', textAlign: 'right' }}>عدد الألوان</label>
+            <input className="fc" {...register('clr_Qnt_order')} style={{ fontSize: 12, textAlign: 'right' }} />
+          </div>
+          
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 8 }}>
+            {CHK_MFG.map(label => (
+              <label 
+                key={label}
+                style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: 8,
+                  cursor: 'pointer',
+                  padding: '6px 8px',
+                  borderRadius: 6,
+                  background: mfgChecks[label] ? 'rgba(52,152,219,0.1)' : 'transparent',
+                  border: `1px solid ${mfgChecks[label] ? '#3498db' : 'var(--border)'}`,
+                  transition: 'all 0.2s'
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={!!mfgChecks[label]}
+                  onChange={(e) => {
+                    setMfgChecks(prev => ({ ...prev, [label]: e.target.checked }));
+                  }}
+                  style={{ width: 16, height: 16, cursor: 'pointer' }}
+                />
+                <span style={{ fontSize: 12, fontWeight: 500 }}>{label}</span>
+              </label>
             ))}
-            <th className="p-2.5 w-12"></th>
+          </div>
+        </div>
+      </div>
+
+      {/* من الزبون */}
+      <div style={{ border: '1.5px solid var(--border)', borderRadius: 10, overflow: 'hidden' }}>
+        <div style={{ padding: '9px 13px', background: 'rgba(192,57,43,.08)', color: 'var(--red)', fontSize: 12, fontWeight: 700, borderBottom: '1px solid rgba(192,57,43,.15)', textAlign: 'right' }}>
+          🚨 المشاكل الواردة من الزبون
+        </div>
+        <div style={{ padding: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 10 }}>
+            <div>
+              <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--steel)', marginBottom: 4, display: 'block', textAlign: 'right' }}>رقم الطبع</label>
+              <input className="fc" style={{ fontSize: 12, textAlign: 'right' }} />
+            </div>
+            <div>
+              <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--steel)', marginBottom: 4, display: 'block', textAlign: 'right' }}>عدد الطبع</label>
+              <input className="fc" type="number" style={{ fontSize: 12, textAlign: 'right' }} />
+            </div>
+          </div>
+          
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 10 }}>
+            <div>
+              <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--steel)', marginBottom: 4, display: 'block', textAlign: 'right' }}>الأبعاد</label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                <input className="fc" type="number" defaultValue={23} style={{ fontSize: 12, textAlign: 'right' }} />
+                <span style={{ color: 'var(--muted)', fontWeight: 700 }}>×</span>
+                <input className="fc" type="number" defaultValue={25} style={{ fontSize: 12, textAlign: 'right' }} />
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                <input className="fc" type="number" defaultValue={23} style={{ fontSize: 12, textAlign: 'right' }} />
+                <span style={{ color: 'var(--muted)', fontWeight: 700 }}>×</span>
+                <input className="fc" type="number" defaultValue={25} style={{ fontSize: 12, textAlign: 'right' }} />
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <input className="fc" type="number" defaultValue={23} style={{ fontSize: 12, textAlign: 'right' }} />
+                <span style={{ color: 'var(--muted)', fontWeight: 700 }}>×</span>
+                <input className="fc" type="number" defaultValue={25} style={{ fontSize: 12, textAlign: 'right' }} />
+              </div>
+            </div>
+            
+            <div>
+              <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--steel)', marginBottom: 4, display: 'block', textAlign: 'right' }}>تاريخ الانتهاء</label>
+              <input className="fc" type="date" style={{ fontSize: 12, textAlign: 'right' }} />
+            </div>
+          </div>
+          
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 8 }}>
+            {CHK_CUST.map((label) => (
+              <label 
+                key={label}
+                style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: 8,
+                  cursor: 'pointer',
+                  padding: '6px 8px',
+                  borderRadius: 6,
+                  background: custChecks[label] ? 'rgba(46,204,113,0.1)' : 'transparent',
+                  border: `1px solid ${custChecks[label] ? '#27ae60' : 'var(--border)'}`,
+                  transition: 'all 0.2s'
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={!!custChecks[label]}
+                  onChange={(e) => {
+                    setCustChecks(prev => ({ ...prev, [label]: e.target.checked }));
+                  }}
+                  style={{ width: 16, height: 16, cursor: 'pointer' }}
+                />
+                <span style={{ fontSize: 12, fontWeight: 500 }}>{label}</span>
+              </label>
+            ))}
+          </div>
+          
+          <div style={{ marginTop: 10 }}>
+            <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--steel)', marginBottom: 6, display: 'block', textAlign: 'right' }}>اختبار</label>
+            <input className="fc" placeholder="ادخل نص الاختبار" style={{ fontSize: 12, textAlign: 'right' }} />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <SectionDiv label="سجل المشاكل الواردة من الزبون" />
+    <InlineTable
+      cols={PROBLEMS_COLS}
+      rows={isEdit ? problemsRows : pendingProblems}
+      onRowsChange={handleProblemsChange}
+      syncDraftRows={!isEdit}
+    />
+  </AccordionCard>
+
+  {/* ══ 5. التسليم والفوترة ══ */}
+  <AccordionCard 
+    title="🚚 التسليم والفوترة"
+    isOpen={openSections.delivery}
+    onToggle={() => toggleSection('delivery')}
+  >
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 10 }}>
+      <G label="الكمية المسلمة"><input className="fc" type="number" {...register('Qunt_Ac')} style={{ textAlign: 'right' }} /></G>
+      <G label="التعبئة عند الزبون"><input className="fc" {...register('Cus_Paking')} style={{ textAlign: 'right' }} /></G>
+      <G label="طريقة تلزيق العلبة"><input className="fc" {...register('box_stk_typ')} style={{ textAlign: 'right' }} /></G>
+      <G label="الحالة">
+        <div style={{ display: 'flex', gap: 8, paddingTop: 4, flexWrap: 'wrap' }}>
+          <CheckItem label="سُلِّمت" checked={!!checks.Reseved} onChange={chk('Reseved')} />
+          <CheckItem label="فوترة"  checked={!!checks.Billed}  onChange={chk('Billed')} />
+          <CheckItem label="مطبوعة" checked={!!checks.Printed} onChange={chk('Printed')} />
+        </div>
+      </G>
+    </div>
+
+    <SectionDiv label="الإيصالات" />
+    <div style={{ overflowX: 'auto' }}>
+      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+        <thead>
+          <tr style={{ background: 'var(--steel)', color: '#fff' }}>
+            {['إيصال','تاريخ الإيصال','الحد','رقم الفاتورة','النوع','عدد العلب','ط','ع','ا','حذف'].map(h => (
+              <th key={h} style={{ padding: '10px 8px', textAlign: 'right', fontWeight: 600, fontSize: 12 }}>{h}</th>
+            ))}
           </tr>
         </thead>
         <tbody>
-          {localRows.length === 0 && (
-            <tr>
-              <td colSpan={cols.length + 1} className="text-center text-slate-400 py-6 font-semibold">
-                ✦ لا توجد سجلات — اضغط ➕ لإضافة سطر
-              </td>
-            </tr>
+          {vouchers.length === 0 && (
+            <tr><td colSpan={10} style={{ textAlign: 'center', color: 'var(--muted)', padding: 20 }}>
+              ✦ لا توجد إيصالات — اضغط ➕ لإضافة إيصال
+            </td></tr>
           )}
-
-          {localRows.map((row, i) => (
-            <tr key={row.ID || `new-${i}`} className={`border-b border-slate-100 ${row._isNew === 'true' ? 'bg-amber-50' : i % 2 === 0 ? 'bg-white' : 'bg-slate-50'}`}>
-              {cols.map((c) => {
-                const isNumber = c.type === 'number';
-                const value = isNumber ? cleanNumber(String(row[c.key] ?? '')) : (row[c.key] ?? '');
-
-                return (
-                  <td key={`${c.key}-${i}`} className="p-1.5 border-r border-slate-100">
-                    <input
-                      value={value}
-                      type={c.type === 'date' ? 'date' : 'text'}
-                      inputMode={isNumber ? 'decimal' : undefined}
-                      onChange={(e) => setCell(i, c.key, e.target.value)}
-                      className="w-full bg-transparent text-xs font-semibold px-2 py-1 outline-none text-slate-800 text-right focus:bg-white focus:shadow-sm focus:rounded"
-                    />
-                  </td>
-                );
-              })}
-
-              <td className="p-1.5 text-center flex justify-center items-center gap-1">
-                {saving[i] ? (
-                  <span className="text-slate-400">⏳</span>
-                ) : (
-                  <>
-                    {(row._isNew === 'true' || dirtyRows.has(i)) && (
-                      <button type="button" onClick={() => saveRow(i)} className="text-green-600 hover:scale-110 text-base" title="حفظ">💾</button>
-                    )}
-                    <button type="button" onClick={() => delRow(i)} className="text-red-500 hover:scale-110 text-base" title="حذف">🗑</button>
-                  </>
-                )}
+          {vouchers.map((v: any, i: number) => (
+            <tr key={v.ID1} style={{ borderBottom: '1px solid var(--border)', background: i % 2 === 0 ? '#fff' : '#fdf8f0' }}>
+              <td style={{ padding: '8px', textAlign: 'right' }}><span style={{ fontWeight: 600 }}>{v.Voucher_num || '—'}</span></td>
+              <td style={{ padding: '8px', textAlign: 'right' }}>{v.V_date || '—'}</td>
+              <td style={{ padding: '8px', textAlign: 'right' }}>{v.V_Qunt || '0'}</td>
+              <td style={{ padding: '8px', textAlign: 'right' }}>{v.Bill_Num || '—'}</td>
+              <td style={{ padding: '8px', textAlign: 'right' }}>{v.Contean || '—'}</td>
+              <td style={{ padding: '8px', textAlign: 'right' }}>{v.Paking_q || '0'}</td>
+              <td style={{ padding: '8px', textAlign: 'right' }}>{v.Box_L || '0'}</td>
+              <td style={{ padding: '8px', textAlign: 'right' }}>{v.Box_W || '0'}</td>
+              <td style={{ padding: '8px', textAlign: 'right' }}>{v.Box_H || '0'}</td>
+              <td style={{ padding: '8px', textAlign: 'center' }}>
+                <button type="button"
+                  onClick={() => confirm('حذف الإيصال؟') && deleteVoucher.mutate((v as any).ID1)}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16 }}>🗑</button>
               </td>
             </tr>
           ))}
         </tbody>
-        <tfoot>
-          <tr>
-            <td colSpan={cols.length + 1} className="p-2">
-              <button
-                type="button"
-                onClick={addRow}
-                className="w-full text-slate-400 hover:text-slate-600 py-2 font-semibold text-center border-2 border-dashed border-slate-200 hover:border-slate-300 rounded-lg transition-all"
-              >
-                ➕ إضافة سطر
-              </button>
-            </td>
-          </tr>
-        </tfoot>
       </table>
     </div>
-  );
-});
-
-function VoucherModal({ open, onClose, orderId, orderYear }: {
-  open: boolean; onClose: () => void; orderId: string; orderYear: string;
-}) {
-  const create = useCreateVoucher();
-  const [form, setForm] = useState({
-    Voucher_num: '', V_date: '', V_Qunt: '', Bill_Num: '',
-    Contean: '', Paking_q: '', Box_tp: '', Box_L: '', Box_W: '', Box_H: '',
-  });
-
-  const F = (k: string) => (e: React.ChangeEvent<HTMLInputElement>) => {
-    setForm(f => ({ ...f, [k]: e.target.value }));
-  };
-
-  if (!open) return null;
-
-  return (
-    <div onClick={onClose} className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 text-right" dir="rtl">
-      <div onClick={e => e.stopPropagation()} className="bg-white rounded-xl p-6 w-full max-w-lg shadow-xl border border-slate-200">
-        <h3 className="text-sm font-black text-slate-900 border-b border-slate-100 pb-3 mb-4">➕ إضافة إيصال جديد</h3>
-        <div className="grid grid-cols-2 gap-3">
-          <FormGroup label="رقم الإيصال"><input className="fc" value={form.Voucher_num} onChange={F('Voucher_num')} /></FormGroup>
-          <FormGroup label="تاريخ الإيصال"><input className="fc" type="date" value={form.V_date} onChange={F('V_date')} /></FormGroup>
-          <FormGroup label="الحد (الكمية)"><input className="fc" type="number" value={form.V_Qunt} onChange={F('V_Qunt')} /></FormGroup>
-          <FormGroup label="رقم الفاتورة"><input className="fc" value={form.Bill_Num} onChange={F('Bill_Num')} /></FormGroup>
-          <FormGroup label="النوع"><input className="fc" value={form.Contean} onChange={F('Contean')} /></FormGroup>
-          <FormGroup label="عدد العلب"><input className="fc" type="number" value={form.Paking_q} onChange={F('Paking_q')} /></FormGroup>
-        </div>
-        <SectionDiv label="أبعاد الكرتون (ط × ع × ا)" />
-        <div className="grid grid-cols-4 gap-2 mt-2">
-          <FormGroup label="النوع"><input className="fc" value={form.Box_tp} onChange={F('Box_tp')} /></FormGroup>
-          <FormGroup label="ط"><input className="fc" type="number" value={form.Box_L} onChange={F('Box_L')} /></FormGroup>
-          <FormGroup label="ع"><input className="fc" type="number" value={form.Box_W} onChange={F('Box_W')} /></FormGroup>
-          <FormGroup label="ا"><input className="fc" type="number" value={form.Box_H} onChange={F('Box_H')} /></FormGroup>
-        </div>
-        <div className="flex gap-2 justify-end mt-6 border-t pt-4">
-          <Btn variant="outline" type="button" onClick={onClose}>إلغاء</Btn>
-          <Btn variant="primary" type="button" disabled={create.isPending}
-            onClick={async () => {
-              await create.mutateAsync({ ...form, ID: orderId, Year: orderYear });
-              onClose();
-            }}>
-            {create.isPending ? '⏳...' : '✅ حفظ الإيصال'}
-          </Btn>
-        </div>
-      </div>
+    <div style={{ marginTop: 12 }}>
+      <Btn variant="outline" type="button" onClick={() => setVoucherOpen(true)}>➕ إضافة إيصال</Btn>
     </div>
-  );
+  </AccordionCard>
+
+  {/* ── Footer ── */}
+  <div style={{ background: '#fff', borderRadius: 14, border: '1px solid var(--border)', padding: '12px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+    <span style={{ fontSize: 12, color: 'var(--muted)' }}>سنة العمل: <strong>{currentYear}</strong></span>
+    <div style={{ display: 'flex', gap: 10 }}>
+      <Btn variant="outline" type="button" onClick={() => navigate('/orders')}>إلغاء</Btn>
+      <Btn variant="outline" type="button" onClick={printProductionCard}>🖨️ طباعة بطاقة الإنتاج</Btn>
+      <Btn variant="primary" type="submit" disabled={isSaving}>
+        {isSaving ? '⏳ جاري الحفظ...' : '✅ حفظ وتأكيد'}
+      </Btn>
+    </div>
+  </div> 
+
+</form>
+
+<VoucherModal 
+  open={voucherOpen} 
+  onClose={() => setVoucherOpen(false)} 
+  orderId={id || ''} 
+  orderYear={year || currentYear} 
+/>
+</div>
+);
 }
 
-const MATERIALS_COLS = [
-  { key: 'Type1', label: 'النوع' },
-  { key: 'Id_carton', label: 'رقم الكرتون' },
-  { key: 'Source1', label: 'المصدر' },
-  { key: 'Supplier1', label: 'المورد' },
-  { key: 'Long1', label: 'الطول', type: 'number' },
-  { key: 'Width1', label: 'العرض', type: 'number' },
-  { key: 'Gramage1', label: 'غراماج', type: 'number' },
-  { key: 'Sheet_count1', label: 'عدد الأطباق', type: 'number' },
-  { key: 'Price', label: 'السعر' },
-  { key: 'Out_Date', label: 'تاريخ الإخراج', type: 'date' },
-  { key: 'Out_ord_num', label: 'رقم أمر الإخراج' },
-  { key: 'note_crt', label: 'ملاحظات' },
-];
-
-const PROBLEMS_COLS = [
-  { key: 'print_num', label: 'رقم الطبع' },
-  { key: 'prod_date', label: 'تاريخ الإنتاج', type: 'date' },
-  { key: 'exp_date', label: 'تاريخ الانتهاء', type: 'date' },
-  { key: 'print_count', label: 'عدد الطبع', type: 'number' },
-];
-
-const OPERATIONS_COLS = [
-  { key: 'Action', label: 'العملية' },
-  { key: 'Color', label: 'اللون' },
-  { key: 'Qunt_Ac', label: 'الكمية', type: 'number' },
-  { key: 'On', label: 'على', type: 'number' },
-  { key: 'Machin', label: 'الآلة' },
-  { key: 'Hours', label: 'الساعات', type: 'number' },
-  { key: 'Kelo', label: 'كيلو', type: 'number' },
-  { key: 'Actual', label: 'الفعلي', type: 'number' },
-  { key: 'Tarkeb', label: 'تركيب', type: 'number' },
-  { key: 'Wash', label: 'غسيل', type: 'number' },
-  { key: 'Electricity', label: 'كهرباء', type: 'number' },
-  { key: 'Taghez', label: 'تجهيز', type: 'number' },
-  { key: 'StopVar', label: 'توقف', type: 'number' },
-  { key: 'Date', label: 'التاريخ', type: 'date' },
-  { key: 'NotesA', label: 'ملاحظات' },
-  { key: 'Tabrer', label: 'تبرير' },
-];
-
-const MFG_MAP: Record<string, string> = {
-  'برنيش': 'varnich',
-  'تلميع بقعي': 'uv_Spot',
-  'تلميع كامل': 'uv',
-  'سلفان لميع': 'seluvan_lum',
-  'سلفان مات': 'seluvan_mat',
-  'طُبعت؟': 'Printed',
-};
-
-const CUST_MAP: Record<string, string> = {
-  'مع طبخة': 'tabkha',
-  'مع تطوية': 'Tay',
-  'تدعيم زكزاك': 'Tad3em',
-  'حراري': 'harary',
-  'بلص': 'bals',
-};
-
-const toBit = (val: any): number =>
-  val === true || val === 1 || val === '1' || String(val).toLowerCase() === 'true' ? 1 : 0;
-
-const fromBit = (val: any): boolean =>
-  val === true || val === 1 || val === '1' || String(val).toLowerCase() === 'true';
-
-const BOOL_FIELDS = [
-  'varnich', 'uv', 'uv_Spot', 'seluvan_lum', 'seluvan_mat',
-  'Tad3em', 'Tay', 'harary', 'rolling', 'Printed', 'Billed', 'Reseved'
-];
-
-export default function OrderFormPage() {
-  const { id, year } = useParams<{ id?: string; year?: string }>();
-  const isEdit = !!(id && year && String(id).trim() && String(year).trim());
-  const navigate = useNavigate();
-
-  const { data: existing } = useOrder(id ?? '', year ?? '');
-
-  const createOrder = useCreateOrder();
-  const updateOrder = useUpdateOrder(id ?? '', year ?? '');
-  
-  const { data: customers = [] } = useCustomers();
-
-  const [checks, setChecks] = useState<Record<string, boolean>>({});
-  const [mfgChecks, setMfgChecks] = useState<Record<string, boolean>>({});
-  const [custChecks, setCustChecks] = useState<Record<string, boolean>>({});
-  const [voucherOpen, setVoucherOpen] = useState(false);
-
-  const [idInitialized, setIdInitialized] = useState(false);
-  const [hasLoadedEdit, setHasLoadedEdit] = useState(false);
-
-  const [currentYear] = useState(String(new Date().getFullYear()));
-
-  const { register, handleSubmit, reset, setValue } = useForm<Order>({
-    defaultValues: {
-      Year: year || currentYear,
-      ID: '',
-      Ser: ''
-    }
-  });
-
-  const syncRows = useCallback(async (
-    oldRows: Record<string, string>[],
-    newRows: Record<string, string>[],
-    onCreate: (fields: any) => Promise<any>,
-    onUpdate: (rowId: number, fields: any) => Promise<any>,
-    onDelete: (rowId: number) => Promise<any>,
-  ) => {
-    const oldIds = new Set(oldRows.map(r => r.ID).filter(v => !!v));
-    const newIds = new Set(newRows.map(r => r.ID).filter(v => !!v));
-
-    try {
-      for (const old of oldRows) {
-        if (old.ID && !newIds.has(old.ID)) {
-          await onDelete(Number(old.ID)).catch(console.error);
-        }
-      }
-      for (const row of newRows) {
-        const { ID, _isNew, ...fields } = row;
-        if (ID && oldIds.has(ID)) {
-          await onUpdate(Number(ID), fields).catch(console.error);
-        } else if (!ID) {
-          await onCreate(fields).catch(console.error);
-        }
-      }
-    } catch (error) {
-      console.error('syncRows error:', error);
-    }
-  }, []);
-
-  // ── الكرتون ──
-  const { data: cartonsData = [] } = useCartons(isEdit ? (id ?? '') : '', isEdit ? (year ?? '') : '');
-  const createCarton = useCreateCarton();
-  const updateCarton = useUpdateCarton();
-  const deleteCarton = useDeleteCarton();
-
-  const [materialsRows, setMaterialsRows] = useState<Record<string, string>[]>([]);
-  const [pendingMaterials, setPendingMaterials] = useState<Record<string, string>[]>([]);
-
-  useEffect(() => {
-    setMaterialsRows(cartonsData.map((c: any) => ({
-      ID: String(c.ID1 ?? c.ID ?? ''),
-      Type1: c.Type1 ?? '', Id_carton: c.Id_carton ?? '', Source1: c.Source1 ?? '', Supplier1: c.Supplier1 ?? '',
-      Long1: String(c.Long1 ?? ''), Width1: String(c.Width1 ?? ''), Gramage1: String(c.Gramage1 ?? ''),
-      Sheet_count1: String(c.Sheet_count1 ?? ''), Price: String(c.Price ?? ''), Out_Date: c.Out_Date ?? '',
-      Out_ord_num: c.Out_ord_num ?? '', note_crt: c.note_crt ?? '',
-    })));
-  }, [cartonsData]);
-
-  const handleMaterialsChange = useCallback(async (newRows: Record<string, string>[]) => {
-    if (!isEdit) { setPendingMaterials(newRows); return; }
-    await syncRows(materialsRows, newRows,
-      (f) => createCarton.mutateAsync({ ...f, ID: id!, year: year! }),
-      (rowId, f) => updateCarton.mutateAsync({ rowId, data: f }),
-      (rowId) => deleteCarton.mutateAsync(rowId),
-    );
-  }, [isEdit, materialsRows, syncRows, createCarton, updateCarton, deleteCarton, id, year]);
-
-  // ── سجل المشاكل ──
-  const { data: problemsData = [] } = useProblems(isEdit ? (id ?? '') : '', isEdit ? (year ?? '') : '');
-  const createProblem = useCreateProblem();
-  const updateProblem = useUpdateProblem();
-  const deleteProblem = useDeleteProblem();
-
-  const [pendingProblems, setPendingProblems] = useState<Record<string, string>[]>([]);
-  const problemsRows = useMemo(() => problemsData.map((p: any) => ({
-    ID: String(p.ID1 ?? ''), print_num: p.print_num ?? '', prod_date: p.prod_date ?? '', exp_date: p.exp_date ?? '', print_count: String(p.print_count ?? ''),
-  })), [problemsData]);
-
-  const handleProblemsChange = useCallback(async (newRows: Record<string, string>[]) => {
-    if (!isEdit) { setPendingProblems(newRows); return; }
-    await syncRows(problemsRows, newRows,
-      (f) => createProblem.mutateAsync({ ...f, ID: id!, Year: year! }),
-      (rowId, f) => updateProblem.mutateAsync({ rowId, data: f }),
-      (rowId) => deleteProblem.mutateAsync(rowId),
-    );
-  }, [isEdit, problemsRows, syncRows, createProblem, updateProblem, deleteProblem, id, year]);
-
-  // ── العمليات ──
-  const { data: operationsData = [] } = useOperations(isEdit ? (id ?? '') : '', isEdit ? (year ?? '') : '');
-  const createOperation = useCreateOperation();
-  const updateOperation = useUpdateOperation();
-  const deleteOperation = useDeleteOperation();
-
-  const [pendingOps, setPendingOps] = useState<Record<string, string>[]>([]);
-  const operationsRows = useMemo(() => operationsData.map((op: any) => ({
-    ID: String(op.ID1 ?? op.ID ?? ''), Action: op.Action ?? '', Color: op.Color ?? '', Qunt_Ac: String(op.Qunt_Ac ?? ''), On: String(op.On ?? ''),
-    Machin: op.Machin ?? '', Hours: String(op.Hours ?? ''), Kelo: String(op.Kelo ?? ''), Actual: String(op.Actual ?? ''), Tarkeb: String(op.Tarkeb ?? ''),
-    Wash: String(op.Wash ?? ''), Electricity: String(op.Electricity ?? ''), Taghez: String(op.Taghez ?? ''), StopVar: String(op.StopVar ?? ''),
-    Date: op.Date ?? '', NotesA: op.NotesA ?? '', Tabrer: op.Tabrer ?? '',
-  })), [operationsData]);
-
-  const handleOperationsChange = useCallback(async (newRows: Record<string, string>[]) => {
-    if (!isEdit) { setPendingOps(newRows); return; }
-    await syncRows(operationsRows, newRows,
-      (f) => createOperation.mutateAsync({ ...f, ID: id!, year: year! }),
-      (rowId, f) => updateOperation.mutateAsync({ rowId, data: f }),
-      (rowId) => deleteOperation.mutateAsync(rowId),
-    );
-  }, [isEdit, operationsRows, syncRows, createOperation, updateOperation, deleteOperation, id, year]);
-
-  const [openSections, setOpenSections] = useState({ basic: true, specs: true, printing: true, quality: true, delivery: true });
-
-  const { data: ordersResponse } = useOrders({ year: year || currentYear });
-  const orders = useMemo(() => ordersResponse?.data ?? [], [ordersResponse]);
-
-  const { data: vouchers = [] } = useVouchers(isEdit ? (id ?? '') : '', isEdit ? (year ?? currentYear) : currentYear);
-
-  useEffect(() => {
-    if (!isEdit || !existing || hasLoadedEdit) return;
-    reset(existing);
-
-    const loadedMfg: Record<string, boolean> = {};
-    Object.entries(MFG_MAP).forEach(([label, field]) => { loadedMfg[label] = fromBit((existing as any)[field]); });
-    setMfgChecks(loadedMfg);
-
-    const loadedCust: Record<string, boolean> = {};
-    Object.entries(CUST_MAP).forEach(([label, field]) => { loadedCust[label] = fromBit((existing as any)[field]); });
-    setCustChecks(loadedCust);
-
-    setChecks({
-      varnich: fromBit(existing.varnich), uv: fromBit(existing.uv), uv_Spot: fromBit(existing.uv_Spot),
-      seluvan_lum: fromBit(existing.seluvan_lum), seluvan_mat: fromBit(existing.seluvan_mat),
-      Tad3em: fromBit(existing.Tad3em), Tay: fromBit(existing.Tay), harary: fromBit(existing.harary),
-      rolling: fromBit(existing.rolling), Printed: fromBit(existing.Printed),
-      Billed: fromBit(existing.Billed), Reseved: fromBit(existing.Reseved),
-      CTB: fromBit(existing.DubelM), varn: fromBit(existing.varnich),
-    });
-    setHasLoadedEdit(true);
-  }, [isEdit, existing, hasLoadedEdit, reset]);
-
-  useEffect(() => {
-    if (!orders || orders.length === 0 || isEdit || idInitialized) return;
-    const latestOrder = orders[orders.length - 1];
-    const lastSer = parseInt(latestOrder?.Ser || '0') || 0;
-    const newId = String((Number(latestOrder?.ID) || 0) + 1);
-
-    setValue('Ser', String(lastSer + 1));
-    setValue('ID', newId);
-    setValue('Year', year || currentYear);
-    setIdInitialized(true);
-  }, [orders, isEdit, idInitialized, year, currentYear, setValue]);
-
-  const onSubmit = useCallback(async (data: Order) => {
-    try {
-      BOOL_FIELDS.forEach(f => { (data as any)[f] = toBit(checks[f]); });
-      Object.entries(MFG_MAP).forEach(([label, field]) => { (data as any)[field] = toBit(mfgChecks[label]); });
-      Object.entries(CUST_MAP).forEach(([label, field]) => { (data as any)[field] = toBit(custChecks[label]); });
-      (data as any).DubelM = toBit(checks.CTB);
-
-      if (isEdit) {
-        await updateOrder.mutateAsync(data);
-      } else {
-        const created = await createOrder.mutateAsync(data);
-        const newId = String(created?.ID ?? data.ID);
-        const yr = String(data.Year ?? currentYear);
-
-        await Promise.all([
-          ...pendingMaterials.map(f => createCarton.mutateAsync({ ...f, ID: newId, year: yr })),
-          ...pendingProblems.map(f => createProblem.mutateAsync({ ...f, ID: newId, Year: yr })),
-          ...pendingOps.map(f => createOperation.mutateAsync({ ...f, ID: newId, year: yr })),
-        ]);
-      }
-      navigate('/orders');
-    } catch (error: any) {
-      alert(error.message || 'حدث خطأ أثناء الحفظ');
-    }
-  }, [checks, mfgChecks, custChecks, isEdit, currentYear, pendingMaterials, pendingProblems, pendingOps, updateOrder, createOrder, createCarton, createProblem, createOperation, navigate]);
-
-  const chk = useCallback((k: string) => (v: boolean) => setChecks(c => ({ ...c, [k]: v })), []);
-
-  return (
-    <div className="p-6 max-w-7xl mx-auto font-sans" dir="rtl">
-      <div className="flex items-center justify-between border-b pb-4 mb-6">
-        <h1 className="text-xl font-black text-slate-800">
-          {isEdit ? `✏️ تعديل الطلب: ${id} لعام ${year}` : '➕ إضافة طلب جديد'}
-        </h1>
-        <Btn variant="outline" onClick={() => navigate('/orders')}>رجوع للقائمة</Btn>
-      </div>
-
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 font-sans">
-        
-        {/* بيانات الطلب */}
-        <AccordionCard title="📋 بيانات الطلب الأساسية" isOpen={openSections.basic} onToggle={() => setOpenSections(p => ({ ...p, basic: !p.basic }))}>
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-            <G label="تسلسل"><input className="fc bg-slate-50 font-bold" {...register('Ser')} readOnly /></G>
-            <G label="اسم الزبون" req><input className="fc" {...register('Customer', { required: true })} list="cust-list" /></G>
-            <G label="رقمنا"><input className="fc bg-slate-50 font-bold text-indigo-600" {...register('ID')} readOnly /></G>
-            <G label="سنة العمل" req><input className="fc" {...register('Year', { required: true })} readOnly={isEdit} /></G>
-            <G label="المرجع" req><input className="fc" {...register('marji3', { required: true })} /></G>
-          </div>
-          <datalist id="cust-list">
-            {customers.map((c: any) => <option key={c.ID1} value={c.Customer} />)}
-          </datalist>
-        </AccordionCard>
-
-        {/* مواصفات المطبوعة */}
-        <AccordionCard title="🎨 مواصفات المطبوعة" isOpen={openSections.specs} onToggle={() => setOpenSections(p => ({ ...p, specs: !p.specs }))}>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <G label="نوع المطبوعة">
-              <select className="fc" {...register('unit')}>
-                <option value="">—</option>
-                {['علبة', 'كرتون', 'بروشور', 'استيكر'].map(v => <option key={v}>{v}</option>)}
-              </select>
-            </G>
-            <G label="الاسم"><input className="fc" {...register('Pattern')} /></G>
-            <G label="العيار"><input className="fc" {...register('ear')} /></G>
-            <G label="السعر"><input className="fc" type="number" step="0.01" {...register('Price')} /></G>
-          </div>
-
-          <SectionDiv label="مواد الكرتون والمستودع" />
-          <InlineTable
-            cols={MATERIALS_COLS}
-            rows={isEdit ? materialsRows : pendingMaterials}
-            onRowsChange={handleMaterialsChange}
-            syncDraftRows={!isEdit}
-          />
-        </AccordionCard>
-
-        {/* العمليات */}
-        <AccordionCard title="⚙️ العمليات وسير الإنتاج" isOpen={openSections.printing} onToggle={() => setOpenSections(p => ({ ...p, printing: !p.printing }))}>
-          <InlineTable
-            cols={OPERATIONS_COLS}
-            rows={isEdit ? operationsRows : pendingOps}
-            onRowsChange={handleOperationsChange}
-            syncDraftRows={!isEdit}
-          />
-        </AccordionCard>
-
-        {/* المشاكل */}
-        <AccordionCard title="🔍 مراقبة الجودة" isOpen={openSections.quality} onToggle={() => setOpenSections(p => ({ ...p, quality: !p.quality }))}>
-          <InlineTable
-            cols={PROBLEMS_COLS}
-            rows={isEdit ? problemsRows : pendingProblems}
-            onRowsChange={handleProblemsChange}
-            syncDraftRows={!isEdit}
-          />
-        </AccordionCard>
-
-        {/* التسليم */}
-        <AccordionCard title="🚚 التسليم والفوترة" isOpen={openSections.delivery} onToggle={() => setOpenSections(p => ({ ...p, delivery: !p.delivery }))}>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
-            <G label="الكمية المسلمة"><input className="fc" type="number" {...register('Qunt_Ac')} /></G>
-            <div className="flex items-center gap-4 pt-6">
-              <CheckItem label="سُلِّمت" checked={!!checks.Reseved} onChange={chk('Reseved')} />
-              <CheckItem label="فوترة" checked={!!checks.Billed} onChange={chk('Billed')} />
-            </div>
-            <div className="pt-5">
-              <Btn variant="outline" type="button" onClick={() => setVoucherOpen(true)}>➕ إضافة إيصال</Btn>
-            </div>
-          </div>
-          
-          <div className="overflow-x-auto mt-2">
-            <table className="w-full text-xs text-right border border-slate-100">
-              <thead className="bg-slate-50 text-slate-700">
-                <tr>
-                  <th className="p-2 border">رقم الإيصال</th>
-                  <th className="p-2 border">تاريخه</th>
-                  <th className="p-2 border">الكمية</th>
-                  <th className="p-2 border">النوع</th>
-                </tr>
-              </thead>
-              <tbody>
-                {vouchers.length === 0 ? (
-                  <tr>
-                    <td colSpan={4} className="p-4 text-center text-slate-400 font-semibold">لا توجد إيصالات</td>
-                  </tr>
-                ) : (
-                  vouchers.map((v: any, i: number) => (
-                    <tr key={i} className="hover:bg-slate-50">
-                      <td className="p-2 border font-bold">{v.Voucher_num}</td>
-                      <td className="p-2 border">{v.V_date}</td>
-                      <td className="p-2 border">{v.V_Qunt}</td>
-                      <td className="p-2 border">{v.Contean}</td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </AccordionCard>
-
-        {/* أزرار الإجراءات */}
-        <div className="flex justify-end gap-3 p-4 bg-slate-50 border rounded-xl">
-          <Btn variant="outline" type="button" onClick={() => navigate('/orders')}>إلغاء</Btn>
-          <Btn variant="primary" type="submit">
-            {createOrder.isPending || updateOrder.isPending ? '⏳ جاري المعالجة...' : '✅ تأكيد الحفظ'}
-          </Btn>
-        </div>
-
-      </form>
-      <VoucherModal open={voucherOpen} onClose={() => setVoucherOpen(false)} orderId={id || ''} orderYear={year || currentYear} />
-    </div>
-  );
-}
