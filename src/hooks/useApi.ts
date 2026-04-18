@@ -120,9 +120,7 @@ export function useCreateCarton() {
 export function useUpdateCarton() {
   const qc = useQueryClient();
   return useMutation({
-    // ✅ أضفنا year للـ payload
-    mutationFn: ({ rowId, year, data }: { rowId: number; year: string; data: any }) =>
-      cartonsApi.update(rowId, year, data),
+    mutationFn: ({ rowId, data }: { rowId: number; data: any }) => cartonsApi.update(rowId, data),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['cartons'] }); },
     onError: () => toast.error('خطأ في تحديث الكرتون'),
   });
@@ -131,9 +129,7 @@ export function useUpdateCarton() {
 export function useDeleteCarton() {
   const qc = useQueryClient();
   return useMutation({
-    // ✅ أضفنا year للـ payload
-    mutationFn: ({ rowId, year }: { rowId: number; year: string }) =>
-      cartonsApi.delete(rowId, year),
+    mutationFn: cartonsApi.delete,
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['cartons'] }); },
     onError: () => toast.error('خطأ في الحذف'),
   });
@@ -160,9 +156,7 @@ export function useCreateProblem() {
 export function useUpdateProblem() {
   const qc = useQueryClient();
   return useMutation({
-    // ✅ أضفنا year للـ payload
-    mutationFn: ({ rowId, year, data }: { rowId: number; year: string; data: any }) =>
-      problemsApi.update(rowId, year, data),
+    mutationFn: ({ rowId, data }: { rowId: number; data: any }) => problemsApi.update(rowId, data),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['problems'] }); },
     onError: () => toast.error('خطأ في تحديث المشكلة'),
   });
@@ -171,9 +165,7 @@ export function useUpdateProblem() {
 export function useDeleteProblem() {
   const qc = useQueryClient();
   return useMutation({
-    // ✅ أضفنا year للـ payload
-    mutationFn: ({ rowId, year }: { rowId: number; year: string }) =>
-      problemsApi.delete(rowId, year),
+    mutationFn: problemsApi.delete,
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['problems'] }); },
     onError: () => toast.error('خطأ في الحذف'),
   });
@@ -203,9 +195,8 @@ export function useCreateOperation() {
 export function useUpdateOperation() {
   const qc = useQueryClient();
   return useMutation({
-    // ✅ أضفنا year للـ payload
-    mutationFn: ({ rowId, year, data }: { rowId: number; year: string; data: any }) =>
-      operationsApi.update(rowId, year, data),
+    mutationFn: ({ rowId, data }: { rowId: number; data: any }) =>
+      operationsApi.update(rowId, data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['operations'] });
     },
@@ -216,9 +207,7 @@ export function useUpdateOperation() {
 export function useDeleteOperation() {
   const qc = useQueryClient();
   return useMutation({
-    // ✅ أضفنا year للـ payload
-    mutationFn: ({ rowId, year }: { rowId: number; year: string }) =>
-      operationsApi.delete(rowId, year),
+    mutationFn: operationsApi.delete,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['operations'] });
       toast.success('تم حذف العملية');
