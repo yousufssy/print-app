@@ -194,7 +194,7 @@ try {
   if (_isNew === 'true') {
     const allRows = [...rowsRef.current, { ...fields }];
     await onRowsChange(allRows);
-  } else if (ID && year) {
+  } else if (ID && Year) {
     // Build updated list from rowsRef (not stale localRows closure)
     const updated = rowsRef.current.map((r) => (r.ID === ID ? row : r));
     await onRowsChange(updated);
@@ -559,40 +559,52 @@ Ser: ''
 const formDataRef = useRef<Partial<Order>>({});
 
 // ── helper مشترك لمزامنة أي InlineTable مع الداتابيز ────────────────────────
+// ── helper مشترك لمزامنة أي InlineTable مع الداتابيز ────────────────────────
 const syncRows = useCallback(async (
-oldRows: Record<string, string>[],
-newRows: Record<string, string>[],
-onCreate: (fields: any) => Promise<any>,
-onUpdate: (rowId: number, fields: any) => Promise<any>,
-onDelete: (rowId: number) => Promise<any>,
+  oldRows: Record<string, string>[],
+  newRows: Record<string, string>[],
+  onCreate: (fields: any) => Promise<any>,
+  onUpdate: (rowId: number, year: string, fields: any) => Promise<any>, // ← عدّل التوقيع
+  onDelete: (rowId: number, year: string) => Promise<any>,              // ← عدّل التوقيع
 ) => {
-const oldIds = new Set(oldRows.map(r => r.ID).filter(v => !!v));
-const newIds = new Set(newRows.map(r => r.ID).filter(v => !!v));
+  // ← إنشاء مفتاح مركب: "ID|Year"
+  const getCompositeKey = (row: Record<string, string>) => 
+    `${row.ID}|${row.Year}`;
 
-try {
-  for (const old of oldRows) {
-    if (old.ID && !newIds.has(old.ID)) {
-      await onDelete(Number(old.ID)).catch(err => {
-        console.error('❌ Delete error:', err);
-      });
-    }
-  }
+  const oldKeys = new Set(oldRows.map(getCompositeKey).filter(k => k !== '|'));
+  const newKeys = new Set(newRows.map(getCompositeKey).filter(k => k !== '|'));
 
-  for (const row of newRows) {
-    const { ID, _isNew, ...fields } = row;
-    if (ID && oldIds.has(ID)) {
-      await onUpdate(Number(ID), fields).catch(err => {
-        console.error('❌ Update error:', err);
-      });
-    } else if (!ID) {
-      await onCreate(fields).catch(err => {
-        console.error('❌ Create error:', err);
-      });
+  try {
+    // 🗑️ الحذف: الأسطر الموجودة قديمًا وغير موجودة جديدًا
+    for (const old of oldRows) {
+      const key = getCompositeKey(old);
+      if (old.ID && old.Year && !newKeys.has(key)) {
+        await onDelete(Number(old.ID), old.Year).catch(err => {
+          console.error('❌ Delete error:', err);
+        });
+      }
     }
+
+    // ✏️ التحديث أو ➕ الإنشاء
+    for (const row of newRows) {
+      const { ID, Year, _isNew, ...fields } = row;
+      const key = getCompositeKey(row);
+      
+      if (ID && Year && oldKeys.has(key)) {
+        // ← تحديث: المفتاح موجود → نحدّث
+        await onUpdate(Number(ID), Year, fields).catch(err => {
+          console.error('❌ Update error:', err);
+        });
+      } else if (!ID) {
+        // ← إنشاء جديد: لا يوجد ID
+        await onCreate({ ...fields, Year }).catch(err => {
+          console.error('❌ Create error:', err);
+        });
+      }
+    }
+  } catch (error) {
+    console.error('❌ syncRows error:', error);
   }
-} catch (error) {
-  console.error('❌ syncRows error:', error);
-}
 }, []);
 
 // ── الكرتون ───────────────────────────────────────────────────────────────────
