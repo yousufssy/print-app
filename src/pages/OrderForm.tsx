@@ -841,12 +841,13 @@ setHasLoadedDuplicate(true);
 }, [duplicatedData, hasLoadedDuplicate, reset]);
 
 // ✅ 3️⃣ تهيئة طلب جديد - مرة واحدة فقط
+// ✅ استبدل useEffect الخاص بتهيئة الـ ID بهذا
 const idInitializedRef = useRef(false);
 
 useEffect(() => {
-  if (isEdit || duplicatedData) return;
-  if (idInitializedRef.current) return;
-  if (!orders || orders.length === 0) return;
+  if (isEdit) return;                          // في وضع التعديل لا تغيّر ID
+  if (idInitializedRef.current) return;        // تم التهيئة مسبقاً
+  if (!orders || orders.length === 0) return;  // انتظر تحميل الطلبات
 
   idInitializedRef.current = true;
 
@@ -854,6 +855,7 @@ useEffect(() => {
   const lastSer = parseInt(latestOrder?.Ser || '0') || 0;
   const newId = String((Number(latestOrder?.ID) || 0) + 1);
 
+  // ✅ سواء كان طلب جديد أو نسخ — يحسب ID جديد دائماً
   const initData = {
     Ser: String(lastSer + 1),
     ID: newId,
@@ -861,10 +863,10 @@ useEffect(() => {
   };
 
   reset((prev) => ({ ...prev, ...initData }));
-  formDataRef.current = initData;
+  formDataRef.current = { ...formDataRef.current, ...initData };
   setIdInitialized(true);
-// eslint-disable-next-line react-hooks/exhaustive-deps
-}, [orders]);
+
+}, [orders, isEdit, currentYear, reset]);
 // ✅ الحفظ - مع معالجة أخطاء شاملة
 const onSubmit = useCallback(async (data: Order) => {
 try {
