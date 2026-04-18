@@ -185,6 +185,7 @@ const makeKey = (r: Record<string, any>) =>
 
 const saveRow = React.useCallback(async (i: number) => {
   const row = localRows[i];
+  console.log('🔍 ROW DATA:', { ID: row?.ID, year: row?.year, Year: row?.Year });
   if (!row) return;
   if (cols.every(c => !row[c.key])) return;
 
