@@ -845,19 +845,19 @@ setHasLoadedDuplicate(true);
 const idInitializedRef = useRef(false);
 
 useEffect(() => {
-  if (isEdit) return;                          // في وضع التعديل لا تغيّر ID
-  if (idInitializedRef.current) return;        // تم التهيئة مسبقاً
-  if (!orders || orders.length === 0) return;  // انتظر تحميل الطلبات
+  if (isEdit) return;
+  if (idInitializedRef.current) return;
+  if (!orders || orders.length === 0) return;
 
   idInitializedRef.current = true;
 
-  const latestOrder = orders[orders.length - 1];
-  const lastSer = parseInt(latestOrder?.Ser || '0') || 0;
-  const newId = String((Number(latestOrder?.ID) || 0) + 1);
+  // ✅ أعلى ID + 1 (وليس آخر سجل)
+  const maxId  = Math.max(...orders.map((o: any) => Number(o.ID) || 0));
+  const maxSer = Math.max(...orders.map((o: any) => Number(o.Ser) || 0));
+  const newId  = String(maxId + 1);
 
-  // ✅ سواء كان طلب جديد أو نسخ — يحسب ID جديد دائماً
   const initData = {
-    Ser: String(lastSer + 1),
+    Ser: String(maxSer + 1),
     ID: newId,
     Year: currentYear,
   };
@@ -1831,7 +1831,7 @@ return (
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 12 }}>
       <G label="تسلسل"><input className="fc" {...register('Ser')} readOnly style={{ textAlign: 'right', background: '#f8f9fa' }} /></G>
       <G label="اسم الزبون" req><input className="fc" {...register('Customer', { required: true })} list="cust-list" placeholder="ابحث عن الزبون..." style={{ textAlign: 'right' }} /></G>
-      <G label="رقمنا">   <input      className="fc"      {...register('ID')}      readOnly={isEdit}     style={{        textAlign: 'right',        background: isEdit ? '#f8f9fa' : '#fff'  }}    /> </G>
+      <G label="رقمنا"> <div style={{ display: 'flex', gap: 6 }}>  <input className="fc" {...register('ID')}  readOnly={isEdit} style={{ textAlign: 'right', background: isEdit ? '#f8f9fa' : '#fff', flex: 1 }} /> {!isEdit && ( <button type="button"  title="تحديث الرقم" onClick={() => { idInitializedRef.current = false;   queryClient.invalidateQueries({ queryKey: ['orders', currentYear] }); }}  style={{ padding: '0 10px', border: '1px solid var(--border)', borderRadius: 6, background: '#fff', cursor: 'pointer', fontSize: 14, }}>🔄</button> )}   </div> </G>
       <G label="المرجع" req><input className="fc" {...register('marji3', { required: true })} placeholder="65982" style={{ textAlign: 'right' }} /></G>
       <G label="التفصيلات المرتبطة"><input className="fc" {...register('AttachmentsOrders')} style={{ textAlign: 'right' }} /></G>
     </div>
