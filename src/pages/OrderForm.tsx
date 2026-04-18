@@ -184,28 +184,39 @@ const makeKey = (r: Record<string, any>) =>
   `${String(r.ID ?? '').trim()}|${String(r.year ?? r.Year ?? '').trim()}`;
 
 const saveRow = React.useCallback(async (i: number) => {
+  console.log('🟢 saveRow STARTED for index:', i); // 🔍 سيتأكد أن الدالة دخلت
+  
   const row = localRows[i];
-  console.log('🔍 ROW DATA:', { ID: row?.ID, year: row?.year, Year: row?.Year });
-  if (!row) return;
-  if (cols.every(c => !row[c.key])) return;
+  if (!row) { console.warn('⚠️ row is undefined'); return; }
+  
+  const isEmpty = cols.every((c) => !row[c.key]);
+  if (isEmpty) { console.warn('⚠️ Row is empty, skipping save'); return; }
 
-  setSaving(s => ({ ...s, [i]: true }));
+  setSaving((s) => ({ ...s, [i]: true }));
+
   try {
+    console.log('📦 RAW ROW DATA:', row);
     const { _isNew, ID, year, Year, ...fields } = row;
     const unifiedYear = String(year ?? Year ?? '').trim();
     const targetKey = `${String(ID ?? '').trim()}|${unifiedYear}`;
+
+    console.log('🔑 TARGET KEY:', targetKey);
+    console.log('📜 STATE KEYS:', rowsRef.current.map(r => `${r.ID}|${r.year ?? r.Year}`));
 
     if (_isNew === 'true') {
       const nextRows = [...rowsRef.current, { ...fields, year: unifiedYear }];
       await onRowsChange(nextRows);
     } else if (ID) {
-      // ✅ مقارنة دقيقة باستخدام المفتاح الموحد
-      const updated = rowsRef.current.map(r =>
-        makeKey(r) === targetKey ? { ...r, ...fields, year: unifiedYear } : r
-      );
+      const updated = rowsRef.current.map(r => {
+        const existingKey = `${r.ID}|${r.year ?? r.Year}`;
+        return existingKey === targetKey ? { ...r, ...fields, year: unifiedYear } : r;
+      });
+      console.log('✅ UPDATED ARRAY:', updated.map(r => ({ ID: r.ID, year: r.year })));
       await onRowsChange(updated);
     }
     setDirtyRows(prev => { const n = new Set(prev); n.delete(i); return n; });
+  } catch (err) {
+    console.error('❌ Save failed:', err);
   } finally {
     setSaving(s => ({ ...s, [i]: false }));
   }
@@ -332,15 +343,11 @@ width: c.width,
             {(row._isNew === 'true' || dirtyRows.has(i)) && (
               <button
                 type="button"
-                onClick={() => saveRow(i)}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  color: '#27ae60',
-                  fontSize: 14,
-                  marginLeft: 4,
+                onClick={() => {
+                  console.log('🖱️ CLICKED saveRow index:', i); // 🔍 سيتأكد أن الزر يعمل
+                  saveRow(i);
                 }}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#27ae60', fontSize: 14, marginLeft: 4 }}
                 title="حفظ"
               >
                 💾
