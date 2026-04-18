@@ -36,26 +36,28 @@ export const ordersApi = {
 export const advancedSearchApi = {
   search: (filters: Record<string, any>) => {
     const cleanFilters = Object.fromEntries(
-      Object.entries(filters).filter(([_, v]) =>
-        v !== undefined &&
-        v !== '' &&
-        v !== null &&
+      Object.entries(filters).filter(([_, v]) => 
+        v !== undefined && 
+        v !== '' && 
+        v !== null && 
         v !== 'all'
       )
     );
+    
     return client.post('/orders/search', cleanFilters).then(r => r.data);
   },
-
+  
   export: (filters: Record<string, any>, format: 'csv' | 'excel' | 'pdf' = 'csv') => {
     const cleanFilters = Object.fromEntries(
-      Object.entries(filters).filter(([_, v]) =>
-        v !== undefined &&
-        v !== '' &&
+      Object.entries(filters).filter(([_, v]) => 
+        v !== undefined && 
+        v !== '' && 
         v !== null
       )
     );
-    return client.post('/orders/search/export', { ...cleanFilters, format }, {
-      responseType: 'blob'
+    
+    return client.post('/orders/search/export', { ...cleanFilters, format }, { 
+      responseType: 'blob' 
     }).then(r => r.data);
   },
 };
@@ -94,46 +96,34 @@ export const usersApi = {
 export const operationsApi = {
   list: (order_id: string, year: string) =>
     client.get(`/actions?ID=${order_id}&year=${year}`).then(r => r.data),
-  create: (data: any) =>
-    client.post('/actions', data).then(r => r.data),
-  update: (id: string | number, year: string, data: any) =>   // ✅ أضفنا year
-    client.put(`/actions/${id}/${year}`, data).then(r => r.data),
-  delete: (id: string | number, year: string) =>              // ✅ أضفنا year
-    client.delete(`/actions/${id}/${year}`),
+  create: (data: any) => client.post('/actions', data).then(r => r.data),
+  update: (id: string, data: any) => client.put(`/actions/${id}`, data).then(r => r.data),
+  delete: (id: string) => client.delete(`/actions/${id}`),
 };
 
 // ── Materials ─────────────────────────────────────────
 export const materialsApi = {
   list: (order_id: string, year: string) =>
     client.get(`/materials?order_id=${order_id}&year=${year}`).then(r => r.data),
-  create: (data: any) =>
-    client.post('/materials', data).then(r => r.data),
-  update: (id: string | number, year: string, data: any) =>   // ✅ أضفنا year
-    client.put(`/materials/${id}/${year}`, data).then(r => r.data),
-  delete: (id: string | number, year: string) =>              // ✅ أضفنا year
-    client.delete(`/materials/${id}/${year}`),
+  create: (data: any) => client.post('/materials', data).then(r => r.data),
+  update: (id: string, data: any) => client.put(`/materials/${id}`, data).then(r => r.data),
+  delete: (id: string) => client.delete(`/materials/${id}`),
 };
 
 // ── Cartons ───────────────────────────────────────────
 export const cartonsApi = {
   list: (order_id: string, year: string) =>
     client.get(`/cartons?ID=${order_id}&year=${year}`).then(r => r.data),
-  create: (data: any) =>
-    client.post('/cartons', data).then(r => r.data),
-  update: (id: string | number, year: string, data: any) =>   // ✅ أضفنا year
-    client.put(`/cartons/${id}/${year}`, data).then(r => r.data),
-  delete: (id: string | number, year: string) =>              // ✅ أضفنا year
-    client.delete(`/cartons/${id}/${year}`),
+  create: (data: any) => client.post('/cartons', data).then(r => r.data),
+  update: (id: string, data: any) => client.put(`/cartons/${id}`, data).then(r => r.data),
+  delete: (id: string) => client.delete(`/cartons/${id}`),
 };
 
 // ── Problems ──────────────────────────────────────────
 export const problemsApi = {
   list: (order_id: string, year: string) =>
     client.get(`/problems?ID=${order_id}&year=${year}`).then(r => r.data),
-  create: (data: any) =>
-    client.post('/problems', data).then(r => r.data),
-  update: (id: string | number, year: string, data: any) =>   // ✅ أضفنا year
-    client.put(`/problems/${id}/${year}`, data).then(r => r.data),
-  delete: (id: string | number, year: string) =>              // ✅ أضفنا year
-    client.delete(`/problems/${id}/${year}`),
+  create: (data: any) => client.post('/problems', data).then(r => r.data),
+  update: (id: string, data: any) => client.put(`/problems/${id}`, data).then(r => r.data),
+  delete: (id: string) => client.delete(`/problems/${id}`),
 };
