@@ -853,62 +853,108 @@ useEffect(() => {
 
 // ✅ الحفظ - مع معالجة أخطاء شاملة
 const onSubmit = useCallback(async (data: Order) => {
-try {
-BOOL_FIELDS.forEach(f => {
-(data as any)[f] = toBit(checks[f]);
-});
+  try {
+    // ✅ تحويل الحقول إلى bit
+    BOOL_FIELDS.forEach(f => {
+      (data as any)[f] = toBit(checks[f]);
+    });
 
-Object.entries(MFG_MAP).forEach(([label, field]) => {
-  (data as any)[field] = toBit(mfgChecks[label]);
-});
+    Object.entries(MFG_MAP).forEach(([label, field]) => {
+      (data as any)[field] = toBit(mfgChecks[label]);
+    });
 
-Object.entries(CUST_MAP).forEach(([label, field]) => {
-  (data as any)[field] = toBit(custChecks[label]);
-});
+    Object.entries(CUST_MAP).forEach(([label, field]) => {
+      (data as any)[field] = toBit(custChecks[label]);
+    });
 
-(data as any).DubelM = toBit(checks.CTB);
+    (data as any).DubelM = toBit(checks.CTB);
 
-if (!isEdit) {
-  const maxRowId = orders.length > 0
-    ? Math.max(...orders.map((o: any) => o.ID)) + 1
-    : 1;
-  (data as any).ID = maxRowId;
-}
+    // ✅ تحديد السنة
+    const yr = String((data as any).Year ?? currentYear);
+    (data as any).Year = yr;
 
-if (isEdit) {
-  await updateOrder.mutateAsync(data);
-} else {
-  const created = await createOrder.mutateAsync(data);
-  const newId = String((created as any)?.ID ?? (data as any).ID);
-  const yr = String((data as any).Year ?? currentYear);
+    // ✅ توليد ID بناءً على نفس السنة فقط
+    if (!isEdit) {
+      const filteredOrders = orders.filter(
+        (o: any) => String(o.Year) === yr
+      );
 
-  await Promise.all([
-    ...pendingMaterials.map(({ ID, _isNew, ...f }) =>
-      createCarton.mutateAsync({ ...f, ID: newId, Year: yr }).catch(err => {
-        console.error('❌ Create carton error:', err);
-        return null;
-      })),
-    ...pendingProblems.map(({ ID, _isNew, ...f }) =>
-      createProblem.mutateAsync({ ...f, ID: newId, Year: yr }).catch(err => {
-        console.error('❌ Create problem error:', err);
-        return null;
-      })),
-    ...pendingOps.map(({ ID, _isNew, ...f }) =>
-      createOperation.mutateAsync({ ...f, ID: newId, Year: yr }).catch(err => {
-        console.error('❌ Create operation error:', err);
-        return null;
-      })),
-  ]);
-}
+      const maxRowId = filteredOrders.length > 0
+        ? Math.max(...filteredOrders.map((o: any) => o.ID)) + 1
+        : 1;
 
-await new Promise(resolve => setTimeout(resolve, 100));
-navigate('/orders');
-} catch (error) {
-console.error('❌ Submit error:', error);
-alert('حدث خطأ أثناء الحفظ. الرجاء المحاولة مرة أخرى.');
-}
-}, [checks, mfgChecks, custChecks, isEdit, orders, updateOrder, createOrder, currentYear, pendingMaterials, pendingProblems, pendingOps, createCarton, createProblem, createOperation, navigate]);
+      (data as any).ID = maxRowId;
+    }
 
+    // ✅ إرسال الطلب
+    if (isEdit) {
+      await updateOrder.mutateAsync({
+        ...data,
+        Year: yr, // تأكيد إرسال السنة
+      });
+    } else {
+      const created = await createOrder.mutateAsync(data);
+
+      const newId = String(
+        (created as any)?.ID ?? (data as any).ID
+      );
+
+      // ✅ العمليات التابعة تستخدم ID + Year
+      await Promise.all([
+        ...pendingMaterials.map(({ ID, _isNew, ...f }) =>
+          createCarton
+            .mutateAsync({ ...f, ID: newId, Year: yr })
+            .catch(err => {
+              console.error('❌ Create carton error:', err);
+              return null;
+            })
+        ),
+
+        ...pendingProblems.map(({ ID, _isNew, ...f }) =>
+          createProblem
+            .mutateAsync({ ...f, ID: newId, Year: yr })
+            .catch(err => {
+              console.error('❌ Create problem error:', err);
+              return null;
+            })
+        ),
+
+        ...pendingOps.map(({ ID, _isNew, ...f }) =>
+          createOperation
+            .mutateAsync({ ...f, ID: newId, Year: yr })
+            .catch(err => {
+              console.error('❌ Create operation error:', err);
+              return null;
+            })
+        ),
+      ]);
+    }
+
+    // ✅ تأخير بسيط ثم الانتقال
+    await new Promise(resolve => setTimeout(resolve, 100));
+    navigate('/orders');
+
+  } catch (error) {
+    console.error('❌ Submit error:', error);
+    alert('حدث خطأ أثناء الحفظ. الرجاء المحاولة مرة أخرى.');
+  }
+}, [
+  checks,
+  mfgChecks,
+  custChecks,
+  isEdit,
+  orders,
+  updateOrder,
+  createOrder,
+  currentYear,
+  pendingMaterials,
+  pendingProblems,
+  pendingOps,
+  createCarton,
+  createProblem,
+  createOperation,
+  navigate
+]);
 const handleDuplicate = useCallback(() => {
 const sourceData = isEdit && existing ? { ...existing } : {};
 
