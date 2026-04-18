@@ -1829,7 +1829,7 @@ return (
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 12 }}>
       <G label="تسلسل"><input className="fc" {...register('Ser')} readOnly style={{ textAlign: 'right', background: '#f8f9fa' }} /></G>
       <G label="اسم الزبون" req><input className="fc" {...register('Customer', { required: true })} list="cust-list" placeholder="ابحث عن الزبون..." style={{ textAlign: 'right' }} /></G>
-      <G label="رقمنا"><input className="fc" {...register('ID')} readOnly style={{ textAlign: 'right', background: '#f8f9fa' }} /></G>
+      <G label="رقمنا">   <input      className="fc"      {...register('ID')}      readOnly={isEdit}     style={{        textAlign: 'right',        background: isEdit ? '#f8f9fa' : '#fff'  // رمادي في التعديل، أبيض في الجديد     }}    /> </G>
       <G label="المرجع" req><input className="fc" {...register('marji3', { required: true })} placeholder="65982" style={{ textAlign: 'right' }} /></G>
       <G label="التفصيلات المرتبطة"><input className="fc" {...register('AttachmentsOrders')} style={{ textAlign: 'right' }} /></G>
     </div>
