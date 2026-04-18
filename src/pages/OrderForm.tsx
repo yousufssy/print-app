@@ -846,31 +846,29 @@ setHasLoadedDuplicate(true);
 const idInitializedRef = useRef(false);
 
 useEffect(() => {
-  if (isEdit) return;
-  if (idInitializedRef.current) return;
-  if (!orders || orders.length === 0) return;
-
-  idInitializedRef.current = true;
-
-  // ✅ أعلى ID + 1 (وليس آخر سجل)
-  const maxId  = Math.max(...orders.map((o: any) => Number(o.ID) || 0));
-  const maxSer = Math.max(...orders.map((o: any) => Number(o.Ser) || 0));
-  const newId  = String(maxId + 1);
-
-  const initData = {
-    Ser: String(maxSer + 1),
-    ID: newId,
-    Year: currentYear,
-  };
-
-  reset((prev) => ({ ...prev, ...initData }));
-  formDataRef.current = { ...formDataRef.current, ...initData };
-  setIdInitialized(true);
-
-}, [orders, isEdit, currentYear, reset]);
+    if (isEdit || duplicatedData) return;
+    if (idInitializedRef.current) return;
+    if (!orders || orders.length === 0) return;
+  
+    idInitializedRef.current = true;
+  
+    const latestOrder = orders[orders.length - 1];
+    const lastSer = parseInt(latestOrder?.Ser || '0') || 0;
+  
+    const initData = {
+      Ser: String(lastSer + 1),
+      ID: '',           // ✅ فارغ — المستخدم يختار أو يترك فارغاً
+      Year: currentYear,
+    };
+  
+    reset((prev) => ({ ...prev, ...initData }));
+    formDataRef.current = initData;
+    setIdInitialized(true);
+  }, [orders, isEdit, duplicatedData, currentYear, reset]);
+  
 // ✅ الحفظ - مع معالجة أخطاء شاملة
 const onSubmit = useCallback(async (data: Order) => {
-    setSubmitError(null); // امسح الخطأ السابق
+    setSubmitError(null);
   
     try {
       BOOL_FIELDS.forEach(f => {
@@ -888,10 +886,13 @@ const onSubmit = useCallback(async (data: Order) => {
       (data as any).DubelM = toBit(checks.CTB);
   
       if (!isEdit) {
-        const maxRowId = orders.length > 0
-          ? Math.max(...orders.map((o: any) => o.ID)) + 1
-          : 1;
-        (data as any).ID = maxRowId;
+        const userEnteredId = String((data as any).ID ?? '').trim();
+  
+        if (!userEnteredId) {
+          // ✅ المستخدم ترك ID فارغاً — Backend سيحسب max+1
+          delete (data as any).ID;
+        }
+        // ✅ إذا أدخل ID — أرسله كما هو، Backend يتحقق من التكرار
       }
   
       if (isEdit) {
@@ -924,19 +925,20 @@ const onSubmit = useCallback(async (data: Order) => {
       navigate('/orders');
   
     } catch (error: any) {
-      // ✅ تعارض ID و Year — رسالة خطأ بدون مغادرة الصفحة
       const responseData = error?.response?.data;
   
       if (error?.response?.status === 409 && responseData?.code === 'ID_YEAR_DUPLICATE') {
         setSubmitError(responseData.error);
-        return; // لا تغادر الصفحة ولا تمسح المدخلات
+        return;
       }
   
       console.error('❌ Submit error:', error);
       alert('حدث خطأ أثناء الحفظ. الرجاء المحاولة مرة أخرى.');
     }
-  }, [checks, mfgChecks, custChecks, isEdit, orders, updateOrder, createOrder, currentYear, pendingMaterials, pendingProblems, pendingOps, createCarton, createProblem, createOperation, navigate]);
-    
+  }, [checks, mfgChecks, custChecks, isEdit, orders, updateOrder, createOrder, currentYear, pendingMaterials, pendingProblems, pendingOps, createCarton, createProblem, createOperation, navigate]);    
+
+  
+  
 const handleDuplicate = useCallback(() => {
 const sourceData = isEdit && existing ? { ...existing } : {};
 
