@@ -560,39 +560,54 @@ const formDataRef = useRef<Partial<Order>>({});
 
 // ── helper مشترك لمزامنة أي InlineTable مع الداتابيز ────────────────────────
 const syncRows = useCallback(async (
-oldRows: Record<string, string>[],
-newRows: Record<string, string>[],
-onCreate: (fields: any) => Promise<any>,
-onUpdate: (rowId: number, fields: any) => Promise<any>,
-onDelete: (rowId: number) => Promise<any>,
+  oldRows: Record<string, string>[],
+  newRows: Record<string, string>[],
+  onCreate: (fields: any) => Promise<any>,
+  onUpdate: (rowId: number, fields: any) => Promise<any>,
+  onDelete: (rowId: number) => Promise<any>,
 ) => {
-const oldIds = new Set(oldRows.map(r => r.ID).filter(v => !!v));
-const newIds = new Set(newRows.map(r => r.ID).filter(v => !!v));
+  const oldIds = new Set(oldRows.map(r => r.ID).filter(v => !!v));
+  const newIds = new Set(newRows.map(r => r.ID).filter(v => !!v));
 
-try {
-  for (const old of oldRows) {
-    if (old.ID && !newIds.has(old.ID)) {
-      await onDelete(Number(old.ID)).catch(err => {
-        console.error('❌ Delete error:', err);
-      });
-    }
-  }
+  // بناء map للصفوف القديمة للمقارنة السريعة
+  const oldRowsMap = new Map(oldRows.map(r => [r.ID, r]));
 
-  for (const row of newRows) {
-    const { ID, _isNew, ...fields } = row;
-    if (ID && oldIds.has(ID)) {
-      await onUpdate(Number(ID), fields).catch(err => {
-        console.error('❌ Update error:', err);
-      });
-    } else if (!ID) {
-      await onCreate(fields).catch(err => {
-        console.error('❌ Create error:', err);
-      });
+  try {
+    // حذف الصفوف المحذوفة
+    for (const old of oldRows) {
+      if (old.ID && !newIds.has(old.ID)) {
+        await onDelete(Number(old.ID)).catch(err => {
+          console.error('❌ Delete error:', err);
+        });
+      }
     }
+
+    for (const row of newRows) {
+      const { ID, _isNew, ...fields } = row;
+
+      if (!ID || _isNew === 'true') {
+        // ✅ سطر جديد — أنشئه
+        await onCreate(fields).catch(err => {
+          console.error('❌ Create error:', err);
+        });
+      } else if (oldIds.has(ID)) {
+        // ✅ سطر موجود — تحقق إذا تغير فعلاً قبل الإرسال
+        const oldRow = oldRowsMap.get(ID);
+        const { ID: _oldId, _isNew: _oldNew, ...oldFields } = oldRow || {};
+        
+        const hasChanged = JSON.stringify(fields) !== JSON.stringify(oldFields);
+        
+        if (hasChanged) {
+          await onUpdate(Number(ID), fields).catch(err => {
+            console.error('❌ Update error:', err);
+          });
+        }
+        // إذا لم يتغير — لا ترسل طلب update
+      }
+    }
+  } catch (error) {
+    console.error('❌ syncRows error:', error);
   }
-} catch (error) {
-  console.error('❌ syncRows error:', error);
-}
 }, []);
 
 // ── الكرتون ───────────────────────────────────────────────────────────────────
