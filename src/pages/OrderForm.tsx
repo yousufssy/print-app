@@ -103,7 +103,7 @@ rows: Record<string, string>[];
 onRowsChange: (rows: Record<string, string>[]) => void | Promise<void>;
 syncDraftRows?: boolean;
 }) {
-const InlineTable = React.memo(function InlineTable({ cols, rows, onRowsChange, syncDraftRows = false }) {
+
   // 🟢 أضف هذا السطر بالضبط
   console.log('🔄 InlineTable RENDERED | rows ref:', rows, 'count:', rows?.length);
 
