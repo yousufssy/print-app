@@ -2180,40 +2180,8 @@ return (
     </div>
   </AccordionCard>
 
-  {/* ── Footer ── */}
+{/* ── Footer ── */}
   <div style={{ background: '#fff', borderRadius: 14, border: '1px solid var(--border)', padding: '12px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-   {/* ── Footer ── */}
-<span style={{ fontSize: 12, color: 'var(--muted)' }}>سنة العمل: <strong>{currentYear}</strong></span>
-  
-  {/* ✅ رسالة الخطأ */}
-  {submitError && (
-    <div style={{
-      background: '#fef2f2',
-      border: '1px solid #fca5a5',
-      borderRadius: 8,
-      padding: '10px 16px',
-      marginBottom: 12,
-      color: '#dc2626',
-      fontSize: 13,
-      fontWeight: 600,
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      gap: 8,
-      direction: 'rtl',
-    }}>
-      <span>⚠️ {submitError}</span>
-      <button
-        type="button"
-        onClick={() => setSubmitError(null)}
-        style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, color: '#dc2626' }}
-      >
-        ✕
-      </button>
-    </div>
-  )}
-
-  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
     <span style={{ fontSize: 12, color: 'var(--muted)' }}>سنة العمل: <strong>{currentYear}</strong></span>
     <div style={{ display: 'flex', gap: 10 }}>
       <Btn variant="outline" type="button" onClick={() => navigate('/orders')}>إلغاء</Btn>
@@ -2222,16 +2190,9 @@ return (
         {isSaving ? '⏳ جاري الحفظ...' : '✅ حفظ وتأكيد'}
       </Btn>
     </div>
-  </div>
-</div>
-    
-    
-    
-    
-    
-   
+  </div> 
 
-
+</form>
 
 <VoucherModal 
   open={voucherOpen} 
