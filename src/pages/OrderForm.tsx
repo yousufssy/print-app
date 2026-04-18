@@ -195,18 +195,17 @@ const saveRow = React.useCallback(async (i: number) => {
 
   setSaving(s => ({ ...s, [i]: true }));
   try {
-    // ✅ استخراج كل من year و Year لتجنب أخطاء التسمية
-    const { _isNew, ID, year, Year, ...fields } = row;
-    const unifiedYear = String(year ?? Year ?? '').trim();
-    const targetKey = `${String(ID ?? '').trim()}|${unifiedYear}`;
+    const { _isNew, ID, Year, year, ...fields } = row;
+    const unifiedYear = Year ?? year;
+    const targetKey = getCompositeKey({ ID, Year: unifiedYear });
 
-    if (_isNew === 'true') {
-      const nextRows = [...rowsRef.current, { ...fields, year: unifiedYear }];
+    if (_isNew === 'true' || !ID) {
+      const nextRows = [...rowsRef.current, { ...fields, Year: unifiedYear }];
       await onRowsChange(nextRows);
-    } else if (ID) {
-      // ✅ مقارنة دقيقة بالمفتاح المركب
+    } else {
+      // ✅ تحديث دقيق بالمفتاح المركب الرقمي
       const updated = rowsRef.current.map(r =>
-        makeKey(r) === targetKey ? { ...r, ...fields, year: unifiedYear } : r
+        getCompositeKey(r) === targetKey ? { ...r, ...fields, Year: unifiedYear } : r
       );
       await onRowsChange(updated);
     }
