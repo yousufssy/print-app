@@ -1885,10 +1885,8 @@ return (
         </select>
       </G>
       <G label="تصدير">
-        <select className="fc" {...register('Form')} style={{ textAlign: 'right' }}>
-          <option>لا</option><option>نعم</option>
-        </select>
-      </G>
+  <input className="fc" {...register('Form')} style={{ textAlign: 'right' }} />
+</G>
       <G label="التعبئة"><input className="fc" {...register('Loading')} style={{ textAlign: 'right' }} /></G>
       <G label="ارقام الكود"><input className="fc" {...register('Code_M')} style={{ textAlign: 'right' }} /></G>
     </div>
