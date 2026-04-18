@@ -226,9 +226,9 @@ const delRow = React.useCallback(async (i: number) => {
       return next;
     });
   } else {
-    // ✅ حذف دقيق باستخدام المفتاح المركب (ID + year)
-    const targetKey = makeKey(row);
-    const remaining = rowsRef.current.filter(r => makeKey(r) !== targetKey);
+    // ✅ حذف بالمفتاح المركب
+    const targetKey = getCompositeKey(row);
+    const remaining = rowsRef.current.filter(r => getCompositeKey(r) !== targetKey);
     await onRowsChange(remaining);
     setLocalRows(prev => prev.filter((_, idx) => idx !== i));
   }
@@ -564,39 +564,37 @@ const formDataRef = useRef<Partial<Order>>({});
 
 // ── helper مشترك لمزامنة أي InlineTable مع الداتابيز ────────────────────────
 const syncRows = useCallback(async (
-oldRows: Record<string, string>[],
-newRows: Record<string, string>[],
-onCreate: (fields: any) => Promise<any>,
-onUpdate: (rowId: number, fields: any) => Promise<any>,
-onDelete: (rowId: number) => Promise<any>,
+  oldRows: Record<string, string>[],
+  newRows: Record<string, string>[],
+  onCreate: (fields: any) => Promise<any>,
+  onUpdate: (rowId: number, year: number, fields: any) => Promise<any>,
+  onDelete: (rowId: number, year: number) => Promise<any>,
 ) => {
-const oldIds = new Set(oldRows.map(r => r.ID).filter(v => !!v));
-const newIds = new Set(newRows.map(r => r.ID).filter(v => !!v));
+  const getKey = (r: Record<string, any>) => `${Number(r.ID)}_${Number(r.Year ?? r.year ?? 0)}`;
+  
+  const oldKeys = new Set(oldRows.filter(r => r.ID && (r.Year || r.year)).map(getKey));
+  const newKeys = new Set(newRows.filter(r => r.ID && (r.Year || r.year)).map(getKey));
 
-try {
-  for (const old of oldRows) {
-    if (old.ID && !newIds.has(old.ID)) {
-      await onDelete(Number(old.ID)).catch(err => {
-        console.error('❌ Delete error:', err);
-      });
+  try {
+    for (const old of oldRows) {
+      if (old.ID && !newKeys.has(getKey(old))) {
+        await onDelete(Number(old.ID), Number(old.Year ?? old.year ?? 0)).catch(console.error);
+      }
     }
-  }
+    for (const row of newRows) {
+      const { ID, _isNew, Year, year, ...fields } = row;
+      const rowYear = Year ?? year;
+      const key = ID && rowYear ? getKey({ ID, Year: rowYear }) : null;
 
-  for (const row of newRows) {
-    const { ID, _isNew, ...fields } = row;
-    if (ID && oldIds.has(ID)) {
-      await onUpdate(Number(ID), fields).catch(err => {
-        console.error('❌ Update error:', err);
-      });
-    } else if (!ID) {
-      await onCreate(fields).catch(err => {
-        console.error('❌ Create error:', err);
-      });
+      if (key && oldKeys.has(key)) {
+        await onUpdate(Number(ID), Number(rowYear), fields).catch(console.error);
+      } else if (!ID) {
+        await onCreate({ ...fields, Year: rowYear }).catch(console.error);
+      }
     }
+  } catch (error) {
+    console.error('❌ syncRows error:', error);
   }
-} catch (error) {
-  console.error('❌ syncRows error:', error);
-}
 }, []);
 
 // ── الكرتون ───────────────────────────────────────────────────────────────────
