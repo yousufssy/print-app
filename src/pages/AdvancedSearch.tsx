@@ -252,7 +252,7 @@ export default function AdvancedSearchPage() {
   const FILTER_LABELS = useMemo(() => ({
     customer: '👤 الزبون', orderId: '🔢 رقم الطلب', pattern: '🎨 النموذج',
     dateComeFrom: '📅 من تاريخ', dateComeTo: '📅 إلى تاريخ', isPrinted: '🖨️ مطبوع',
-    isBilled: '🧾 مفوتر', hasVouchers: '🧾 له إيصالات', isExport: '🚢 تصدير'
+    isBilled: '🧾 مفوتر', hasVouchers: '🧾 له إيصالات', Form: '🚢 تصدير'
   }), []);
   
   return (
@@ -289,7 +289,7 @@ export default function AdvancedSearchPage() {
           <option value="pdf">📕 PDF</option>
         </select>
         <Btn variant="outline" type="button" onClick={onExport} disabled={isExporting || !searchResults?.data?.length}>
-          {isExporting ? '⏳...' : '📤 تصدير'}
+          {Form ? '⏳...' : '📤 تصدير'}
         </Btn>
         <div style={{ width: 1, background: 'var(--border)', margin: '0 4px' }} />
         <Btn variant="outline" type="button" onClick={() => { navigator.clipboard.writeText(JSON.stringify(getValues(), null, 2)); }}>
@@ -375,7 +375,7 @@ export default function AdvancedSearchPage() {
                 <FilterGroup label="🚢 تصدير">
                   <input
                     className="fc"
-                    {...register('isExport')}
+                    {...register('Form')}
                     placeholder="مثال: نعم، لا، اسم الدولة..."
                     style={{ textAlign: 'right' }}
                   />
