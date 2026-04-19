@@ -289,7 +289,7 @@ export default function AdvancedSearchPage() {
           <option value="pdf">📕 PDF</option>
         </select>
         <Btn variant="outline" type="button" onClick={onExport} disabled={isExporting || !searchResults?.data?.length}>
-          {Form ? '⏳...' : '📤 تصدير'}
+          {isExporting ? '⏳...' : '📤 تصدير'}
         </Btn>
         <div style={{ width: 1, background: 'var(--border)', margin: '0 4px' }} />
         <Btn variant="outline" type="button" onClick={() => { navigator.clipboard.writeText(JSON.stringify(getValues(), null, 2)); }}>
