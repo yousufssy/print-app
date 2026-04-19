@@ -25,7 +25,7 @@ export interface Order {
   Pattern2?: string;
   ear?: string;
   UnitMed?: 'ورقة' | 'كيلو' | 'متر';
-  Form?: 'لا' | 'نعم';
+  Form?: string;
   Loading?: string;
   Code_M?: string;
   Free_clr?: string;
