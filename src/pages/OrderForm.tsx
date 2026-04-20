@@ -493,7 +493,7 @@ const MFG_MAP: Record<string, string> = {
 'تلميع كامل': 'uv',
 'سلفان لميع': 'seluvan_lum',
 'سلفان مات': 'seluvan_mat',
-'طُبعت؟': 'Printed',
+
 };
 
 // ✅ ربط checkboxes الزبون بحقول الداتابيز
