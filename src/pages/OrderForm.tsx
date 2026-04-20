@@ -874,7 +874,13 @@ const onSubmit = useCallback(async (data: Order) => {
       const mm   = String(today.getMonth() + 1).padStart(2, '0');
       const dd   = String(today.getDate()).padStart(2, '0');
       const prefix = `${yyyy}${mm}${dd}`;
+      
+      console.log('=== DEBUG Ser ===');
+      console.log('prefix:', prefix);
+      console.log('orders count:', orders.length);
+      console.log('orders Ser values:', orders.map(o => o.Ser));
 
+      
       const todayOrders = orders.filter(o =>
         String(o.Ser ?? '').startsWith(prefix)
       );
