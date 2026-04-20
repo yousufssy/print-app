@@ -810,7 +810,7 @@ setChecks({
   Billed: fromBit(existing.Billed),
   Reseved: fromBit(existing.Reseved),
   CTB: fromBit(existing.DubelM),
-  varn: fromBit(existing.varnich),
+  varn: fromBit(existing.varnish),
 });
 
 setHasLoadedEdit(true);
