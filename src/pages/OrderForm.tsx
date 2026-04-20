@@ -527,7 +527,18 @@ const { id, year } = useParams<{ id?: string; year?: string }>();
 const isEdit = !!(id && year && String(id).trim() && String(year).trim());
 const navigate = useNavigate();
 const location = useLocation();
-const duplicatedData = location.state?.duplicatedData || null;
+const duplicatedData = useMemo(() => {
+  const stored = sessionStorage.getItem('duplicateOrderData');
+  if (stored) {
+    try {
+      sessionStorage.removeItem('duplicateOrderData'); // امسحها فوراً
+      return JSON.parse(stored);
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}, []); 
 
 const { data: existing, isLoading } = useOrder(id ?? '', year ?? '');
 const createOrder = useCreateOrder();
@@ -960,33 +971,32 @@ const onSubmit = useCallback(async (data: Order) => {
   
   
 const handleDuplicate = useCallback(() => {
-const sourceData = isEdit && existing ? { ...existing } : {};
+  const sourceData = isEdit && existing ? { ...existing } : {};
 
-const excludeFields = [
-  'ID', 'ID1', 'Ser',
-  'Year',
-  'date_come', 'Perioud',
-  'marji3',
-  'AttachmentsOrders',
-];
+  const excludeFields = [
+    'ID', 'ID1', 'Ser',
+    'Year',
+    'date_come', 'Perioud',
+    'marji3',
+    'AttachmentsOrders',
+  ];
 
-const dataToCopy = { ...sourceData };
-excludeFields.forEach(field => delete dataToCopy[field]);
+  const dataToCopy = { ...sourceData };
+  excludeFields.forEach(field => delete dataToCopy[field]);
 
-navigate('/orders/new', {
-  state: {
-    duplicatedData: {
-      ...dataToCopy,
-      Ser: '',
-      ID: '',
-      Year: String(new Date().getFullYear()),
-      checks: { ...checks },
-      mfgChecks: { ...mfgChecks },
-      custChecks: { ...custChecks },
-      idInitialized: false,
-    }
-  }
-});
+  // ✅ احفظ في sessionStorage بدلاً من location.state
+  sessionStorage.setItem('duplicateOrderData', JSON.stringify({
+    ...dataToCopy,
+    Ser: '',
+    ID: '',
+    Year: String(new Date().getFullYear()),
+    checks: { ...checks },
+    mfgChecks: { ...mfgChecks },
+    custChecks: { ...custChecks },
+    idInitialized: false,
+  }));
+
+  navigate('/orders/new');
 }, [isEdit, existing, checks, mfgChecks, custChecks, navigate]);
 
 const chk = useCallback((k: string) => (v: boolean) => setChecks(c => ({ ...c, [k]: v })), []);
