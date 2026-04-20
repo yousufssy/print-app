@@ -18,6 +18,8 @@ export interface Order {
   note_ord?: string;
   Varnish?: 'True' | 'False';
   Qunt_Ac?: number;
+  cut1?: number;
+  cut2?: number;
   // Print Specs
   Cus_Paking?: string;
   box_stk_typ?: string;
