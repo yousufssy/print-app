@@ -528,22 +528,6 @@ const isEdit = !!(id && year && String(id).trim() && String(year).trim());
 const navigate = useNavigate();
 const location = useLocation();
 const duplicatedData = location.state?.duplicatedData || null;
-useEffect(() => {
-  // إذا صفحة جديدة وليس نسخ وليس تعديل → امسح الفورم
-  if (!isEdit && !duplicatedData) {
-    reset({
-      Year: currentYear,
-      ID: '',
-      Ser: '',
-    });
-    setChecks({});
-    setMfgChecks({});
-    setCustChecks({});
-    setPendingMaterials([]);
-    setPendingProblems([]);
-    setPendingOps([]);
-  }
-}, [isEdit, duplicatedData]);
 
 const { data: existing, isLoading } = useOrder(id ?? '', year ?? '');
 const createOrder = useCreateOrder();
