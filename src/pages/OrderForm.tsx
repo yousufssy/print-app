@@ -1880,7 +1880,7 @@ return (
             />
           </div>
         </G>
-      <G label="المرجع" req><input className="fc" {...register('marji3', { required: true })} placeholder="65982" style={{ textAlign: 'right' }} /></G>
+      <G label="المرجع" req><input className="fc" {...register('marji3')} placeholder="65982" style={{ textAlign: 'right' }} /></G>
       <G label="التفصيلات المرتبطة"><input className="fc" {...register('AttachmentsOrders')} style={{ textAlign: 'right' }} /></G>
     </div>
     <datalist id="cust-list">
