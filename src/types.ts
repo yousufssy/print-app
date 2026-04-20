@@ -20,6 +20,7 @@ export interface Order {
   Qunt_Ac?: number;
   cut1?: number;
   cut2?: number;
+  Notes1?: string;
   // Print Specs
   Cus_Paking?: string;
   box_stk_typ?: string;
