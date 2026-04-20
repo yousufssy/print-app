@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from './store/authStore';
 import Layout from './layouts/Layout';
 import LoginPage from './pages/Login';
@@ -8,7 +8,7 @@ import OrderFormPage from './pages/OrderForm';
 import ProductionPage from './pages/Production';
 import DeliveryPage from './pages/Delivery';
 import UsersPage from './pages/Users';
-import AdvancedSearch from './pages/AdvancedSearch';
+import AdvancedSearch from './pages/AdvancedSearch'; // ✅ جديد
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const { token } = useAuthStore();
@@ -22,12 +22,6 @@ function RequireAdmin({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-// ✅ مكون وسيط يحمل location.key
-function OrderFormWithKey() {
-  const location = useLocation();
-  return <OrderFormPage key={location.key} />;
-}
-
 export default function App() {
   return (
     <BrowserRouter>
@@ -36,11 +30,10 @@ export default function App() {
         <Route path="/" element={<RequireAuth><Layout /></RequireAuth>}>
           <Route index element={<DashboardPage />} />
           <Route path="orders" element={<OrdersPage />} />
-          <Route path="search" element={<AdvancedSearch />} />
-          {/* ✅ استبدل OrderFormPage بـ OrderFormWithKey في السطرين */}
-          <Route path="orders/new" element={<OrderFormWithKey />} />
-          <Route path="orders/:id/:year" element={<OrderFormWithKey />} />
-          <Route path="production" element={<ProductionPage />} />
+           <Route path="search" element={<AdvancedSearch />}  />
+          <Route path="orders/new" element={<OrderFormPage />} />
+          <Route path="orders/:id/:year" element={<OrderFormPage />} />
+           <Route path="production" element={<ProductionPage />} />
           <Route path="delivery" element={<DeliveryPage />} />
           <Route path="users" element={<RequireAdmin><UsersPage /></RequireAdmin>} />
         </Route>
