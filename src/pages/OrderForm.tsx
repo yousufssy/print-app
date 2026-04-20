@@ -958,6 +958,7 @@ navigate('/orders/new', {
     duplicatedData: {
       ...dataToCopy,
       Ser: '',
+      ID: '',
       Year: String(new Date().getFullYear()),
       checks: { ...checks },
       mfgChecks: { ...mfgChecks },
