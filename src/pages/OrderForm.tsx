@@ -847,33 +847,12 @@ const idInitializedRef = useRef(false);
 useEffect(() => {
   if (isEdit || duplicatedData) return;
   if (idInitializedRef.current) return;
-  if (ordersLoading) return; // ← انتظر حتى تنتهي من التحميل
+  if (ordersLoading) return;
 
   idInitializedRef.current = true;
 
-  const today = new Date();
-  const yyyy = String(today.getFullYear());
-  const mm   = String(today.getMonth() + 1).padStart(2, '0');
-  const dd   = String(today.getDate()).padStart(2, '0');
-  const prefix = `${yyyy}${mm}${dd}`;
-
-  const todayOrders = orders.filter(o =>
-    String(o.Ser ?? '').startsWith(prefix)
-  );
-
-  const lastSeq = todayOrders.length > 0
-    ? Math.max(
-        ...todayOrders.map(o => {
-          const tail = String(o.Ser ?? '').slice(prefix.length);
-          return parseInt(tail, 10) || 0;
-        })
-      )
-    : 0;
-
-  const newSer = `${prefix}${String(lastSeq + 1).padStart(3, '0')}`;
-
   const initData = {
-    Ser: newSer,
+    Ser: '',   // ← فارغ، يُحسب عند الحفظ فقط
     ID: '',
     Year: currentYear,
   };
@@ -881,79 +860,100 @@ useEffect(() => {
   reset((prev) => ({ ...prev, ...initData }));
   formDataRef.current = initData;
   setIdInitialized(true);
-}, [orders, ordersLoading, isEdit, duplicatedData, currentYear, reset]);
+}, [ordersLoading, isEdit, duplicatedData, currentYear, reset]);
   
 // ✅ الحفظ - مع معالجة أخطاء شاملة
 const onSubmit = useCallback(async (data: Order) => {
-    setSubmitError(null);
-  
-    try {
-      BOOL_FIELDS.forEach(f => {
-        (data as any)[f] = toBit(checks[f]);
-      });
-  
-      Object.entries(MFG_MAP).forEach(([label, field]) => {
-        (data as any)[field] = toBit(mfgChecks[label]);
-      });
-  
-      Object.entries(CUST_MAP).forEach(([label, field]) => {
-        (data as any)[field] = toBit(custChecks[label]);
-      });
-  
-      (data as any).DubelM = toBit(checks.CTB);
-  
-      if (!isEdit) {
-        const userEnteredId = String((data as any).ID ?? '').trim();
-  
-        if (!userEnteredId) {
-          // ✅ المستخدم ترك ID فارغاً — Backend سيحسب max+1
-          delete (data as any).ID;
-        }
-        // ✅ إذا أدخل ID — أرسله كما هو، Backend يتحقق من التكرار
-      }
-  
-      if (isEdit) {
-        await updateOrder.mutateAsync(data);
-      } else {
-        const created = await createOrder.mutateAsync(data);
-        const newId = String((created as any)?.ID ?? (data as any).ID);
-        const yr = String((data as any).Year ?? currentYear);
-  
-        await Promise.all([
-          ...pendingMaterials.map(({ ID, _isNew, ...f }) =>
-            createCarton.mutateAsync({ ...f, ID: newId, year: yr }).catch(err => {
-              console.error('❌ Create carton error:', err);
-              return null;
-            })),
-          ...pendingProblems.map(({ ID, _isNew, ...f }) =>
-            createProblem.mutateAsync({ ...f, ID: newId, Year: yr }).catch(err => {
-              console.error('❌ Create problem error:', err);
-              return null;
-            })),
-          ...pendingOps.map(({ ID, _isNew, ...f }) =>
-            createOperation.mutateAsync({ ...f, ID: newId, year: yr }).catch(err => {
-              console.error('❌ Create operation error:', err);
-              return null;
-            })),
-        ]);
-      }
-  
-      await new Promise(resolve => setTimeout(resolve, 100));
-      navigate('/orders');
-  
-    } catch (error: any) {
-      const responseData = error?.response?.data;
-  
-      if (error?.response?.status === 409 && responseData?.code === 'ID_YEAR_DUPLICATE') {
-        setSubmitError(responseData.error);
-        return;
-      }
-  
-      console.error('❌ Submit error:', error);
-      alert('حدث خطأ أثناء الحفظ. الرجاء المحاولة مرة أخرى.');
-    }
-  }, [checks, mfgChecks, custChecks, isEdit, orders, updateOrder, createOrder, currentYear, pendingMaterials, pendingProblems, pendingOps, createCarton, createProblem, createOperation, navigate]);    
+  setSubmitError(null);
 
+  try {
+    // ✅ احسب Ser لحظة الحفظ فقط (للطلبات الجديدة)
+    if (!isEdit) {
+      const today = new Date();
+      const yyyy = String(today.getFullYear());
+      const mm   = String(today.getMonth() + 1).padStart(2, '0');
+      const dd   = String(today.getDate()).padStart(2, '0');
+      const prefix = `${yyyy}${mm}${dd}`;
+
+      const todayOrders = orders.filter(o =>
+        String(o.Ser ?? '').startsWith(prefix)
+      );
+
+      const lastSeq = todayOrders.length > 0
+        ? Math.max(
+            ...todayOrders.map(o => {
+              const tail = String(o.Ser ?? '').slice(prefix.length);
+              return parseInt(tail, 10) || 0;
+            })
+          )
+        : 0;
+
+      data.Ser = `${prefix}${String(lastSeq + 1).padStart(3, '0')}`;
+    }
+
+    BOOL_FIELDS.forEach(f => {
+      (data as any)[f] = toBit(checks[f]);
+    });
+
+    Object.entries(MFG_MAP).forEach(([label, field]) => {
+      (data as any)[field] = toBit(mfgChecks[label]);
+    });
+
+    Object.entries(CUST_MAP).forEach(([label, field]) => {
+      (data as any)[field] = toBit(custChecks[label]);
+    });
+
+    (data as any).DubelM = toBit(checks.CTB);
+
+    if (!isEdit) {
+      const userEnteredId = String((data as any).ID ?? '').trim();
+
+      if (!userEnteredId) {
+        delete (data as any).ID;
+      }
+    }
+
+    if (isEdit) {
+      await updateOrder.mutateAsync(data);
+    } else {
+      const created = await createOrder.mutateAsync(data);
+      const newId = String((created as any)?.ID ?? (data as any).ID);
+      const yr = String((data as any).Year ?? currentYear);
+
+      await Promise.all([
+        ...pendingMaterials.map(({ ID, _isNew, ...f }) =>
+          createCarton.mutateAsync({ ...f, ID: newId, year: yr }).catch(err => {
+            console.error('❌ Create carton error:', err);
+            return null;
+          })),
+        ...pendingProblems.map(({ ID, _isNew, ...f }) =>
+          createProblem.mutateAsync({ ...f, ID: newId, Year: yr }).catch(err => {
+            console.error('❌ Create problem error:', err);
+            return null;
+          })),
+        ...pendingOps.map(({ ID, _isNew, ...f }) =>
+          createOperation.mutateAsync({ ...f, ID: newId, year: yr }).catch(err => {
+            console.error('❌ Create operation error:', err);
+            return null;
+          })),
+      ]);
+    }
+
+    await new Promise(resolve => setTimeout(resolve, 100));
+    navigate('/orders');
+
+  } catch (error: any) {
+    const responseData = error?.response?.data;
+
+    if (error?.response?.status === 409 && responseData?.code === 'ID_YEAR_DUPLICATE') {
+      setSubmitError(responseData.error);
+      return;
+    }
+
+    console.error('❌ Submit error:', error);
+    alert('حدث خطأ أثناء الحفظ. الرجاء المحاولة مرة أخرى.');
+  }
+}, [checks, mfgChecks, custChecks, isEdit, orders, updateOrder, createOrder, currentYear, pendingMaterials, pendingProblems, pendingOps, createCarton, createProblem, createOperation, navigate]);
   
   
 const handleDuplicate = useCallback(() => {
