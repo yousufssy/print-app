@@ -529,7 +529,6 @@ const navigate = useNavigate();
 const location = useLocation();
 const duplicatedData = location.state?.duplicatedData || null;
 
-const duplicatedData = location.state?.duplicatedData || null;
 
 // ✅ أضف هذا مباشرة بعده
 useEffect(() => {
@@ -553,6 +552,7 @@ useEffect(() => {
     }
   }, [location.pathname, location.key]); // ← يُشغَّل كل مرة تتغير الصفحة
 
+  
 const { data: existing, isLoading } = useOrder(id ?? '', year ?? '');
 const createOrder = useCreateOrder();
 const updateOrder = useUpdateOrder(id ?? '', year ?? '');
