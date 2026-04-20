@@ -980,9 +980,14 @@ const onSubmit = useCallback(async (data: Order) => {
 const handleDuplicate = useCallback(() => {
   const sourceData = isEdit && existing ? { ...existing } : {};
 
+
+
+
+
+  // الاعمدة التي لا تضاف في نسخ الطلب
   const excludeFields = [
     'ID', 'ID1', 'Ser', 'Year',
-    'date_come', 'Perioud', 'marji3', 'AttachmentsOrders',
+    'date_come', 'Perioud', 'AttachmentsOrders',
   ];
 
   const dataToCopy = { ...sourceData };
