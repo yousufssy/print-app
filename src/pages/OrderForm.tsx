@@ -875,10 +875,7 @@ const onSubmit = useCallback(async (data: Order) => {
       const dd   = String(today.getDate()).padStart(2, '0');
       const prefix = `${yyyy}${mm}${dd}`;
       
-      console.log('=== DEBUG Ser ===');
-      console.log('prefix:', prefix);
-      console.log('orders count:', orders.length);
-      console.log('orders Ser values:', orders.map(o => o.Ser));
+    
 
       
       const todayOrders = orders.filter(o =>
@@ -894,7 +891,7 @@ const onSubmit = useCallback(async (data: Order) => {
           )
         : 0;
 
-      data.Ser = `${prefix}${String(lastSeq + 1).padStart(3, '0')}`;
+      data.Ser = `${prefix}${String(lastSeq + 1).padStart(4, '0')}`;
     }
 
     BOOL_FIELDS.forEach(f => {
