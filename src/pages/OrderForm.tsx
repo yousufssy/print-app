@@ -846,25 +846,43 @@ setHasLoadedDuplicate(true);
 const idInitializedRef = useRef(false);
 
 useEffect(() => {
-    if (isEdit || duplicatedData) return;
-    if (idInitializedRef.current) return;
-    if (!orders || orders.length === 0) return;
-  
-    idInitializedRef.current = true;
-  
-    const latestOrder = orders[orders.length - 1];
-    const lastSer = parseInt(latestOrder?.Ser || '0') || 0;
-  
-    const initData = {
-      Ser: String(lastSer + 1),
-      ID: '',           // ✅ فارغ — المستخدم يختار أو يترك فارغاً
-      Year: currentYear,
-    };
-  
-    reset((prev) => ({ ...prev, ...initData }));
-    formDataRef.current = initData;
-    setIdInitialized(true);
-  }, [orders, isEdit, duplicatedData, currentYear, reset]);
+  if (isEdit || duplicatedData) return;
+  if (idInitializedRef.current) return;
+  if (!orders || orders.length === 0) return;
+
+  idInitializedRef.current = true;
+
+  const today = new Date();
+  const yyyy = String(today.getFullYear());
+  const mm   = String(today.getMonth() + 1).padStart(2, '0');
+  const dd   = String(today.getDate()).padStart(2, '0');
+  const prefix = `${yyyy}${mm}${dd}`;
+
+  const todayOrders = orders.filter(o =>
+    String(o.Ser ?? '').startsWith(prefix)
+  );
+
+  const lastSeq = todayOrders.length > 0
+    ? Math.max(
+        ...todayOrders.map(o => {
+          const tail = String(o.Ser ?? '').slice(prefix.length);
+          return parseInt(tail, 10) || 0;
+        })
+      )
+    : 0;
+
+  const newSer = `${prefix}${String(lastSeq + 1).padStart(3, '0')}`;
+
+  const initData = {
+    Ser: newSer,
+    ID: '',
+    Year: currentYear,
+  };
+
+  reset((prev) => ({ ...prev, ...initData }));
+  formDataRef.current = initData;
+  setIdInitialized(true);
+}, [orders, isEdit, duplicatedData, currentYear, reset]);
   
 // ✅ الحفظ - مع معالجة أخطاء شاملة
 const onSubmit = useCallback(async (data: Order) => {
