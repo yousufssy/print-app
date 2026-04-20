@@ -529,6 +529,30 @@ const navigate = useNavigate();
 const location = useLocation();
 const duplicatedData = location.state?.duplicatedData || null;
 
+const duplicatedData = location.state?.duplicatedData || null;
+
+// ✅ أضف هذا مباشرة بعده
+useEffect(() => {
+    if (!isEdit && !duplicatedData) {
+      reset({
+        Year: currentYear,
+        ID: '',
+        Ser: '',
+      });
+      setChecks({});
+      setMfgChecks({});
+      setCustChecks({});
+      setPendingMaterials([]);
+      setPendingProblems([]);
+      setPendingOps([]);
+      idInitializedRef.current = false; // ← يسمح بإعادة حساب Ser
+      setHasLoadedEdit(false);
+      setHasLoadedDuplicate(false);
+      // ✅ امسح الـ state من المتصفح
+      window.history.replaceState({}, '');
+    }
+  }, [location.pathname, location.key]); // ← يُشغَّل كل مرة تتغير الصفحة
+
 const { data: existing, isLoading } = useOrder(id ?? '', year ?? '');
 const createOrder = useCreateOrder();
 const updateOrder = useUpdateOrder(id ?? '', year ?? '');
