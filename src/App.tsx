@@ -31,9 +31,9 @@ export default function App() {
           <Route index element={<DashboardPage />} />
           <Route path="orders" element={<OrdersPage />} />
            <Route path="search" element={<AdvancedSearch />}  />
-          <Route path="orders/new" element={<OrderFormPage />} />
-          <Route path="orders/copy" element={<OrderFormPage />} />
-          <Route path="orders/:id/:year" element={<OrderFormPage />} />
+           <Route path="orders/new"  element={<OrderFormPage key="new" />} />
+          <Route path="orders/copy" element={<OrderFormPage key="copy" />} />
+          <Route path="orders/:id/:year" element={<OrderFormPage key="edit" />} />
            <Route path="production" element={<ProductionPage />} />
           <Route path="delivery" element={<DeliveryPage />} />
           <Route path="users" element={<RequireAdmin><UsersPage /></RequireAdmin>} />
