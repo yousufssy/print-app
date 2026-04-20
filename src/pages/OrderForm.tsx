@@ -1919,7 +1919,7 @@ return (
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 12, marginTop: 12 }}>
       <G label="شركة الامتياز"><input className="fc" {...register('Authr_co')} style={{ textAlign: 'right' }} /></G>
       <G label="رقم النموذج"><input className="fc" {...register('Pat_Num')} style={{ textAlign: 'right' }} /></G>
-      <G label="ملاحظات الطلبية"><input className="fc" style={{ textAlign: 'right' }} /></G>
+      <G label="الطلبية"><input className="fc" {...register('Notes1')} style={{ textAlign: 'right' }} /></G>
       <G label="تعديل بالمونتاج"><input className="fc" {...register('modefyM')} style={{ textAlign: 'right' }} /></G>
     </div>
 
