@@ -2061,9 +2061,9 @@ return (
                 <input className="fc" type="number" defaultValue={0} {...register('final_size_width')} style={{ fontSize: 12, textAlign: 'right' }} />
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <input className="fc" type="number" defaultValue={23} style={{ fontSize: 12, textAlign: 'right' }} />
+                <input className="fc" type="number" defaultValue={0} {...register('cut1')} style={{ fontSize: 12, textAlign: 'right' }} />
                 <span style={{ color: 'var(--muted)', fontWeight: 700 }}>×</span>
-                <input className="fc" type="number" defaultValue={25} style={{ fontSize: 12, textAlign: 'right' }} />
+                <input className="fc" type="number" defaultValue={0} {...register('cut2')} style={{ fontSize: 12, textAlign: 'right' }} />
               </div>
             </div>
             
