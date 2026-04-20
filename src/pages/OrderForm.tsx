@@ -523,22 +523,29 @@ const BOOL_FIELDS = [
 // 🎯 MAIN COMPONENT - OrderFormPage
 // ══════════════════════════════════════════════════════
 export default function OrderFormPage() {
-const { id, year } = useParams<{ id?: string; year?: string }>();
-const isEdit = !!(id && year && String(id).trim() && String(year).trim());
-const navigate = useNavigate();
-const location = useLocation();
-const duplicatedData = useMemo(() => {
-  const stored = sessionStorage.getItem('duplicateOrderData');
-  if (stored) {
-    try {
-      sessionStorage.removeItem('duplicateOrderData'); // امسحها فوراً
-      return JSON.parse(stored);
-    } catch {
-      return null;
+// ✅ الأسطر الجديدة
+  const { id, year } = useParams<{ id?: string; year?: string }>();
+  const isEdit = !!(id && year && String(id).trim() && String(year).trim());
+  const navigate = useNavigate();
+  const location = useLocation();
+  
+  // ✅ تحديد نوع الصفحة
+  const isCopy = location.pathname === '/orders/copy';
+  
+  // ✅ قراءة بيانات النسخ فقط إذا كنا في /orders/copy
+  const duplicatedData = useMemo(() => {
+    if (!isCopy) return null;
+    const stored = sessionStorage.getItem('duplicateOrderData');
+    if (stored) {
+      try {
+        sessionStorage.removeItem('duplicateOrderData');
+        return JSON.parse(stored);
+      } catch {
+        return null;
+      }
     }
-  }
-  return null;
-}, []); 
+    return null;
+  }, []);
 
 const { data: existing, isLoading } = useOrder(id ?? '', year ?? '');
 const createOrder = useCreateOrder();
@@ -974,17 +981,14 @@ const handleDuplicate = useCallback(() => {
   const sourceData = isEdit && existing ? { ...existing } : {};
 
   const excludeFields = [
-    'ID', 'ID1', 'Ser',
-    'Year',
-    'date_come', 'Perioud',
-    'marji3',
-    'AttachmentsOrders',
+    'ID', 'ID1', 'Ser', 'Year',
+    'date_come', 'Perioud', 'marji3', 'AttachmentsOrders',
   ];
 
   const dataToCopy = { ...sourceData };
   excludeFields.forEach(field => delete dataToCopy[field]);
 
-  // ✅ احفظ في sessionStorage بدلاً من location.state
+  // ✅ احفظ في sessionStorage وانتقل لـ /orders/copy
   sessionStorage.setItem('duplicateOrderData', JSON.stringify({
     ...dataToCopy,
     Ser: '',
@@ -993,10 +997,9 @@ const handleDuplicate = useCallback(() => {
     checks: { ...checks },
     mfgChecks: { ...mfgChecks },
     custChecks: { ...custChecks },
-    idInitialized: false,
   }));
 
-  navigate('/orders/new');
+  navigate('/orders/copy');
 }, [isEdit, existing, checks, mfgChecks, custChecks, navigate]);
 
 const chk = useCallback((k: string) => (v: boolean) => setChecks(c => ({ ...c, [k]: v })), []);
@@ -1827,8 +1830,11 @@ return (
 <div style={{ direction: 'rtl' }}>
 <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
 <button onClick={() => navigate('/orders')} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18 }}>←</button>
+// ✅ الجديد
 <h1 style={{ fontSize: 20, fontWeight: 900 }}>
-{isEdit ? `✏️ تعديل الطلب: ${existing?.ID ?? id}` : '➕ طلب جديد'}
+  {isEdit ? `✏️ تعديل الطلب: ${existing?.ID ?? id}` 
+  : isCopy ? '📄 نسخ طلب' 
+  : '➕ طلب جديد'}
 </h1>
 </div>
 
