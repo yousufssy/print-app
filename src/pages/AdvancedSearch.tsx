@@ -16,6 +16,8 @@ import { Btn, FormGroup, SectionDiv, Card } from '../components/ui';
 
 const SEARCH_PATH = '/search';
 const DEFAULT_YEAR = '2025';
+const TOOLTIP_WIDTH = 700;
+const TOOLTIP_HEIGHT = 420;
 
 export function FilterCard({ 
   title, 
@@ -237,10 +239,28 @@ export default function AdvancedSearchPage() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [onSearch, handleSubmit]);
   
+  // ✅ Fixed: tooltip stays on screen by flipping position when near viewport edges
   const handleMouseEnter = (e: React.MouseEvent, order: any) => {
     if (hideTimeout.current) clearTimeout(hideTimeout.current);
-    const x = Math.min(e.clientX + 15, window.innerWidth - 520);
-    const y = Math.min(e.clientY + 15, window.innerHeight - 320);
+
+    const padding = 15;
+    let x = e.clientX + padding;
+    let y = e.clientY + padding;
+
+    // Flip to the left if tooltip would overflow right edge
+    if (x + TOOLTIP_WIDTH > window.innerWidth) {
+      x = e.clientX - TOOLTIP_WIDTH - padding;
+    }
+
+    // Flip upward if tooltip would overflow bottom edge
+    if (y + TOOLTIP_HEIGHT > window.innerHeight) {
+      y = e.clientY - TOOLTIP_HEIGHT - padding;
+    }
+
+    // Final clamp: ensure tooltip never goes outside viewport on any side
+    x = Math.max(padding, Math.min(x, window.innerWidth - TOOLTIP_WIDTH - padding));
+    y = Math.max(padding, Math.min(y, window.innerHeight - TOOLTIP_HEIGHT - padding));
+
     setTooltipPos({ x, y });
     setHoveredOrder(order);
   };
@@ -523,7 +543,7 @@ export default function AdvancedSearchPage() {
       )}
       
       {hoveredOrder && createPortal(
-        <div style={{ position: 'fixed', top: tooltipPos.y, left: tooltipPos.x, zIndex: 1000, background: '#fff', borderRadius: 16, boxShadow: '0 20px 40px rgba(0,0,0,0.2)', padding: '14px 18px', minWidth: 500, maxWidth: 700, direction: 'rtl', fontFamily: 'Cairo, sans-serif', pointerEvents: 'none' }}>
+        <div style={{ position: 'fixed', top: tooltipPos.y, left: tooltipPos.x, zIndex: 1000, background: '#fff', borderRadius: 16, boxShadow: '0 20px 40px rgba(0,0,0,0.2)', padding: '14px 18px', minWidth: 500, maxWidth: TOOLTIP_WIDTH, direction: 'rtl', fontFamily: 'Cairo, sans-serif', pointerEvents: 'none' }}>
           <div style={{ fontWeight: 800, fontSize: 14, borderBottom: '2px solid var(--steel)', paddingBottom: 6, marginBottom: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span>📄 تفاصيل الطلب #{hoveredOrder.ID}</span>
             <span style={{ fontSize: 11, color: 'var(--muted)' }}>{hoveredOrder.Year}</span>
@@ -553,39 +573,6 @@ export default function AdvancedSearchPage() {
                     </div>
                   </div>
                   <div>
-                    {/* ── القياسات ── */}
-                    <div style={{ fontWeight: 700, fontSize: 12, color: 'var(--steel)', marginBottom: 6 }}>📐 القياسات</div>
-                    <div style={{ background: '#f8f9fa', borderRadius: 8, padding: '8px 10px', marginBottom: 10 }}>
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 6, textAlign: 'center', marginBottom: 6 }}>
-                        {[
-                          { label: 'الطول', value: hoveredOrder.LongU },
-                          { label: 'العرض', value: hoveredOrder.WedthU },
-                          { label: 'الارتفاع', value: hoveredOrder.HightU },
-                        ].map(d => (
-                          <div key={d.label} style={{ border: '1px solid var(--border)', borderRadius: 6, padding: '4px 6px', background: '#fff' }}>
-                            <div style={{ fontSize: 10, color: 'var(--muted)' }}>{d.label}</div>
-                            <div style={{ fontWeight: 700, fontSize: 13 }}>{d.value || '—'}</div>
-                          </div>
-                        ))}
-                      </div>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4, fontSize: 11 }}>
-                        {hoveredOrder.SoftU && <div><span style={{ color: 'var(--muted)' }}>طري: </span><b>{hoveredOrder.SoftU}</b></div>}
-                        {hoveredOrder.TafU  && <div><span style={{ color: 'var(--muted)' }}>قاسي: </span><b>{hoveredOrder.TafU}</b></div>}
-                        {hoveredOrder.Lesan && <div style={{ gridColumn: '1/-1' }}><span style={{ color: 'var(--muted)' }}>لسان التدكيك: </span><b>{hoveredOrder.Lesan}</b></div>}
-                      </div>
-                      {(hoveredOrder.final_size_tall || hoveredOrder.final_size_width) && (
-                        <div style={{ marginTop: 5, fontSize: 11, borderTop: '1px solid var(--border)', paddingTop: 4 }}>
-                          <span style={{ color: 'var(--muted)' }}>الحجم النهائي طري: </span>
-                          <b>{hoveredOrder.final_size_tall} × {hoveredOrder.final_size_width}</b>
-                        </div>
-                      )}
-                      {(hoveredOrder.final_size_tall2 || hoveredOrder.final_size_width2) && (
-                        <div style={{ fontSize: 11 }}>
-                          <span style={{ color: 'var(--muted)' }}>الحجم النهائي قاسي: </span>
-                          <b>{hoveredOrder.final_size_tall2} × {hoveredOrder.final_size_width2}</b>
-                        </div>
-                      )}
-                    </div>
                     {/* ── مواصفات الطباعة ── */}
                     <div style={{ fontWeight: 700, fontSize: 12, color: 'var(--steel)', marginBottom: 6 }}>⚙️ مواصفات الطباعة</div>
                     <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '5px 10px', fontSize: 12 }}>
