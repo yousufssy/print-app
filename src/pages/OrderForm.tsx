@@ -768,7 +768,7 @@ useEffect(() => {
 localStorage.setItem('orderFormSections', JSON.stringify(openSections));
 }, [openSections]);
 
-const { data: ordersResponse } = useOrders({ year: currentYear });
+const { data: ordersResponse, isLoading: ordersLoading } = useOrders({ year: currentYear });
 const orders = useMemo(() => ordersResponse?.data ?? [], [ordersResponse]);
 
 const { data: vouchers = [] } = useVouchers(
@@ -842,13 +842,12 @@ setHasLoadedDuplicate(true);
 }, [duplicatedData, hasLoadedDuplicate, reset]);
 
 // ✅ 3️⃣ تهيئة طلب جديد - مرة واحدة فقط
-// ✅ استبدل useEffect الخاص بتهيئة الـ ID بهذا
 const idInitializedRef = useRef(false);
 
 useEffect(() => {
   if (isEdit || duplicatedData) return;
   if (idInitializedRef.current) return;
-  if (!orders || orders.length === 0) return;
+  if (ordersLoading) return; // ← انتظر حتى تنتهي من التحميل
 
   idInitializedRef.current = true;
 
@@ -882,7 +881,7 @@ useEffect(() => {
   reset((prev) => ({ ...prev, ...initData }));
   formDataRef.current = initData;
   setIdInitialized(true);
-}, [orders, isEdit, duplicatedData, currentYear, reset]);
+}, [orders, ordersLoading, isEdit, duplicatedData, currentYear, reset]);
   
 // ✅ الحفظ - مع معالجة أخطاء شاملة
 const onSubmit = useCallback(async (data: Order) => {
