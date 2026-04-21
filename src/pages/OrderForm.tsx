@@ -244,22 +244,25 @@ const saveRow = React.useCallback(async (i: number) => {
   }
 }, [cols, localRows, onRowsChange, pageSize]);
 
-  const delRow = React.useCallback(async (i: number) => {
-    const row = localRows[i];
-    if (!row) return;
+const delRow = React.useCallback(async (i: number) => {
+  const row = localRows[i];
+  if (!row) return;
 
-    if (row._isNew === 'true') {
-      setLocalRows((prev) => {
-        const nextRows = prev.filter((_, idx) => idx !== i);
-        pushDraftRows(nextRows);
-        return nextRows;
-      });
-    } else {
-      setLocalRows((prev) => prev.filter((_, idx) => idx !== i));
-      const remaining = rowsRef.current.filter((r) => r.ID !== row.ID);
-      await onRowsChange(remaining);
-    }
-  }, [localRows, pushDraftRows, onRowsChange]);
+  // ✅ رسالة تأكيد
+  if (!confirm('هل أنت متأكد من حذف هذا السطر؟')) return;
+
+  if (row._isNew === 'true') {
+    setLocalRows((prev) => {
+      const nextRows = prev.filter((_, idx) => idx !== i);
+      pushDraftRows(nextRows);
+      return nextRows;
+    });
+  } else {
+    setLocalRows((prev) => prev.filter((_, idx) => idx !== i));
+    const remaining = rowsRef.current.filter((r) => r.ID !== row.ID);
+    await onRowsChange(remaining);
+  }
+}, [localRows, pushDraftRows, onRowsChange]);
 
   return (
     <div style={{ overflowX: 'auto', marginTop: 8 }}>
@@ -433,7 +436,7 @@ const saveRow = React.useCallback(async (i: number) => {
                         fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center',
                       }}
                     >
-                      ›
+                      ‹
                     </button>
         
                     <span style={{ fontSize: 11, color: 'var(--muted)', whiteSpace: 'nowrap' }}>
@@ -452,7 +455,7 @@ const saveRow = React.useCallback(async (i: number) => {
                         fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center',
                       }}
                     >
-                      ‹
+                      ›
                     </button>
                   </div>
                 )}
