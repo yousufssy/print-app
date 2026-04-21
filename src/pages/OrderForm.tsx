@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
-import { useOrder, useCreateOrder, useUpdateOrder, useCustomers, useVouchers, useCreateVoucher, useDeleteVoucher, useOrders, useOperations, useCreateOperation, useUpdateOperation, useDeleteOperation, useCartons, useCreateCarton, useUpdateCarton, useDeleteCarton, useProblems, useCreateProblem, useUpdateProblem, useDeleteProblem } from '../hooks/useApi';
+import { useOrder, useCreateOrder, useUpdateOrder , useDeleteOrder, useCustomers, useVouchers, useCreateVoucher, useDeleteVoucher, useOrders, useOperations, useCreateOperation, useUpdateOperation, useDeleteOperation, useCartons, useCreateCarton, useUpdateCarton, useDeleteCarton, useProblems, useCreateProblem, useUpdateProblem, useDeleteProblem } from '../hooks/useApi';
 import { Card, FormGroup, SectionDiv, CheckItem, Loading, Btn } from '../components/ui';
 import type { Order } from '../types';
 
@@ -566,7 +566,7 @@ export default function OrderFormPage() {
   const { data: existing, isLoading } = useOrder(id ?? '', year ?? '');
   const createOrder = useCreateOrder();
   const updateOrder = useUpdateOrder(id ?? '', year ?? '');
-  const deleteOrder = useDeleteOrder(id ?? '', year ?? '');
+  const deleteOrder = useDeleteOrder();
   
   const { data: customers = [] } = useCustomers();
 
@@ -1523,7 +1523,7 @@ window.addEventListener('load', () => {
           onClick={async () => {
             if (!confirm('هل أنت متأكد من حذف هذا الطلب؟ لا يمكن التراجع عن هذا الإجراء.')) return;
             try {
-              await deleteOrder.mutateAsync();
+              await deleteOrder.mutateAsync({ id: id!, year: year! });
               navigate('/orders');
             } catch (error) {
               alert('حدث خطأ أثناء الحذف. الرجاء المحاولة مرة أخرى.');
