@@ -637,7 +637,7 @@ export default function OrderFormPage() {
   const [currentYear] = useState(String(new Date().getFullYear()));
   const ordersYearRef = useRef<string>(String(new Date().getFullYear()));
 
-  const { register, handleSubmit, reset, setValue } = useForm<Order>({
+  const { register, handleSubmit, reset, setValue, watch } = useForm<Order>({
     defaultValues: {
       Year: currentYear,
       ID: '',
@@ -1113,6 +1113,16 @@ export default function OrderFormPage() {
   }, []);
 
   const isSaving = createOrder.isPending || updateOrder.isPending;
+
+  const demandVal = watch('Demand');
+  const sheetUnitVal = watch('sheet_unit_qunt');
+  
+  const calcSheetCount = useMemo(() => {
+    const demand = parseFloat(String(demandVal ?? ''));
+    const sheetUnit = parseFloat(String(sheetUnitVal ?? ''));
+    if (!demand || !sheetUnit || sheetUnit === 0) return '';
+    return Math.ceil((demand / sheetUnit) * 1.03).toLocaleString('ar-SA');
+  }, [demandVal, sheetUnitVal]);
 
   // ══════════════════════════════════════════════════════
   // 🖨️ طباعة بطاقة الإنتاج
@@ -1732,6 +1742,21 @@ window.addEventListener('load', () => {
             <G label="رقم النموذج"><input className="fc" {...register('Pat_Num')} style={{ textAlign: 'right' }} /></G>
             <G label="الطلبية"><input className="fc" {...register('Notes1')} style={{ textAlign: 'right' }} /></G>
             <G label="تعديل بالمونتاج"><input className="fc" {...register('modefyM')} style={{ textAlign: 'right' }} /></G>
+            <G label="عدد الأطباق">
+              <input
+                className="fc"
+                value={calcSheetCount}
+                readOnly
+                style={{
+                  textAlign: 'right',
+                  background: '#f0f9ff',
+                  borderColor: '#3498db',
+                  fontWeight: 700,
+                  color: '#1a5276',
+                }}
+                title={`${demandVal ?? 0} ÷ ${sheetUnitVal ?? 0} × 1.03`}
+              />
+            </G>
           </div>
 
           <SectionDiv label="المواد" />
