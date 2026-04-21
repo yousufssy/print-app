@@ -1861,7 +1861,7 @@ window.addEventListener('load', () => {
           onToggle={() => toggleSection('delivery')}
         >
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 10 }}>
-            <G label="الكمية المسلمة"><input className="fc" type="number" {...register('Qunt_Ac')} style={{ textAlign: 'right' }} /></G>
+            <G label="الكمية المسلمة"><input className="fc" type="number" {...register('Qunt_Ac')} readOnly style={{ textAlign: 'right' }} /></G>
             <G label="التعبئة عند الزبون"><input className="fc" {...register('Cus_Paking')} style={{ textAlign: 'right' }} /></G>
             <G label="طريقة تلزيق العلبة"><input className="fc" {...register('box_stk_typ')} style={{ textAlign: 'right' }} /></G>
             <G label="الحالة">
