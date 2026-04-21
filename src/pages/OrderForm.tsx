@@ -771,6 +771,19 @@ export default function OrderFormPage() {
       setValue('Qunt_Ac', row.Qunt_Ac ?? '');
     }, [setValue]);
 
+    const [selectedMatRow, setSelectedMatRow] = useState<Record<string, string> | null>(null);
+
+    useEffect(() => {
+      const rows = isEdit ? materialsRows : pendingMaterials;
+      if (rows.length > 0 && !selectedMatRow) {
+        setSelectedMatRow(rows[0]);
+      }
+    }, [materialsRows, pendingMaterials]);
+    
+    const handleMatRowSelect = useCallback((row: Record<string, string>) => {
+      setSelectedMatRow(row);
+    }, []);
+
   const handleOperationsChange = useCallback(async (newRows: Record<string, string>[]) => {
     if (!isEdit) {
       setPendingOps(newRows);
@@ -1623,6 +1636,9 @@ window.addEventListener('load', () => {
             rows={isEdit ? materialsRows : pendingMaterials}
             onRowsChange={handleMaterialsChange}
             syncDraftRows={!isEdit}
+            selectable={true}
+            selectedRowId={selectedMatRow?.ID || ''}
+            onRowSelect={handleMatRowSelect}
           />
         </AccordionCard>
 
@@ -1756,9 +1772,22 @@ window.addEventListener('load', () => {
                   <div>
                     <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--steel)', marginBottom: 4, display: 'block', textAlign: 'right' }}>الأبعاد</label>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                      <input className="fc" type="number" defaultValue={23} style={{ fontSize: 12, textAlign: 'right' }} />
+                      // ✅ بعد
+                      <input
+                        className="fc"
+                        type="number"
+                        value={selectedMatRow?.Long1 ?? ''}
+                        readOnly
+                        style={{ fontSize: 12, textAlign: 'right', background: '#f0f9ff' }}
+                      />
                       <span style={{ color: 'var(--muted)', fontWeight: 700 }}>×</span>
-                      <input className="fc" type="number" defaultValue={25} style={{ fontSize: 12, textAlign: 'right' }} />
+                      <input
+                        className="fc"
+                        type="number"
+                        value={selectedMatRow?.Width1 ?? ''}
+                        readOnly
+                        style={{ fontSize: 12, textAlign: 'right', background: '#f0f9ff' }}
+                      />
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
                       <input className="fc" type="number" defaultValue={0} {...register('final_size_tall')} style={{ fontSize: 12, textAlign: 'right' }} />
