@@ -97,16 +97,19 @@ const InlineTable = React.memo(function InlineTable({
   rows,
   onRowsChange,
   syncDraftRows = false,
-  selectable = false,        // ✅ جديد
-  selectedRowId,             // ✅ جديد
-  onRowSelect, 
+  selectable = false,
+  selectedRowId,
+  onRowSelect,
+  radioName = 'table-row-select', // ✅ جديد
 }: {
   cols: { key: string; label: string; type?: string; width?: number }[];
   rows: Record<string, string>[];
   onRowsChange: (rows: Record<string, string>[]) => void | Promise<void>;
   syncDraftRows?: boolean;
-  selectable?: boolean;      // ✅ جديد
-  selectedRowId?: string; 
+  selectable?: boolean;
+  selectedRowId?: string;
+  onRowSelect?: (row: Record<string, string>) => void;
+  radioName?: string; // ✅ جديد
 }) {
   const [localRows, setLocalRows] = React.useState<Record<string, string>[]>([]);
   const [saving, setSaving] = React.useState<Record<number, boolean>>({});
@@ -293,7 +296,7 @@ const InlineTable = React.memo(function InlineTable({
                 <td style={{ padding: '3px 6px', textAlign: 'center' }}>
                   <input
                     type="radio"
-                    name="ops-row-select"
+                    name={radioName} // ✅ استخدم الـ prop
                     checked={selectedRowId === (row.ID || `new-${i}`)}
                     onChange={() => onRowSelect?.(row)}
                     style={{ cursor: 'pointer', width: 16, height: 16 }}
@@ -1639,6 +1642,7 @@ window.addEventListener('load', () => {
             selectable={true}
             selectedRowId={selectedMatRow?.ID || ''}
             onRowSelect={handleMatRowSelect}
+            radioName="materials-row-select"
           />
         </AccordionCard>
 
@@ -1696,6 +1700,7 @@ window.addEventListener('load', () => {
             selectable={true}
             selectedRowId={selectedOpRow?.ID || ''}
             onRowSelect={handleOpRowSelect}
+            radioName="operations-row-select"
           />
 
           {/* ══ مراقبة الجودة والمشاكل (مدمجة هنا) ══ */}
