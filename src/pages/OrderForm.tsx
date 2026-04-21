@@ -1761,11 +1761,7 @@ window.addEventListener('load', () => {
         </AccordionCard>
 
         {/* ══ 2. مواصفات المطبوعة ══ */}
-        <AccordionCard
-          title="🎨 مواصفات المطبوعة"
-          isOpen={openSections.specs}
-          onToggle={() => toggleSection('specs')}
-        >
+        
           
 
           <SectionDiv label="المواد" />
@@ -1779,7 +1775,7 @@ window.addEventListener('load', () => {
             onRowSelect={handleMatRowSelect}
             radioName="materials-row-select"
           />
-        </AccordionCard>
+     
 
         {/* ══ 3. مواصفات الطباعة والمونتاج + الجودة والمشاكل (مدمجان) ══ */}
         <AccordionCard
