@@ -118,14 +118,18 @@ const InlineTable = React.memo(function InlineTable({
   const [dirtyRows, setDirtyRows] = React.useState<Set<number>>(new Set());
 
 
-  const [visibleCount, setVisibleCount] = React.useState(pageSize);
+  const [currentPage, setCurrentPage] = React.useState(0);
 
-  React.useEffect(() => {
-    setVisibleCount(pageSize);
-  }, [rows, pageSize]);
+  const totalPages = Math.ceil(localRows.length / pageSize);
+  const visibleRows = localRows.slice(currentPage * pageSize, (currentPage + 1) * pageSize);
   
-  const visibleRows = localRows.slice(0, visibleCount);
-  const hiddenCount = localRows.length - visibleCount;
+  // ✅ عند تغيير الصفوف تأكد أن الصفحة الحالية صحيحة
+  React.useEffect(() => {
+    setCurrentPage(prev => {
+      const maxPage = Math.max(0, Math.ceil(localRows.length / pageSize) - 1);
+      return Math.min(prev, maxPage);
+    });
+  }, [localRows.length, pageSize]);
 
   const rowsRef = React.useRef(rows);
 
@@ -179,9 +183,12 @@ const InlineTable = React.memo(function InlineTable({
     setLocalRows((prev) => {
       const nextRows = [...prev, { ...empty, ID: '', _isNew: 'true' }];
       pushDraftRows(nextRows);
+      // ✅ انتقل للصفحة الأخيرة
+      const newTotalPages = Math.ceil(nextRows.length / pageSize);
+      setCurrentPage(newTotalPages - 1);
       return nextRows;
     });
-  }, [cols, pushDraftRows]);
+  }, [cols, pushDraftRows, pageSize]);
 
   const setCell = React.useCallback((i: number, key: string, value: string) => {
     const finalValue = isNumericCol(key) ? cleanNumber(value) : value;
@@ -400,44 +407,12 @@ const InlineTable = React.memo(function InlineTable({
           ))}
         </tbody>
 
-        <tfoot>
-            {hiddenCount > 0 && (
-              <tr>
-                <td colSpan={cols.length + (selectable ? 2 : 1)} style={{ padding: '4px 10px' }}>
-                  <button
-                    type="button"
-                    onClick={() => setVisibleCount(v => v + pageSize)}
-                    style={{
-                      background: 'var(--steel)', color: '#fff', border: 'none',
-                      borderRadius: 6, padding: '6px 14px', cursor: 'pointer',
-                      fontFamily: 'Cairo, sans-serif', fontSize: 12, width: '100%',
-                    }}
-                  >
-                    ⬇ عرض {Math.min(hiddenCount, pageSize)} سطر أخرى (متبقي {hiddenCount})
-                  </button>
-                </td>
-              </tr>
-            )}
-            {visibleCount > pageSize && hiddenCount === 0 && (
-              <tr>
-                <td colSpan={cols.length + (selectable ? 2 : 1)} style={{ padding: '4px 10px' }}>
-                  <button
-                    type="button"
-                    onClick={() => setVisibleCount(pageSize)}
-                    style={{
-                      background: 'var(--bg)', color: 'var(--muted)',
-                      border: '1px solid var(--border)', borderRadius: 6,
-                      padding: '4px 14px', cursor: 'pointer',
-                      fontFamily: 'Cairo, sans-serif', fontSize: 12, width: '100%',
-                    }}
-                  >
-                    ⬆ إخفاء الأسطر الإضافية
-                  </button>
-                </td>
-              </tr>
-            )}
-            <tr>
-              <td colSpan={cols.length + (selectable ? 2 : 1)} style={{ padding: '8px 10px' }}>
+       <tfoot>
+          <tr>
+            <td colSpan={cols.length + (selectable ? 2 : 1)} style={{ padding: '8px 10px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                
+                {/* ✅ زر إضافة سطر */}
                 <button
                   type="button"
                   onClick={addRow}
@@ -445,14 +420,55 @@ const InlineTable = React.memo(function InlineTable({
                     background: 'none', border: '1.5px dashed var(--border)',
                     borderRadius: 6, padding: '5px 14px', cursor: 'pointer',
                     color: 'var(--muted)', fontFamily: 'Cairo, sans-serif',
-                    fontSize: 12, width: '100%',
+                    fontSize: 12, flex: 1,
                   }}
                 >
                   ➕ إضافة سطر
                 </button>
-              </td>
-            </tr>
-          </tfoot>
+        
+                {/* ✅ أسهم التنقل - تظهر فقط إذا أكثر من صفحة */}
+                {totalPages > 1 && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+                    <button
+                      type="button"
+                      onClick={() => setCurrentPage(p => Math.max(0, p - 1))}
+                      disabled={currentPage === 0}
+                      style={{
+                        background: currentPage === 0 ? 'var(--bg)' : 'var(--steel)',
+                        color: currentPage === 0 ? 'var(--muted)' : '#fff',
+                        border: '1px solid var(--border)', borderRadius: 6,
+                        width: 30, height: 30, cursor: currentPage === 0 ? 'not-allowed' : 'pointer',
+                        fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      }}
+                    >
+                      ›
+                    </button>
+        
+                    <span style={{ fontSize: 11, color: 'var(--muted)', whiteSpace: 'nowrap' }}>
+                      {currentPage + 1} / {totalPages}
+                    </span>
+        
+                    <button
+                      type="button"
+                      onClick={() => setCurrentPage(p => Math.min(totalPages - 1, p + 1))}
+                      disabled={currentPage === totalPages - 1}
+                      style={{
+                        background: currentPage === totalPages - 1 ? 'var(--bg)' : 'var(--steel)',
+                        color: currentPage === totalPages - 1 ? 'var(--muted)' : '#fff',
+                        border: '1px solid var(--border)', borderRadius: 6,
+                        width: 30, height: 30, cursor: currentPage === totalPages - 1 ? 'not-allowed' : 'pointer',
+                        fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      }}
+                    >
+                      ‹
+                    </button>
+                  </div>
+                )}
+        
+              </div>
+            </td>
+          </tr>
+        </tfoot>
       </table>
     </div>
   );
