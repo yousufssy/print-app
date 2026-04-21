@@ -566,6 +566,8 @@ export default function OrderFormPage() {
   const { data: existing, isLoading } = useOrder(id ?? '', year ?? '');
   const createOrder = useCreateOrder();
   const updateOrder = useUpdateOrder(id ?? '', year ?? '');
+  const deleteOrder = useDeleteOrder(id ?? '', year ?? '');
+  
   const { data: customers = [] } = useCustomers();
 
   const [checks, setChecks] = useState<Record<string, boolean>>({});
@@ -1513,7 +1515,32 @@ window.addEventListener('load', () => {
             : '➕ طلب جديد'}
         </h1>
       </div>
-
+      {/* ✅ زر الحذف - يظهر فقط عند التعديل */}
+      {isEdit && (
+        <Btn
+          variant="outline"
+          type="button"
+          onClick={async () => {
+            if (!confirm('هل أنت متأكد من حذف هذا الطلب؟ لا يمكن التراجع عن هذا الإجراء.')) return;
+            try {
+              await deleteOrder.mutateAsync();
+              navigate('/orders');
+            } catch (error) {
+              alert('حدث خطأ أثناء الحذف. الرجاء المحاولة مرة أخرى.');
+            }
+          }}
+          disabled={deleteOrder.isPending}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 5,
+            color: 'var(--red)',
+            borderColor: 'var(--red)',
+          }}
+        >
+          {deleteOrder.isPending ? '⏳ جاري الحذف...' : '🗑 حذف الطلب'}
+        </Btn>
+      )}
       <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
         <button
           type="button"
