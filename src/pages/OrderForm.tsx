@@ -1758,12 +1758,6 @@ window.addEventListener('load', () => {
               />
             </G>
           </div>
-        </AccordionCard>
-
-        {/* ══ 2. مواصفات المطبوعة ══ */}
-        
-          
-
           <SectionDiv label="المواد" />
           <InlineTable
             cols={MATERIALS_COLS}
@@ -1775,6 +1769,13 @@ window.addEventListener('load', () => {
             onRowSelect={handleMatRowSelect}
             radioName="materials-row-select"
           />
+        </AccordionCard>
+
+        {/* ══ 2. مواصفات المطبوعة ══ */}
+        
+          
+
+          
      
 
         {/* ══ 3. مواصفات الطباعة والمونتاج + الجودة والمشاكل (مدمجان) ══ */}
