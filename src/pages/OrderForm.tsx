@@ -637,7 +637,7 @@ export default function OrderFormPage() {
   const [currentYear] = useState(String(new Date().getFullYear()));
   const ordersYearRef = useRef<string>(String(new Date().getFullYear()));
 
-  const { register, handleSubmit, reset, setValue , watch} = useForm<Order>({
+  const { register, handleSubmit, reset, setValue } = useForm<Order>({
     defaultValues: {
       Year: currentYear,
       ID: '',
@@ -1567,8 +1567,6 @@ window.addEventListener('load', () => {
 </body>
 </html>`;
 
-   
-    
     const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -1735,25 +1733,7 @@ window.addEventListener('load', () => {
             <G label="الطلبية"><input className="fc" {...register('Notes1')} style={{ textAlign: 'right' }} /></G>
             <G label="تعديل بالمونتاج"><input className="fc" {...register('modefyM')} style={{ textAlign: 'right' }} /></G>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 12, marginTop: 12 }}>
-            <G label="عدد الاطباق">
-              <input
-                className="fc"
-                value={
-                  watch('Demand') && watch('sheet_unit_qunt') && Number(watch('sheet_unit_qunt')) !== 0
-                    ? ((Number(watch('Demand')) / Number(watch('sheet_unit_qunt'))) * 1.03).toFixed(2)
-                    : ''
-                }
-                readOnly
-                style={{
-                  textAlign: 'right',
-                  background: '#f8f9fa'
-                }}
-              />
-            </G>
-          </div>
 
-            
           <SectionDiv label="المواد" />
           <InlineTable
             cols={MATERIALS_COLS}
