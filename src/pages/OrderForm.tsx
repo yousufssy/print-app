@@ -97,11 +97,16 @@ const InlineTable = React.memo(function InlineTable({
   rows,
   onRowsChange,
   syncDraftRows = false,
+  selectable = false,        // ✅ جديد
+  selectedRowId,             // ✅ جديد
+  onRowSelect, 
 }: {
   cols: { key: string; label: string; type?: string; width?: number }[];
   rows: Record<string, string>[];
   onRowsChange: (rows: Record<string, string>[]) => void | Promise<void>;
   syncDraftRows?: boolean;
+  selectable?: boolean;      // ✅ جديد
+  selectedRowId?: string; 
 }) {
   const [localRows, setLocalRows] = React.useState<Record<string, string>[]>([]);
   const [saving, setSaving] = React.useState<Record<number, boolean>>({});
@@ -230,6 +235,10 @@ const InlineTable = React.memo(function InlineTable({
       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
         <thead>
           <tr style={{ background: 'var(--steel)', color: '#fff' }}>
+            {/* ✅ عمود الاختيار */}
+            {selectable && (
+              <th style={{ padding: '8px 10px', width: 36, textAlign: 'center' }}>✔</th>
+            )}
             {cols.map((c) => (
               <th
                 key={c.key}
@@ -270,13 +279,27 @@ const InlineTable = React.memo(function InlineTable({
               style={{
                 borderBottom: '1px solid var(--border)',
                 background:
-                  row._isNew === 'true'
-                    ? '#fffbe6'
-                    : i % 2 === 0
-                      ? '#fff'
-                      : '#fdf8f0',
+                  selectedRowId && (row.ID === selectedRowId || `new-${i}` === selectedRowId)
+                    ? 'rgba(52,152,219,0.1)'
+                    : row._isNew === 'true'
+                      ? '#fffbe6'
+                      : i % 2 === 0 ? '#fff' : '#fdf8f0',
+                cursor: selectable ? 'pointer' : 'default',
               }}
+              onClick={() => selectable && onRowSelect?.(row)}
             >
+              {/* ✅ خلية الراديو */}
+              {selectable && (
+                <td style={{ padding: '3px 6px', textAlign: 'center' }}>
+                  <input
+                    type="radio"
+                    name="ops-row-select"
+                    checked={selectedRowId === (row.ID || `new-${i}`)}
+                    onChange={() => onRowSelect?.(row)}
+                    style={{ cursor: 'pointer', width: 16, height: 16 }}
+                  />
+                </td>
+              )}
               {cols.map((c, ci) => {
                 const isNumber = c.type === 'number';
                 const value = isNumber
@@ -643,6 +666,21 @@ export default function OrderFormPage() {
   const [pendingMaterials, setPendingMaterials] = useState<Record<string, string>[]>([]);
   const [pendingProblems, setPendingProblems] = useState<Record<string, string>[]>([]);
   const [pendingOps, setPendingOps] = useState<Record<string, string>[]>([]);
+
+  const [selectedOpRow, setSelectedOpRow] = useState<Record<string, string> | null>(null);
+
+  useEffect(() => {
+      const rows = isEdit ? operationsRows : pendingOps;
+      if (rows.length > 0 && !selectedOpRow) {
+        setSelectedOpRow(rows[0]);
+        setValue('Qunt_Ac', rows[0].Qunt_Ac ?? '');
+      }
+    }, [operationsRows, pendingOps]);
+    
+    const handleOpRowSelect = useCallback((row: Record<string, string>) => {
+      setSelectedOpRow(row);
+      setValue('Qunt_Ac', row.Qunt_Ac ?? '');
+    }, [setValue]);
 
   const handleMaterialsChange = useCallback(async (newRows: Record<string, string>[]) => {
     if (!isEdit) {
@@ -1636,6 +1674,9 @@ window.addEventListener('load', () => {
             rows={isEdit ? operationsRows : pendingOps}
             onRowsChange={handleOperationsChange}
             syncDraftRows={!isEdit}
+            selectable={true}
+            selectedRowId={selectedOpRow?.ID || ''}
+            onRowSelect={handleOpRowSelect}
           />
 
           {/* ══ مراقبة الجودة والمشاكل (مدمجة هنا) ══ */}
