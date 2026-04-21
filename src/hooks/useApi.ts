@@ -108,12 +108,16 @@ export function useCartons(orderId: string, year: string) {
   });
 }
 
+// ✅ بعد
 export function useCreateCarton() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: cartonsApi.create,
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['cartons'] }); },
-    onError: () => toast.error('خطأ في حفظ الكرتون'),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['cartons'] });
+      toast.success('✅ تم حفظ المادة');
+    },
+    onError: () => toast.error('خطأ في حفظ المادة'),
   });
 }
 
@@ -121,8 +125,11 @@ export function useUpdateCarton() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: ({ rowId, data }: { rowId: number; data: any }) => cartonsApi.update(rowId, data),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['cartons'] }); },
-    onError: () => toast.error('خطأ في تحديث الكرتون'),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['cartons'] });
+      toast.success('✅ تم تحديث المادة');
+    },
+    onError: () => toast.error('خطأ في تحديث المادة'),
   });
 }
 
@@ -130,25 +137,24 @@ export function useDeleteCarton() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: cartonsApi.delete,
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['cartons'] }); },
-    onError: () => toast.error('خطأ في الحذف'),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['cartons'] });
+      toast.success('🗑 تم حذف المادة');
+    },
+    onError: () => toast.error('خطأ في حذف المادة'),
   });
 }
 
 // ── Problems ──────────────────────────────────────────
-export function useProblems(orderId: string, year: string) {
-  return useQuery({
-    queryKey: ['problems', orderId, year],
-    queryFn:  () => problemsApi.list(orderId, year),
-    enabled:  !!orderId && !!year,
-  });
-}
-
+// ✅ بعد
 export function useCreateProblem() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: problemsApi.create,
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['problems'] }); },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['problems'] });
+      toast.success('✅ تم حفظ المشكلة');
+    },
     onError: () => toast.error('خطأ في حفظ المشكلة'),
   });
 }
@@ -157,7 +163,10 @@ export function useUpdateProblem() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: ({ rowId, data }: { rowId: number; data: any }) => problemsApi.update(rowId, data),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['problems'] }); },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['problems'] });
+      toast.success('✅ تم تحديث المشكلة');
+    },
     onError: () => toast.error('خطأ في تحديث المشكلة'),
   });
 }
@@ -166,8 +175,11 @@ export function useDeleteProblem() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: problemsApi.delete,
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['problems'] }); },
-    onError: () => toast.error('خطأ في الحذف'),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['problems'] });
+      toast.success('🗑 تم حذف المشكلة');
+    },
+    onError: () => toast.error('خطأ في حذف المشكلة'),
   });
 }
 
@@ -216,6 +228,18 @@ export function useDeleteOperation() {
   });
 }
 
+export function useUpdateOperation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ rowId, data }: { rowId: number; data: any }) =>
+      operationsApi.update(rowId, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['operations'] });
+      toast.success('✅ تم تحديث العملية'); // ✅ أضف هذا
+    },
+    onError: () => toast.error('خطأ في تحديث العملية'),
+  });
+}
 // ── Customers ─────────────────────────────────────────
 export function useCustomers(q?: string) {
   return useQuery({
