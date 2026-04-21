@@ -1772,7 +1772,6 @@ window.addEventListener('load', () => {
                   <div>
                     <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--steel)', marginBottom: 4, display: 'block', textAlign: 'right' }}>الأبعاد</label>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                      // ✅ بعد
                       <input
                         className="fc"
                         type="number"
