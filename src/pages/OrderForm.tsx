@@ -790,21 +790,29 @@ export default function OrderFormPage() {
   );
 
   const handleProblemsChange = useCallback(async (newRows: Record<string, string>[]) => {
-    if (!isEdit) {
-      setPendingProblems(newRows);
-      return;
-    }
-    try {
-      await syncRows(
-        problemsRows, newRows,
-        (f) => createProblem.mutateAsync({ ...f, ID: id!, Year: year! }),
-        (rowId, f) => updateProblem.mutateAsync({ rowId, data: f }),
-        (rowId) => deleteProblem.mutateAsync(rowId),
-      );
-    } catch (error) {
-      console.error('❌ handleProblemsChange error:', error);
-    }
-  }, [isEdit, problemsRows, syncRows, createProblem, updateProblem, deleteProblem, id, year]);
+  if (!isEdit) {
+    setPendingProblems(newRows);
+    return;
+  }
+  try {
+    await syncRows(
+      problemsRows, newRows,
+      (f) => createProblem.mutateAsync({
+        ...f,
+        ID: id!,
+        Year: year!,
+        print_count: f.print_count ? Number(f.print_count) : null, // ✅
+      }),
+      (rowId, f) => updateProblem.mutateAsync({ rowId, data: {
+        ...f,
+        print_count: f.print_count ? Number(f.print_count) : null, // ✅
+      }}),
+      (rowId) => deleteProblem.mutateAsync(rowId),
+    );
+  } catch (error) {
+    console.error('❌ handleProblemsChange error:', error);
+  }
+}, [isEdit, problemsRows, syncRows, createProblem, updateProblem, deleteProblem, id, year]);
 
   // ── العمليات ──────────────────────────────────────────────────────────────────
   const { data: operationsData = [] } = useOperations(isEdit ? (id ?? '') : '', isEdit ? (year ?? '') : '');
