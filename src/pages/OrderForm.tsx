@@ -616,6 +616,7 @@ export default function OrderFormPage() {
   const [mfgChecks, setMfgChecks] = useState<Record<string, boolean>>({});
   const [custChecks, setCustChecks] = useState<Record<string, boolean>>({});
   const [voucherOpen, setVoucherOpen] = useState(false);
+  const [vouchersVisible, setVouchersVisible] = useState(5);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   const [idInitialized, setIdInitialized] = useState(false);
