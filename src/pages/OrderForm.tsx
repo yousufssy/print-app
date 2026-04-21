@@ -682,11 +682,31 @@ export default function OrderFormPage() {
     try {
       await syncRows(
         materialsRows, newRows,
-        (f) => createCarton.mutateAsync({ ...f, ID: id!, year: year! }),
-        (rowId, f) => updateCarton.mutateAsync({ rowId, data: f }),
+        (f) => createCarton.mutateAsync({
+          ...f,
+          ID: id!,
+          year: year!,
+          Long1: f.Long1 ? Number(f.Long1) : null,
+          Width1: f.Width1 ? Number(f.Width1) : null,
+          Gramage1: f.Gramage1 ? Number(f.Gramage1) : null,
+          Sheet_count1: f.Sheet_count1 ? Number(f.Sheet_count1) : null,
+          Out_ord_num: f.Out_ord_num ? Number(f.Out_ord_num) : null,
+          Id_carton: f.Id_carton ? Number(f.Id_carton) : null,
+          Price: f.Price ? Number(f.Price) : null,
+        }),
+        (rowId, f) => updateCarton.mutateAsync({ rowId, data: {
+          ...f,
+          Long1: f.Long1 ? Number(f.Long1) : null,
+          Width1: f.Width1 ? Number(f.Width1) : null,
+          Gramage1: f.Gramage1 ? Number(f.Gramage1) : null,
+          Sheet_count1: f.Sheet_count1 ? Number(f.Sheet_count1) : null,
+          Out_ord_num: f.Out_ord_num ? Number(f.Out_ord_num) : null,
+          Id_carton: f.Id_carton ? Number(f.Id_carton) : null,
+          Price: f.Price ? Number(f.Price) : null,
+        }}),
         (rowId) => deleteCarton.mutateAsync(rowId),
       );
-    } catch (error) {
+     } catch (error) {
       console.error('❌ handleMaterialsChange error:', error);
     }
   }, [isEdit, materialsRows, syncRows, createCarton, updateCarton, deleteCarton, id, year]);
