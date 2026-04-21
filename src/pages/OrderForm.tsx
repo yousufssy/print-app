@@ -1121,7 +1121,7 @@ export default function OrderFormPage() {
     const demand = parseFloat(String(demandVal ?? ''));
     const sheetUnit = parseFloat(String(sheetUnitVal ?? ''));
     if (!demand || !sheetUnit || sheetUnit === 0) return '';
-    return Math.ceil((demand / sheetUnit) * 1.03).toLocaleString('ar-SA');
+    return Math.ceil((demand / sheetUnit) * 1.03).toLocaleString('en-US');
   }, [demandVal, sheetUnitVal]);
 
   // ══════════════════════════════════════════════════════
