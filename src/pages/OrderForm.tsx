@@ -188,11 +188,10 @@ const addRow = React.useCallback(() => {
   setLocalRows((prev) => {
     const nextRows = [...prev, { ...empty, ID: '', _isNew: 'true' }];
     pushDraftRows(nextRows);
-    const newTotalPages = Math.ceil(nextRows.length / pageSize);
-    setCurrentPage(newTotalPages - 1);
+    setCurrentPage(0); // ✅ انتقل للصفحة الأولى
     return nextRows;
   });
-}, [cols, pushDraftRows, pageSize]);
+}, [cols, pushDraftRows]);
 
   const setCell = React.useCallback((i: number, key: string, value: string) => {
     const finalValue = isNumericCol(key) ? cleanNumber(value) : value;
