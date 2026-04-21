@@ -1979,7 +1979,7 @@ window.addEventListener('load', () => {
                     ✦ لا توجد إيصالات — اضغط ➕ لإضافة إيصال
                   </td></tr>
                 )}
-                {vouchers.map((v, i) => (
+                {vouchers.slice(0, vouchersVisible).map((v, i) => (
                   <tr key={(v as any).ID1} style={{ borderBottom: '1px solid var(--border)', background: i % 2 === 0 ? '#fff' : '#fdf8f0' }}>
                     <td style={{ padding: '8px', textAlign: 'right' }}><span style={{ fontWeight: 600 }}>{v.Voucher_num || '—'}</span></td>
                     <td style={{ padding: '8px', textAlign: 'right' }}>{v.V_date || '—'}</td>
@@ -2000,9 +2000,23 @@ window.addEventListener('load', () => {
               </tbody>
             </table>
           </div>
-          <div style={{ marginTop: 12 }}>
-            <Btn variant="outline" type="button" onClick={() => setVoucherOpen(true)}>➕ إضافة إيصال</Btn>
-          </div>
+          {vouchers.length > vouchersVisible && (
+              <button
+                type="button"
+                onClick={() => setVouchersVisible(v => v + 5)}
+                style={{
+                  background: 'var(--steel)', color: '#fff', border: 'none',
+                  borderRadius: 6, padding: '6px 14px', cursor: 'pointer',
+                  fontFamily: 'Cairo, sans-serif', fontSize: 12,
+                  width: '100%', marginTop: 4,
+                }}
+              >
+                ⬇ عرض {Math.min(vouchers.length - vouchersVisible, 5)} إيصالات أخرى (متبقي {vouchers.length - vouchersVisible})
+              </button>
+            )}
+            <div style={{ marginTop: 12 }}>
+              <Btn variant="outline" type="button" onClick={() => setVoucherOpen(true)}>➕ إضافة إيصال</Btn>
+            </div>
         </AccordionCard>
 
         {/* ── Footer ── */}
