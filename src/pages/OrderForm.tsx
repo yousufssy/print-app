@@ -188,10 +188,11 @@ const addRow = React.useCallback(() => {
   setLocalRows((prev) => {
     const nextRows = [...prev, { ...empty, ID: '', _isNew: 'true' }];
     pushDraftRows(nextRows);
-    setCurrentPage(0); // ✅ انتقل للصفحة الأولى
+    const newTotalPages = Math.ceil(nextRows.length / pageSize);
+    setCurrentPage(newTotalPages - 1);
     return nextRows;
   });
-}, [cols, pushDraftRows]);
+}, [cols, pushDraftRows, pageSize]);
 
   const setCell = React.useCallback((i: number, key: string, value: string) => {
     const finalValue = isNumericCol(key) ? cleanNumber(value) : value;
@@ -236,8 +237,7 @@ const saveRow = React.useCallback(async (i: number) => {
     });
 
     // ✅ انتقل للصفحة التي تحتوي على هذا السطر
-    const targetPage = Math.floor(i / pageSize);
-    setCurrentPage(targetPage);
+    setCurrentPage(0);
 
   } finally {
     setSaving((s) => ({ ...s, [i]: false }));
