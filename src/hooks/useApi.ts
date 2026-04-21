@@ -60,7 +60,7 @@ export function useDeleteOrder() {
     mutationFn: ({ id, year }: { id: string; year: string }) => ordersApi.delete(id, year),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['orders'] });
-      toast.success('تم الحذف');
+      toast.success('🗑 تم حذف الطلب');
     },
     onError: (e: any) => toast.error(e.response?.data?.message || 'خطأ في الحذف'),
   });
@@ -93,9 +93,9 @@ export function useDeleteVoucher() {
     mutationFn: vouchersApi.delete,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['vouchers'] });
-      toast.success('تم حذف الإيصال');
+      toast.success('🗑 تم حذف الإيصال');
     },
-    onError: () => toast.error('خطأ في الحذف'),
+    onError: () => toast.error('خطأ في حذف الإيصال'),
   });
 }
 
@@ -108,7 +108,6 @@ export function useCartons(orderId: string, year: string) {
   });
 }
 
-// ✅ بعد
 export function useCreateCarton() {
   const qc = useQueryClient();
   return useMutation({
@@ -146,7 +145,14 @@ export function useDeleteCarton() {
 }
 
 // ── Problems ──────────────────────────────────────────
-// ✅ بعد
+export function useProblems(orderId: string, year: string) {
+  return useQuery({
+    queryKey: ['problems', orderId, year],
+    queryFn:  () => problemsApi.list(orderId, year),
+    enabled:  !!orderId && !!year,
+  });
+}
+
 export function useCreateProblem() {
   const qc = useQueryClient();
   return useMutation({
@@ -211,6 +217,7 @@ export function useUpdateOperation() {
       operationsApi.update(rowId, data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['operations'] });
+      toast.success('✅ تم تحديث العملية');
     },
     onError: () => toast.error('خطأ في تحديث العملية'),
   });
@@ -222,12 +229,11 @@ export function useDeleteOperation() {
     mutationFn: operationsApi.delete,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['operations'] });
-      toast.success('تم حذف العملية');
+      toast.success('🗑 تم حذف العملية');
     },
-    onError: () => toast.error('خطأ في الحذف'),
+    onError: () => toast.error('خطأ في حذف العملية'),
   });
 }
-
 
 // ── Customers ─────────────────────────────────────────
 export function useCustomers(q?: string) {
@@ -246,7 +252,10 @@ export function useCreateUser() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: usersApi.create,
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['users'] }); toast.success('✅ تم إضافة المستخدم'); },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['users'] });
+      toast.success('✅ تم إضافة المستخدم');
+    },
     onError: (e: any) => toast.error(e.response?.data?.message || 'خطأ'),
   });
 }
@@ -255,7 +264,10 @@ export function useUpdateUser() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: ({ id, data }: { id: number; data: any }) => usersApi.update(id, data),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['users'] }); toast.success('✅ تم التحديث'); },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['users'] });
+      toast.success('✅ تم تحديث المستخدم');
+    },
     onError: (e: any) => toast.error(e.response?.data?.message || 'خطأ'),
   });
 }
@@ -264,7 +276,10 @@ export function useDeleteUser() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: usersApi.delete,
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['users'] }); toast.success('تم الحذف'); },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['users'] });
+      toast.success('🗑 تم حذف المستخدم');
+    },
     onError: (e: any) => toast.error(e.response?.data?.message || 'خطأ'),
   });
 }
