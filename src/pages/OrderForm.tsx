@@ -30,19 +30,7 @@ function AccordionCard({
   const isControlled = isOpen !== undefined;
   const open = isControlled ? isOpen : internalOpen;
 
-
-  const demand = watch('Demand');
-  const sheetUnit = watch('sheet_unit_qunt');
-  
-  const platesCount =
-    demand && sheetUnit
-      ? ((Number(demand) / Number(sheetUnit)) * 1.03).toFixed(2)
-      : '';
-
-
-
-
-  
+ 
   const toggle = () => {
     if (isControlled) onToggle?.();
     else setInternalOpen(!open);
@@ -1580,6 +1568,17 @@ window.addEventListener('load', () => {
 </body>
 </html>`;
 
+
+    const demand = watch('Demand');
+    const sheetUnit = watch('sheet_unit_qunt');
+    
+    const platesCount =
+      demand && sheetUnit
+        ? ((Number(demand) / Number(sheetUnit)) * 1.03).toFixed(2)
+        : '';
+
+
+    
     const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
