@@ -288,127 +288,106 @@ const addRow = React.useCallback(() => {
             <tr>
               <td
                 colSpan={cols.length + 1}
-                style={{
-                  textAlign: 'center',
-                  color: 'var(--muted)',
-                  padding: 16,
-                }}
+                style={{ textAlign: 'center', color: 'var(--muted)', padding: 16 }}
               >
                 ✦ لا توجد سجلات — اضغط ➕ لإضافة سطر
               </td>
             </tr>
           )}
-
-          {visibleRows.map((row, i) => (
-            <tr
-              key={row.ID || `new-${i}`}
-              style={{
-                borderBottom: '1px solid var(--border)',
-                background:
-                  selectedRowId && (row.ID === selectedRowId || `new-${i}` === selectedRowId)
-                    ? 'rgba(52,152,219,0.1)'
-                    : row._isNew === 'true'
-                      ? '#fffbe6'
-                      : i % 2 === 0 ? '#fff' : '#fdf8f0',
-                cursor: selectable ? 'pointer' : 'default',
-              }}
-              onClick={() => selectable && onRowSelect?.(row)}
-            >
-              {/* ✅ خلية الراديو */}
-              {selectable && (
-                <td style={{ padding: '3px 6px', textAlign: 'center' }}>
-                  <input
-                    type="radio"
-                    name={radioName} // ✅ استخدم الـ prop
-                    checked={selectedRowId === (row.ID || `new-${i}`)}
-                    onChange={() => onRowSelect?.(row)}
-                    style={{ cursor: 'pointer', width: 16, height: 16 }}
-                  />
-                </td>
-              )}
-              {cols.map((c, ci) => {
-                const isNumber = c.type === 'number';
-                const value = isNumber
-                  ? cleanNumber(String(row[c.key] ?? ''))
-                  : (row[c.key] ?? '');
-
-                return (
-                  <td key={`${c.key}-${i}`} style={{ padding: '3px 5px' }}>
+        
+          {visibleRows.map((row, i) => {
+            const localIndex = currentPage * pageSize + i;
+        
+            return (
+              <tr
+                key={row.ID || `new-${localIndex}`}
+                style={{
+                  borderBottom: '1px solid var(--border)',
+                  background:
+                    selectedRowId && (row.ID === selectedRowId || `new-${localIndex}` === selectedRowId)
+                      ? 'rgba(52,152,219,0.1)'
+                      : row._isNew === 'true'
+                        ? '#fffbe6'
+                        : localIndex % 2 === 0 ? '#fff' : '#fdf8f0',
+                  cursor: selectable ? 'pointer' : 'default',
+                }}
+                onClick={() => selectable && onRowSelect?.(row)}
+              >
+                {selectable && (
+                  <td style={{ padding: '3px 6px', textAlign: 'center' }}>
                     <input
-                      value={value}
-                      type={c.type === 'date' ? 'date' : 'text'}
-                      inputMode={isNumber ? 'decimal' : undefined}
-                      onChange={(e) => {
-                        let val = e.target.value;
-                        if (isNumber) val = cleanNumber(val);
-                        setCell(i, c.key, val);
-                      }}
-                      style={{
-                        width: '100%',
-                        border: 'none',
-                        background: 'transparent',
-                        fontFamily: 'Cairo, sans-serif',
-                        fontSize: 12,
-                        outline: 'none',
-                        padding: '4px 3px',
-                        color: 'var(--ink)',
-                        textAlign: 'right',
-                      }}
-                      onFocus={(e) => {
-                        e.target.style.background = '#fff9f0';
-                      }}
+                      type="radio"
+                      name={radioName}
+                      checked={selectedRowId === (row.ID || `new-${localIndex}`)}
+                      onChange={() => onRowSelect?.(row)}
+                      style={{ cursor: 'pointer', width: 16, height: 16 }}
                     />
                   </td>
-                );
-              })}
-
-              <td
-                style={{
-                  padding: '3px 6px',
-                  textAlign: 'center',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                {saving[i] ? (
-                  <span style={{ fontSize: 11, color: 'var(--muted)' }}>⏳</span>
-                ) : (
-                  <>
-                    {(row._isNew === 'true' || dirtyRows.has(i)) && (
+                )}
+        
+                {cols.map((c) => {
+                  const isNumber = c.type === 'number';
+                  const value = isNumber
+                    ? cleanNumber(String(row[c.key] ?? ''))
+                    : (row[c.key] ?? '');
+        
+                  return (
+                    <td key={`${c.key}-${localIndex}`} style={{ padding: '3px 5px' }}>
+                      <input
+                        value={value}
+                        type={c.type === 'date' ? 'date' : 'text'}
+                        inputMode={isNumber ? 'decimal' : undefined}
+                        onChange={(e) => {
+                          let val = e.target.value;
+                          if (isNumber) val = cleanNumber(val);
+                          setCell(localIndex, c.key, val);
+                        }}
+                        style={{
+                          width: '100%', border: 'none', background: 'transparent',
+                          fontFamily: 'Cairo, sans-serif', fontSize: 12, outline: 'none',
+                          padding: '4px 3px', color: 'var(--ink)', textAlign: 'right',
+                        }}
+                        onFocus={(e) => { e.target.style.background = '#fff9f0'; }}
+                      />
+                    </td>
+                  );
+                })}
+        
+                <td style={{ padding: '3px 6px', textAlign: 'center', whiteSpace: 'nowrap' }}>
+                  {saving[localIndex] ? (
+                    <span style={{ fontSize: 11, color: 'var(--muted)' }}>⏳</span>
+                  ) : (
+                    <>
+                      {(row._isNew === 'true' || dirtyRows.has(localIndex)) && (
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); saveRow(localIndex); }}
+                          style={{
+                            background: 'none', border: 'none', cursor: 'pointer',
+                            color: '#27ae60', fontSize: 14, marginLeft: 4,
+                          }}
+                          title="حفظ"
+                        >
+                          💾
+                        </button>
+                      )}
                       <button
                         type="button"
-                        onClick={() => saveRow(i)}
+                        onClick={(e) => { e.stopPropagation(); delRow(localIndex); }}
                         style={{
-                          background: 'none',
-                          border: 'none',
-                          cursor: 'pointer',
-                          color: '#27ae60',
-                          fontSize: 14,
-                          marginLeft: 4,
+                          background: 'none', border: 'none', cursor: 'pointer',
+                          color: 'var(--red)', fontSize: 14,
                         }}
-                        title="حفظ"
+                        title="حذف"
                       >
-                        💾
+                        🗑
                       </button>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => delRow(i)}
-                      style={{
-                        background: 'none',
-                        border: 'none',
-                        cursor: 'pointer',
-                        color: 'var(--red)',
-                        fontSize: 14,
-                      }}
-                      title="حذف"
-                    >
-                      🗑
-                    </button>
-                  </>
-                )}
-              </td>
-            </tr>
-          ))}
+                    </>
+                  )}
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
 
        <tfoot>
