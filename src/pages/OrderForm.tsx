@@ -100,7 +100,8 @@ const InlineTable = React.memo(function InlineTable({
   selectable = false,
   selectedRowId,
   onRowSelect,
-  radioName = 'table-row-select', // ✅ جديد
+  radioName = 'table-row-select',
+  pageSize = 5, // ✅ جديد
 }: {
   cols: { key: string; label: string; type?: string; width?: number }[];
   rows: Record<string, string>[];
@@ -109,11 +110,22 @@ const InlineTable = React.memo(function InlineTable({
   selectable?: boolean;
   selectedRowId?: string;
   onRowSelect?: (row: Record<string, string>) => void;
-  radioName?: string; // ✅ جديد
+  radioName?: string;
+  pageSize?: number; // ✅ جديد
 }) {
   const [localRows, setLocalRows] = React.useState<Record<string, string>[]>([]);
   const [saving, setSaving] = React.useState<Record<number, boolean>>({});
   const [dirtyRows, setDirtyRows] = React.useState<Set<number>>(new Set());
+
+
+  const [visibleCount, setVisibleCount] = React.useState(pageSize);
+
+  React.useEffect(() => {
+    setVisibleCount(pageSize);
+  }, [rows, pageSize]);
+  
+  const visibleRows = localRows.slice(0, visibleCount);
+  const hiddenCount = localRows.length - visibleCount;
 
   const rowsRef = React.useRef(rows);
 
@@ -276,7 +288,7 @@ const InlineTable = React.memo(function InlineTable({
             </tr>
           )}
 
-          {localRows.map((row, i) => (
+          {visibleRows.map((row, i) => (
             <tr
               key={row.ID || `new-${i}`}
               style={{
@@ -389,28 +401,58 @@ const InlineTable = React.memo(function InlineTable({
         </tbody>
 
         <tfoot>
-          <tr>
-            <td colSpan={cols.length + 1} style={{ padding: '8px 10px' }}>
-              <button
-                type="button"
-                onClick={addRow}
-                style={{
-                  background: 'none',
-                  border: '1.5px dashed var(--border)',
-                  borderRadius: 6,
-                  padding: '5px 14px',
-                  cursor: 'pointer',
-                  color: 'var(--muted)',
-                  fontFamily: 'Cairo, sans-serif',
-                  fontSize: 12,
-                  width: '100%',
-                }}
-              >
-                ➕ إضافة سطر
-              </button>
-            </td>
-          </tr>
-        </tfoot>
+            {hiddenCount > 0 && (
+              <tr>
+                <td colSpan={cols.length + (selectable ? 2 : 1)} style={{ padding: '4px 10px' }}>
+                  <button
+                    type="button"
+                    onClick={() => setVisibleCount(v => v + pageSize)}
+                    style={{
+                      background: 'var(--steel)', color: '#fff', border: 'none',
+                      borderRadius: 6, padding: '6px 14px', cursor: 'pointer',
+                      fontFamily: 'Cairo, sans-serif', fontSize: 12, width: '100%',
+                    }}
+                  >
+                    ⬇ عرض {Math.min(hiddenCount, pageSize)} سطر أخرى (متبقي {hiddenCount})
+                  </button>
+                </td>
+              </tr>
+            )}
+            {visibleCount > pageSize && hiddenCount === 0 && (
+              <tr>
+                <td colSpan={cols.length + (selectable ? 2 : 1)} style={{ padding: '4px 10px' }}>
+                  <button
+                    type="button"
+                    onClick={() => setVisibleCount(pageSize)}
+                    style={{
+                      background: 'var(--bg)', color: 'var(--muted)',
+                      border: '1px solid var(--border)', borderRadius: 6,
+                      padding: '4px 14px', cursor: 'pointer',
+                      fontFamily: 'Cairo, sans-serif', fontSize: 12, width: '100%',
+                    }}
+                  >
+                    ⬆ إخفاء الأسطر الإضافية
+                  </button>
+                </td>
+              </tr>
+            )}
+            <tr>
+              <td colSpan={cols.length + (selectable ? 2 : 1)} style={{ padding: '8px 10px' }}>
+                <button
+                  type="button"
+                  onClick={addRow}
+                  style={{
+                    background: 'none', border: '1.5px dashed var(--border)',
+                    borderRadius: 6, padding: '5px 14px', cursor: 'pointer',
+                    color: 'var(--muted)', fontFamily: 'Cairo, sans-serif',
+                    fontSize: 12, width: '100%',
+                  }}
+                >
+                  ➕ إضافة سطر
+                </button>
+              </td>
+            </tr>
+          </tfoot>
       </table>
     </div>
   );
