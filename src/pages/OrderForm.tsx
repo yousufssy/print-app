@@ -30,7 +30,6 @@ function AccordionCard({
   const isControlled = isOpen !== undefined;
   const open = isControlled ? isOpen : internalOpen;
 
- 
   const toggle = () => {
     if (isControlled) onToggle?.();
     else setInternalOpen(!open);
@@ -1568,17 +1567,6 @@ window.addEventListener('load', () => {
 </body>
 </html>`;
 
-
-    const demand = watch('Demand');
-    const sheetUnit = watch('sheet_unit_qunt');
-    
-    const platesCount =
-      demand && sheetUnit
-        ? ((Number(demand) / Number(sheetUnit)) * 1.03).toFixed(2)
-        : '';
-
-
-    
     const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -1745,12 +1733,15 @@ window.addEventListener('load', () => {
             <G label="الطلبية"><input className="fc" {...register('Notes1')} style={{ textAlign: 'right' }} /></G>
             <G label="تعديل بالمونتاج"><input className="fc" {...register('modefyM')} style={{ textAlign: 'right' }} /></G>
           </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(8,1fr)', gap: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 12, marginTop: 12 }}>
             <G label="عدد الاطباق">
               <input
                 className="fc"
-                value={platesCount}
+                value={
+                  watch('Demand') && watch('sheet_unit_qunt') && Number(watch('sheet_unit_qunt')) !== 0
+                    ? ((Number(watch('Demand')) / Number(watch('sheet_unit_qunt'))) * 1.03).toFixed(2)
+                    : ''
+                }
                 readOnly
                 style={{
                   textAlign: 'right',
@@ -1759,6 +1750,8 @@ window.addEventListener('load', () => {
               />
             </G>
           </div>
+
+            
           <SectionDiv label="المواد" />
           <InlineTable
             cols={MATERIALS_COLS}
@@ -1803,7 +1796,7 @@ window.addEventListener('load', () => {
             <G label="الطبع على"><input className="fc" {...register('print_on')} style={{ textAlign: 'right' }} /></G>
             <G label="الطبع على"><input className="fc" {...register('print_on2')} style={{ textAlign: 'right' }} /></G>
             <G label="فصل الطبق"><input className="fc" {...register('sheet_unit_qunt')} style={{ textAlign: 'right' }} /></G>
-            <G label="فصل الطبق2"><input className="fc" {...register('sheet_unit_qunt2')} style={{ textAlign: 'right' }} /></G>
+            <G label="2فصل الطبق"><input className="fc" {...register('sheet_unit_qunt2')} style={{ textAlign: 'right' }} /></G>
             <G label="عدد الطبع"><input className="fc" {...register('Qunt_of_print_on')} style={{ textAlign: 'right' }} /></G>
             <G label="عدد الطبع"><input className="fc" {...register('Qunt_of_print_on2')} style={{ textAlign: 'right' }} /></G>
             <G label="عدد الألوان"><input className="fc" type="number" {...register('Clr_qunt')} style={{ textAlign: 'right' }} /></G>
