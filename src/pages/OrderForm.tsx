@@ -637,7 +637,7 @@ export default function OrderFormPage() {
   const [currentYear] = useState(String(new Date().getFullYear()));
   const ordersYearRef = useRef<string>(String(new Date().getFullYear()));
 
-  const { register, handleSubmit, reset, setValue } = useForm<Order>({
+  const { register, handleSubmit, reset, setValue , watch} = useForm<Order>({
     defaultValues: {
       Year: currentYear,
       ID: '',
@@ -1567,7 +1567,7 @@ window.addEventListener('load', () => {
 </body>
 </html>`;
 
-    const { register, watch } = useForm();
+   
     
     const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
     const url = URL.createObjectURL(blob);
