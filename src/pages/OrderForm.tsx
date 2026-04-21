@@ -1718,7 +1718,7 @@ window.addEventListener('load', () => {
             <G label="العيار"><input className="fc" {...register('ear')} style={{ textAlign: 'right' }} /></G>
             <G label="الوحدة">
               <select className="fc" {...register('UnitMed')} style={{ textAlign: 'right' }}>
-                <option>ورقة</option><option>كيلو</option><option>متر</option>
+                <option>علبة</option><option>كيلو</option><option>متر</option>
               </select>
             </G>
             <G label="تصدير"><input className="fc" {...register('Form')} style={{ textAlign: 'right' }} /></G>
