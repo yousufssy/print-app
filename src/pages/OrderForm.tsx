@@ -1710,7 +1710,7 @@ window.addEventListener('load', () => {
             <G label="نوع المطبوعة">
               <select className="fc" {...register('unit')} style={{ textAlign: 'right' }}>
                 <option value="">—</option>
-                {['علبة', 'كرتون', 'بروشور', 'استيكر', 'غلاف', 'وراقة دحابة'].map(v => <option key={v}>{v}</option>)}
+                {['بروشور', 'بروفة', 'بطاقة', 'دفتر', 'رول', 'طباعة', 'ظرف', 'علب', 'غلاف', 'كرت', 'كرتونة', 'كيس', 'لصاقة', 'متفرقات', 'نشرة', 'وراقة', 'ورق'].map(v => <option key={v}>{v}</option>)}
               </select>
             </G>
             <G label="الاسم"><input className="fc" {...register('Pattern')} style={{ textAlign: 'right' }} /></G>
@@ -1718,23 +1718,7 @@ window.addEventListener('load', () => {
             <G label="العيار"><input className="fc" {...register('ear')} style={{ textAlign: 'right' }} /></G>
             <G label="الوحدة">
               <select className="fc" {...register('UnitMed')} style={{ textAlign: 'right' }}>
-                <option>بروشور</option>
-                <option>بروفة</option>
-                <option>بطاقة</option>
-                <option>دفتر</option>
-                <option>رول</option>
-                <option>طباعة</option>
-                <option>ظرف</option>
-                <option>علب</option>
-                <option>غلاف</option>
-                <option>كرت</option>
-                <option>كرتونة</option>
-                <option>كيس</option>
-                <option>لصاقة</option>
-                <option>متفرقات</option>
-                <option>نشرة</option>
-                <option>وراقة</option>
-                <option>ورق</option>
+                <option>ورقة</option><option>كيلو</option><option>متر</option>
               </select>
             </G>
             <G label="تصدير"><input className="fc" {...register('Form')} style={{ textAlign: 'right' }} /></G>
