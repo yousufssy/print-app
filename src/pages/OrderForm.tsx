@@ -210,34 +210,40 @@ const addRow = React.useCallback(() => {
     });
   }, [isNumericCol, cleanNumber]);
 
-  const saveRow = React.useCallback(async (i: number) => {
-    const row = localRows[i];
-    if (!row) return;
+const saveRow = React.useCallback(async (i: number) => {
+  const row = localRows[i];
+  if (!row) return;
 
-    const isEmpty = cols.every((c) => !row[c.key]);
-    if (isEmpty) return;
+  const isEmpty = cols.every((c) => !row[c.key]);
+  if (isEmpty) return;
 
-    setSaving((s) => ({ ...s, [i]: true }));
+  setSaving((s) => ({ ...s, [i]: true }));
 
-    try {
-      const { _isNew, ID, ...fields } = row;
+  try {
+    const { _isNew, ID, ...fields } = row;
 
-      if (_isNew === 'true') {
-        const allRows = [...rowsRef.current, { ...fields }];
-        await onRowsChange(allRows);
-      } else if (ID) {
-        const updated = rowsRef.current.map((r) => (r.ID === ID ? row : r));
-        await onRowsChange(updated);
-      }
-      setDirtyRows((prev) => {
-        const next = new Set(prev);
-        next.delete(i);
-        return next;
-      });
-    } finally {
-      setSaving((s) => ({ ...s, [i]: false }));
+    if (_isNew === 'true') {
+      const allRows = [...rowsRef.current, { ...fields }];
+      await onRowsChange(allRows);
+    } else if (ID) {
+      const updated = rowsRef.current.map((r) => (r.ID === ID ? row : r));
+      await onRowsChange(updated);
     }
-  }, [cols, localRows, onRowsChange]);
+
+    setDirtyRows((prev) => {
+      const next = new Set(prev);
+      next.delete(i);
+      return next;
+    });
+
+    // ✅ انتقل للصفحة التي تحتوي على هذا السطر
+    const targetPage = Math.floor(i / pageSize);
+    setCurrentPage(targetPage);
+
+  } finally {
+    setSaving((s) => ({ ...s, [i]: false }));
+  }
+}, [cols, localRows, onRowsChange, pageSize]);
 
   const delRow = React.useCallback(async (i: number) => {
     const row = localRows[i];
