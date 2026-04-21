@@ -667,20 +667,7 @@ export default function OrderFormPage() {
   const [pendingProblems, setPendingProblems] = useState<Record<string, string>[]>([]);
   const [pendingOps, setPendingOps] = useState<Record<string, string>[]>([]);
 
-  const [selectedOpRow, setSelectedOpRow] = useState<Record<string, string> | null>(null);
 
-  useEffect(() => {
-      const rows = isEdit ? operationsRows : pendingOps;
-      if (rows.length > 0 && !selectedOpRow) {
-        setSelectedOpRow(rows[0]);
-        setValue('Qunt_Ac', rows[0].Qunt_Ac ?? '');
-      }
-    }, [operationsRows, pendingOps]);
-    
-    const handleOpRowSelect = useCallback((row: Record<string, string>) => {
-      setSelectedOpRow(row);
-      setValue('Qunt_Ac', row.Qunt_Ac ?? '');
-    }, [setValue]);
 
   const handleMaterialsChange = useCallback(async (newRows: Record<string, string>[]) => {
     if (!isEdit) {
@@ -767,6 +754,22 @@ export default function OrderFormPage() {
       Tabrer: op.Tabrer ?? '',
     })), [operationsData]
   );
+
+
+  const [selectedOpRow, setSelectedOpRow] = useState<Record<string, string> | null>(null);
+
+  useEffect(() => {
+      const rows = isEdit ? operationsRows : pendingOps;
+      if (rows.length > 0 && !selectedOpRow) {
+        setSelectedOpRow(rows[0]);
+        setValue('Qunt_Ac', rows[0].Qunt_Ac ?? '');
+      }
+    }, [operationsRows, pendingOps]);
+    
+    const handleOpRowSelect = useCallback((row: Record<string, string>) => {
+      setSelectedOpRow(row);
+      setValue('Qunt_Ac', row.Qunt_Ac ?? '');
+    }, [setValue]);
 
   const handleOperationsChange = useCallback(async (newRows: Record<string, string>[]) => {
     if (!isEdit) {
