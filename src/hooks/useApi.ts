@@ -87,17 +87,17 @@ export function useCreateVoucher() {
   });
 }
 
-export function useDeleteVoucher() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: vouchersApi.delete,
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['vouchers'] });
-      toast.success('🗑 تم حذف الإيصال');
-    },
-    onError: () => toast.error('خطأ في حذف الإيصال'),
-  });
-}
+// export function useDeleteVoucher() {
+//   const qc = useQueryClient();
+//   return useMutation({
+//     mutationFn: vouchersApi.delete,
+//     onSuccess: () => {
+//       qc.invalidateQueries({ queryKey: ['vouchers'] });
+//       toast.success('🗑 تم حذف الإيصال');
+//     },
+//     onError: () => toast.error('خطأ في حذف الإيصال'),
+//   });
+// }
 
 // ── Cartons ───────────────────────────────────────────
 export function useCartons(orderId: string, year: string) {
