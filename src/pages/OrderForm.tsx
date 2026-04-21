@@ -1706,14 +1706,6 @@ window.addEventListener('load', () => {
             <G label="نموذج طبي"><input className="fc" type="number" {...register('Med_smpl_Q')} style={{ textAlign: 'right' }} /></G>
             <G label="سنة العمل" req><input className="fc" {...register('Year', { required: true })} style={{ textAlign: 'right' }} /></G>
           </div>
-        </AccordionCard>
-
-        {/* ══ 2. مواصفات المطبوعة ══ */}
-        <AccordionCard
-          title="🎨 مواصفات المطبوعة"
-          isOpen={openSections.specs}
-          onToggle={() => toggleSection('specs')}
-        >
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(8,1fr)', gap: 12 }}>
             <G label="نوع المطبوعة">
               <select className="fc" {...register('unit')} style={{ textAlign: 'right' }}>
@@ -1766,6 +1758,15 @@ window.addEventListener('load', () => {
               />
             </G>
           </div>
+        </AccordionCard>
+
+        {/* ══ 2. مواصفات المطبوعة ══ */}
+        <AccordionCard
+          title="🎨 مواصفات المطبوعة"
+          isOpen={openSections.specs}
+          onToggle={() => toggleSection('specs')}
+        >
+          
 
           <SectionDiv label="المواد" />
           <InlineTable
