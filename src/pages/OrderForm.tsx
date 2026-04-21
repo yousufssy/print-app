@@ -30,6 +30,19 @@ function AccordionCard({
   const isControlled = isOpen !== undefined;
   const open = isControlled ? isOpen : internalOpen;
 
+
+  const demand = watch('Demand');
+  const sheetUnit = watch('sheet_unit_qunt');
+  
+  const platesCount =
+    demand && sheetUnit
+      ? ((Number(demand) / Number(sheetUnit)) * 1.03).toFixed(2)
+      : '';
+
+
+
+
+  
   const toggle = () => {
     if (isControlled) onToggle?.();
     else setInternalOpen(!open);
@@ -1734,6 +1747,19 @@ window.addEventListener('load', () => {
             <G label="تعديل بالمونتاج"><input className="fc" {...register('modefyM')} style={{ textAlign: 'right' }} /></G>
           </div>
 
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(8,1fr)', gap: 12 }}>
+            <G label="عدد الاطباق">
+              <input
+                className="fc"
+                value={platesCount}
+                readOnly
+                style={{
+                  textAlign: 'right',
+                  background: '#f8f9fa'
+                }}
+              />
+            </G>
+          </div>
           <SectionDiv label="المواد" />
           <InlineTable
             cols={MATERIALS_COLS}
@@ -1778,7 +1804,7 @@ window.addEventListener('load', () => {
             <G label="الطبع على"><input className="fc" {...register('print_on')} style={{ textAlign: 'right' }} /></G>
             <G label="الطبع على"><input className="fc" {...register('print_on2')} style={{ textAlign: 'right' }} /></G>
             <G label="فصل الطبق"><input className="fc" {...register('sheet_unit_qunt')} style={{ textAlign: 'right' }} /></G>
-            <G label="2فصل الطبق"><input className="fc" {...register('sheet_unit_qunt2')} style={{ textAlign: 'right' }} /></G>
+            <G label="فصل الطبق2"><input className="fc" {...register('sheet_unit_qunt2')} style={{ textAlign: 'right' }} /></G>
             <G label="عدد الطبع"><input className="fc" {...register('Qunt_of_print_on')} style={{ textAlign: 'right' }} /></G>
             <G label="عدد الطبع"><input className="fc" {...register('Qunt_of_print_on2')} style={{ textAlign: 'right' }} /></G>
             <G label="عدد الألوان"><input className="fc" type="number" {...register('Clr_qunt')} style={{ textAlign: 'right' }} /></G>
