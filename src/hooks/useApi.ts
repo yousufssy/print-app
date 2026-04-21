@@ -204,17 +204,7 @@ export function useCreateOperation() {
   });
 }
 
-export function useUpdateOperation() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: ({ rowId, data }: { rowId: number; data: any }) =>
-      operationsApi.update(rowId, data),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['operations'] });
-    },
-    onError: () => toast.error('خطأ في تحديث العملية'),
-  });
-}
+
 
 export function useDeleteOperation() {
   const qc = useQueryClient();
