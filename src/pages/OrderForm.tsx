@@ -178,17 +178,21 @@ const InlineTable = React.memo(function InlineTable({
     [onRowsChange, syncDraftRows]
   );
 
-  const addRow = React.useCallback(() => {
-    const empty = Object.fromEntries(cols.map((c) => [c.key, '']));
-    setLocalRows((prev) => {
-      const nextRows = [...prev, { ...empty, ID: '', _isNew: 'true' }];
-      pushDraftRows(nextRows);
-      // ✅ انتقل للصفحة الأخيرة
-      const newTotalPages = Math.ceil(nextRows.length / pageSize);
-      setCurrentPage(newTotalPages - 1);
-      return nextRows;
-    });
-  }, [cols, pushDraftRows, pageSize]);
+// ✅ تحقق إذا آخر سطر فارغ
+const hasEmptyNewRow = localRows.length > 0 && 
+  localRows[localRows.length - 1]._isNew === 'true' &&
+  cols.every(c => !localRows[localRows.length - 1][c.key]);
+
+const addRow = React.useCallback(() => {
+  const empty = Object.fromEntries(cols.map((c) => [c.key, '']));
+  setLocalRows((prev) => {
+    const nextRows = [...prev, { ...empty, ID: '', _isNew: 'true' }];
+    pushDraftRows(nextRows);
+    const newTotalPages = Math.ceil(nextRows.length / pageSize);
+    setCurrentPage(newTotalPages - 1);
+    return nextRows;
+  });
+}, [cols, pushDraftRows, pageSize]);
 
   const setCell = React.useCallback((i: number, key: string, value: string) => {
     const finalValue = isNumericCol(key) ? cleanNumber(value) : value;
@@ -414,18 +418,22 @@ const InlineTable = React.memo(function InlineTable({
                 
                 {/* ✅ زر إضافة سطر */}
                 <button
-                  type="button"
-                  onClick={addRow}
-                  style={{
-                    background: 'none', border: '1.5px dashed var(--border)',
-                    borderRadius: 6, padding: '5px 14px', cursor: 'pointer',
-                    color: 'var(--muted)', fontFamily: 'Cairo, sans-serif',
-                    fontSize: 12, flex: 1,
-                  }}
-                >
-                  ➕ إضافة سطر
-                </button>
-        
+                    type="button"
+                    onClick={addRow}
+                    disabled={hasEmptyNewRow}
+                    style={{
+                      background: 'none',
+                      border: `1.5px dashed ${hasEmptyNewRow ? '#ccc' : 'var(--border)'}`,
+                      borderRadius: 6, padding: '5px 14px',
+                      cursor: hasEmptyNewRow ? 'not-allowed' : 'pointer',
+                      color: hasEmptyNewRow ? '#ccc' : 'var(--muted)',
+                      fontFamily: 'Cairo, sans-serif',
+                      fontSize: 12, flex: 1,
+                      opacity: hasEmptyNewRow ? 0.5 : 1,
+                    }}
+                  >
+                    {hasEmptyNewRow ? '✏️ أدخل البيانات أولاً' : '➕ إضافة سطر'}
+                  </button>        
                 {/* ✅ أسهم التنقل - تظهر فقط إذا أكثر من صفحة */}
                 {totalPages > 1 && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
